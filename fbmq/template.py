@@ -46,10 +46,13 @@ class BaseButton(object):
 
 
 class ButtonWeb(BaseButton):
-    def __init__(self, title, url):
+    def __init__(self, title, url, webview_height_ratio='full', messenger_extensions=False, fallback_url=None):
         self.type = 'web_url'
         self.title = title
         self.url = url
+        self.webview_height_ratio = webview_height_ratio
+        self.messenger_extensions = messenger_extensions
+        self.fallback_url = fallback_url
 
 
 class ButtonPostBack(BaseButton):
