@@ -30,7 +30,8 @@ class Buttons(object):
                         elif type == 'phone_number':
                             result.append(ButtonPhoneNumber(title=title, payload=value))
                         elif type == 'element_share':
-                            result.append(ButtonShare())
+                            share_contents = item.get('share_contents')
+                            result.append(ButtonShare(share_contents))
 
                     else:
                         raise ValueError('Invalid button type')
@@ -71,8 +72,9 @@ class ButtonPhoneNumber(BaseButton):
 
 
 class ButtonShare(BaseButton):
-    def __init__(self):
+    def __init__(self, share_contents):
         self.type = 'element_share'
+        self.share_contents = share_contents
 
 
 class Generic(object):
