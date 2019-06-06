@@ -351,8 +351,11 @@ class PaymentEvent(Event): #beta
 
 
 class StandByEvent(Event):
-    # suggest me to handle it.
-    pass
+    def __init__(self, standby, **kwargs):
+    super(StandByEvent, self).__init__(**kwargs)
+
+    self.name = 'standby'
+    self.standby = standby
 
 
 class PrecheckoutEvent(Event): # beta
