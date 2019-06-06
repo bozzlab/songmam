@@ -251,14 +251,19 @@ class Page(object):
         # There may be multiple if batched
         def get_events(data):
             for entry in data.get("entry"):
-                messagings = entry.get("messaging") or entry.get("standby")
+                messagings = entry.get("messaging")
 
-                if not messagings:
+                # handle standby events
+                if 'standby' in entry:
+                    event = event_parser(entry)
+                    yield event
+                elif messagings:
+                    for messaging in messagings:
+                        event = event_parser(messaging)
+                        yield event
+                else:
                     print("Webhook received unsupported Entry:", entry)
                     continue
-                for messaging in messagings:
-                    event = event_parser(messaging)
-                    yield event
 
         for event in get_events(data):
             if isinstance(event, OptinEvent):
