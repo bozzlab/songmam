@@ -352,10 +352,10 @@ class PaymentEvent(Event): #beta
 
 class StandByEvent(Event):
     def __init__(self, standby, **kwargs):
-    super(StandByEvent, self).__init__(**kwargs)
+        super(StandByEvent, self).__init__(**kwargs)
 
-    self.name = 'standby'
-    self.standby = standby
+        self.name = 'standby'
+        self.standby = standby
 
 
 class PrecheckoutEvent(Event): # beta
