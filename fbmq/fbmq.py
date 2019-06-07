@@ -190,6 +190,8 @@ def event_parser(messaging=None):
         event_type = PostBackEvent
     elif 'referral' in messaging:
         event_type = ReferralEvent
+    elif 'standby' in messaging:
+        event_type = StandByEvent
     else:
         print("Webhook received unknown messaging")
         return
@@ -209,7 +211,7 @@ class Page(object):
         self._page_id = None
         self._page_name = None
 
-    WEBHOOK_ENDPOINTS = ['optin', 'message', 'echo', 'delivery', 'postback', 'read', 'account_linking', 'referral']
+    WEBHOOK_ENDPOINTS = ['optin', 'message', 'echo', 'delivery', 'postback', 'read', 'account_linking', 'referral', 'standby']
 
     # these are set by decorators or the 'set_webhook_handler' method
     _webhook_handlers = {}
@@ -237,7 +239,7 @@ class Page(object):
                        postback=None, read=None, account_linking=None, referral=None,
                        game_play=None, pass_thread_control=None, take_thread_control=None,
                        request_thread_control=None, app_roles=None, policy_enforcement=None,
-                       checkout_update=None, payment=None):
+                       checkout_update=None, payment=None, standby=None):
         data = json.loads(payload)
 
         # Make sure this is a page subscription
@@ -250,12 +252,18 @@ class Page(object):
         def get_events(data):
             for entry in data.get("entry"):
                 messagings = entry.get("messaging")
-                if not messagings:
+
+                # handle standby events
+                if 'standby' in entry:
+                    event = event_parser(entry)
+                    yield event
+                elif messagings:
+                    for messaging in messagings:
+                        event = event_parser(messaging)
+                        yield event
+                else:
                     print("Webhook received unsupported Entry:", entry)
                     continue
-                for messaging in messagings:
-                    event = event_parser(messaging)
-                    yield event
 
         for event in get_events(data):
             if isinstance(event, OptinEvent):
@@ -298,6 +306,8 @@ class Page(object):
                 self._call_handler('checkout_update', checkout_update, event)
             elif isinstance(event, PaymentEvent):
                 self._call_handler('payment', payment, event)
+            elif isinstance(event, StandByEvent):
+                self._call_handler('standby', standby, event)
             else:
                 print("Webhook received unknown messaging Event:", event)
 
@@ -582,6 +592,9 @@ class Page(object):
 
     def handle_payment(self, func):
         self._webhook_handlers['payment'] = func
+
+    def handle_standby(self, func):
+        self._webhook_handlers['standby'] = func
 
     def after_send(self, func):
         self._after_send = func
