@@ -82,6 +82,7 @@ class Generic(object):
         self.type = 'template'
         self.payload = {
             'template_type': 'generic',
+            'sharable': False,
             'elements': elements,
             'image_aspect_ratio': 'square' if square_image else 'horizontal'
         }
