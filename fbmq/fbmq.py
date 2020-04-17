@@ -401,6 +401,9 @@ class Page(object):
 
         return self._send(payload, callback=callback)
 
+    def send_json(self, json_payload, callback=None):
+        return self._send(Payload(**json.loads(json_payload)), callback)
+
     def typing_on(self, recipient_id):
         payload = Payload(recipient=Recipient(id=recipient_id),
                           sender_action=SenderAction.TYPING_ON)
