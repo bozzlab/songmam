@@ -9,3 +9,6 @@ urbanairship.egg-info/
 /build
 env
 .vscode/
+.venv/
+
+songmam.egg-info/

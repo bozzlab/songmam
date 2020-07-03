@@ -2,9 +2,9 @@ import unittest
 import json
 import mock
 import responses
-from fbmq.fbmq import Page, LocalizedObj, SUPPORTED_API_VERS
-from fbmq import template as Template
-from fbmq import events as Event
+from songmam.page import Page, LocalizedObj, SUPPORTED_API_VERS
+from songmam import template as Template
+from songmam import events as Event
 
 
 class MessengerAPIMock():

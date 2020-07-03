@@ -1,6 +1,6 @@
 import unittest
-from fbmq import template as Template
-from fbmq import utils
+from songmam import template as Template
+from songmam import utils
 
 
 class TemplateTest(unittest.TestCase):

@@ -3,10 +3,9 @@ import os
 parentdir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 os.sys.path.insert(0,parentdir)
 
-import json
-from example.config import CONFIG
-from fbmq import Attachment, Template, QuickReply, NotificationType
-from example.fbpage import page
+from example.ARCHIVED.config import CONFIG
+from songmam import Template, QuickReply, NotificationType
+from example.ARCHIVED.fbpage import page
 
 USER_SEQ = {}
 
@@ -149,23 +148,23 @@ def send_text_callback(payload, response):
 
 
 def send_image(recipient):
-    page.send(recipient, Attachment.Image(CONFIG['SERVER_URL'] + "/assets/rift.png"))
+    page.send(recipient, attachment.Image(CONFIG['SERVER_URL'] + "/assets/rift.png"))
 
 
 def send_gif(recipient):
-    page.send(recipient, Attachment.Image(CONFIG['SERVER_URL'] + "/assets/instagram_logo.gif"))
+    page.send(recipient, attachment.Image(CONFIG['SERVER_URL'] + "/assets/instagram_logo.gif"))
 
 
 def send_audio(recipient):
-    page.send(recipient, Attachment.Audio(CONFIG['SERVER_URL'] + "/assets/sample.mp3"))
+    page.send(recipient, attachment.Audio(CONFIG['SERVER_URL'] + "/assets/sample.mp3"))
 
 
 def send_video(recipient):
-    page.send(recipient, Attachment.Video(CONFIG['SERVER_URL'] + "/assets/allofus480.mov"))
+    page.send(recipient, attachment.Video(CONFIG['SERVER_URL'] + "/assets/allofus480.mov"))
 
 
 def send_file(recipient):
-    page.send(recipient, Attachment.File(CONFIG['SERVER_URL'] + "/assets/test.txt"))
+    page.send(recipient, attachment.File(CONFIG['SERVER_URL'] + "/assets/test.txt"))
 
 
 def send_button(recipient):

@@ -1,7 +1,11 @@
 import sys
 import re
 import requests
+from loguru import logger
 
+from .api.events import MessageEvent
+from .webhook import Webhook
+from .events.messages import TextMessage
 from .payload import *
 from .template import *
 from .events import *
@@ -9,12 +13,7 @@ from .events import *
 
 # See https://developers.facebook.com/docs/graph-api/changelog
 SUPPORTED_API_VERS=[
-    "v2.11",
-    "v2.10",
-    "v2.9",
-    "v2.8",
-    "v2.7",
-    "v2.6",
+    "v7.0" # May 5, 2020
 ]
 
 # See https://developers.facebook.com/docs/messenger-platform/messenger-profile/supported-locales
@@ -126,7 +125,7 @@ SUPPORTED_LOCALES=[
 ]
 
 
-class LocalizedObj():
+class LocalizedObj:
     def __init__(self, locale, obj):
         if locale not in SUPPORTED_LOCALES:
             raise ValueError("Unsupported locale: {}".format(locale))
@@ -149,63 +148,67 @@ class SenderAction:
     MARK_SEEN = 'mark_seen'
 
 
-def event_parser(messaging=None):
-    if messaging is None:
-        messaging = dict()
+# def event_parser(messaging=None):
+#     if messaging is None:
+#         messaging = dict()
+#
+#     if 'message' in messaging:
+#         is_echo = messaging.get('message', {}).get('is_echo')
+#         if is_echo:
+#             event_type = EchoEvent
+#         else:
+#             event_type = MessageEvent
+#     elif 'delivery' in messaging:
+#         event_type = DeliveriesEvent
+#     elif 'read' in messaging:
+#         event_type = ReadEvent.new_from_json_dict(messaging)
+#     elif 'account_linking' in messaging:
+#         event_type = AccountLinkingEvent
+#     elif 'checkout_update' in messaging:
+#         event_type = CheckOutUpdateEvent
+#     elif 'game_play' in messaging:
+#         event_type = GamePlayEvent.new_from_json_dict(messaging)
+#     elif 'pass_thread_control' in messaging:
+#         event_type = PassThreadEvent
+#     elif 'take_thread_control' in messaging:
+#         event_type = TakeThreadEvent
+#     elif 'request_thread_control' in messaging:
+#         event_type = RequestThreadEvent
+#     elif 'app_roles' in messaging:
+#         event_type = AppRoleEvent
+#     elif 'optin' in messaging:
+#         event_type = OptinEvent
+#     elif 'payment' in messaging:
+#         event_type = PaymentEvent
+#     elif 'policy-enforcement' in messaging:
+#         # key name must be changed for properly use to class instance.
+#         messaging['policy_enforcement'] = messaging['policy-enforcement']
+#         del messaging['policy-enforcement']
+#         event_type = PolicyEnforcementEvent
+#     elif 'postback' in messaging:
+#         event_type = PostBackEvent
+#     elif 'referral' in messaging:
+#         event_type = ReferralEvent
+#     elif 'standby' in messaging:
+#         event_type = StandByEvent
+#     else:
+#         print("Webhook received unknown messaging")
+#         return
+#     event = event_type.new_from_json_dict(messaging)
+#
+#     return event
 
-    if 'message' in messaging:
-        is_echo = messaging.get('message', {}).get('is_echo')
-        if is_echo:
-            event_type = EchoEvent
-        else:
-            event_type = MessageEvent
-    elif 'delivery' in messaging:
-        event_type = DeliveriesEvent
-    elif 'read' in messaging:
-        event_type = ReadEvent.new_from_json_dict(messaging)
-    elif 'account_linking' in messaging:
-        event_type = AccountLinkingEvent
-    elif 'checkout_update' in messaging:
-        event_type = CheckOutUpdateEvent
-    elif 'game_play' in messaging:
-        event_type = GamePlayEvent.new_from_json_dict(messaging)
-    elif 'pass_thread_control' in messaging:
-        event_type = PassThreadEvent
-    elif 'take_thread_control' in messaging:
-        event_type = TakeThreadEvent
-    elif 'request_thread_control' in messaging:
-        event_type = RequestThreadEvent
-    elif 'app_roles' in messaging:
-        event_type = AppRoleEvent
-    elif 'optin' in messaging:
-        event_type = OptinEvent
-    elif 'payment' in messaging:
-        event_type = PaymentEvent
-    elif 'policy-enforcement' in messaging:
-        # key name must be changed for properly use to class instance.
-        messaging['policy_enforcement'] = messaging['policy-enforcement']
-        del messaging['policy-enforcement']
-        event_type = PolicyEnforcementEvent
-    elif 'postback' in messaging:
-        event_type = PostBackEvent
-    elif 'referral' in messaging:
-        event_type = ReferralEvent
-    elif 'standby' in messaging:
-        event_type = StandByEvent
-    else:
-        print("Webhook received unknown messaging")
-        return
-    event = event_type.new_from_json_dict(messaging)
-
-    return event
 
 
+class Page:
+    page_access_token: str
+    verify_token: str
 
-class Page(object):
-    def __init__(self, page_access_token, **options):
+    def __init__(self, page_access_token: str, verify_token: str, **options):
         self.page_access_token = page_access_token
+        self.verify_token = verify_token
         self._after_send = options.pop('after_send', None)
-        self._api_ver = options.pop('api_ver', 'v2.6')
+        self._api_ver = options.pop('api_ver', 'v7.0')
         if self._api_ver not in SUPPORTED_API_VERS:
             raise ValueError('Unsupported API Version : ' + self._api_ver)
         self._page_id = None
@@ -227,89 +230,22 @@ class Page(object):
     def _api_uri(self, sub):
         return "https://graph.facebook.com/" + self._api_ver + "/" + sub
 
-    def _call_handler(self, name, func, *args, **kwargs):
-        if func is not None:
-            func(*args, **kwargs)
-        elif name in self._webhook_handlers:
+    def _call_handler(self, name, *args, **kwargs):
+        if name in self._webhook_handlers:
             self._webhook_handlers[name](*args, **kwargs)
         else:
-            print("there's no %s handler" % name)
+            logger.warning("there's no %s handler" % name)
 
-    def handle_webhook(self, payload, optin=None, message=None, echo=None, delivery=None,
-                       postback=None, read=None, account_linking=None, referral=None,
-                       game_play=None, pass_thread_control=None, take_thread_control=None,
-                       request_thread_control=None, app_roles=None, policy_enforcement=None,
-                       checkout_update=None, payment=None, standby=None):
-        data = json.loads(payload)
+    # def handle_webhook(self, webhook: Webhook):
+    #     pass
 
-        # Make sure this is a page subscription
-        if data.get("object") != "page":
-            print("Webhook failed, only support page subscription")
-            return False
-
-        # Iterate over each entry
-        # There may be multiple if batched
-        def get_events(data):
-            for entry in data.get("entry"):
-                messagings = entry.get("messaging")
-
-                # handle standby events
-                if 'standby' in entry:
-                    event = event_parser(entry)
-                    yield event
-                elif messagings:
-                    for messaging in messagings:
-                        event = event_parser(messaging)
-                        yield event
-                else:
-                    print("Webhook received unsupported Entry:", entry)
-                    continue
-
-        for event in get_events(data):
-            if isinstance(event, OptinEvent):
-                self._call_handler('optin', optin, event)
-            elif isinstance(event, EchoEvent):
-                self._call_handler('echo', echo, event)
-            elif isinstance(event, MessageEvent):
-                self._call_handler('message', message, event)
-                if event.is_quick_reply:
-                    matched_callbacks = self.get_quick_reply_callbacks(event)
-                    for callback in matched_callbacks:
-                        callback(event.quick_reply_payload, event)
-            elif isinstance(event, DeliveriesEvent):
-                self._call_handler('delivery', delivery, event)
-            elif isinstance(event, PostBackEvent):
-                matched_callbacks = self.get_postback_callbacks(event)
-                self._call_handler('postback', postback, event)
-                for callback in matched_callbacks:
-                    callback(event.payload, event)
-            elif isinstance(event, ReadEvent):
-                self._call_handler('read', read, event)
-            elif isinstance(event, AccountLinkingEvent):
-                self._call_handler('account_linking', account_linking, event)
-            elif isinstance(event, ReferralEvent):
-                self._call_handler('referral', referral, event)
-
-            elif isinstance(event, GamePlayEvent):
-                self._call_handler('game_play', game_play, event)
-            elif isinstance(event, PassThreadEvent):
-                self._call_handler('pass_thread_control', pass_thread_control, event)
-            elif isinstance(event, TakeThreadEvent):
-                self._call_handler('take_thread_control', take_thread_control, event)
-            elif isinstance(event, RequestThreadEvent):
-                self._call_handler('request_thread_control', request_thread_control, event)
-            elif isinstance(event, AppRoleEvent):
-                self._call_handler('app_roles', app_roles, event)
-            elif isinstance(event, PolicyEnforcementEvent):
-                self._call_handler('policy_enforcement', policy_enforcement, event)
-            elif isinstance(event ,CheckOutUpdateEvent):
-                self._call_handler('checkout_update', checkout_update, event)
-            elif isinstance(event, PaymentEvent):
-                self._call_handler('payment', payment, event)
-            elif isinstance(event, StandByEvent):
-                self._call_handler('standby', standby, event)
+    async def handle_webhook(self, webhook: Webhook):
+        for entry in webhook.entry:
+            handler = self._webhook_handlers.get(type(entry.theMessaging))
+            if handler:
+                handler(MessageEvent(entry))
             else:
-                print("Webhook received unknown messaging Event:", event)
+                logger.warning("there's no {} handler", type(entry.theMessaging))
 
     @property
     def page_id(self):
@@ -555,7 +491,7 @@ class Page(object):
         self._webhook_handlers['optin'] = func
 
     def handle_message(self, func):
-        self._webhook_handlers['message'] = func
+        self._webhook_handlers[TextMessage] = func
 
     def handle_echo(self, func):
         self._webhook_handlers['echo'] = func
@@ -601,6 +537,7 @@ class Page(object):
 
     def handle_standby(self, func):
         self._webhook_handlers['standby'] = func
+
 
     def after_send(self, func):
         self._after_send = func

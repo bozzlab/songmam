@@ -1,61 +1,35 @@
+
 import json
 
-class Event(object):
-    def __init__(self, sender=None, recipient=None, timestamp=None, **kwargs):
-        if sender is None:
-            sender = dict()
-        if recipient is None:
-            recipient = dict()
-        self.sender = sender
-        self.recipient = recipient
-        self.timestamp = timestamp
+from songmam.webhook import Entry
 
-    @property
-    def sender_id(self):
-        return self.sender.get('id')
 
-    @property
-    def recipient_id(self):
-        return self.recipient.get('id')
+class Event:
+    entry: Entry
 
-    @classmethod
-    def new_from_json_dict(cls, data):
-        return cls(**data)
+    def __init__(self, entry):
+        self.entry = entry
+        self.sender = self.entry.theMessaging.sender
+        self.recipient = self.entry.theMessaging.recipient
+
 
     def __str__(self):
+        # TODO: some infomative
         return json.dumps(self.__class__.__name__)
 
 
 class MessageEvent(Event):
-    def __init__(self, message, **kwargs):
-        super(MessageEvent, self).__init__(**kwargs)
+    def __init__(self, entry):
+        super(MessageEvent, self).__init__(entry)
 
         self.name = 'message'
-        self.message = message
+        # self.message = self.entry.theMessaging.message
+        self.text = self.entry.theMessaging.message.text
+        self.message_id = self.entry.theMessaging.message.mid
+        self.quick_reply = self.entry.theMessaging.message.quick_reply
+        self.reply_to= self.entry.theMessaging.message.reply_to
+        self.attachments= self.entry.theMessaging.message.attachments
 
-    @property
-    def mid(self):
-        return self.message.get('mid')
-
-    @property
-    def text(self):
-        return self.message.get('text')
-
-    @property
-    def attachments(self):
-        return self.message.get('attachments', [])
-
-    @property
-    def quick_reply(self):
-        return self.message.get('quick_reply', {})
-
-    @property
-    def quick_reply_payload(self):
-        return self.quick_reply.get('payload')
-
-    @property
-    def is_quick_reply(self):
-        return self.message.get('quick_reply') is not None
 
 
 class DeliveriesEvent(Event):
@@ -357,6 +331,3 @@ class StandByEvent(Event):
         self.name = 'standby'
         self.standby = standby
 
-
-class PrecheckoutEvent(Event): # beta
-    pass

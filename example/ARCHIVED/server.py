@@ -5,9 +5,8 @@ os.sys.path.insert(0,parentdir)
 
 from flask import Flask, request, send_from_directory, render_template
 
-import example.messenger
-from example.config import CONFIG
-from example.fbpage import page
+from example.ARCHIVED.config import CONFIG
+from example.ARCHIVED.fbpage import page
 
 app = Flask(__name__)
 

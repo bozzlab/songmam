@@ -1,10 +1,15 @@
 # songmam
 
 
-***songmam**, comes from 'ส่งแหม่' meaning SEND IT, is 
-a Python Library For Using The Facebook Messenger Platform API (Python Facebook Chat & Chatbot Library)
-Facebook messenger platform api full features are supported a fork of FBMQ*
+**songmam**, comes from 'ส่งแหม่' meaning SEND IT, is 
+a Python Library For Using The Facebook Messenger Platform, *a fork of [fbmq](https://github.com/conbus/fbmq)*
 
+## What's new in `songmam`
+* parallel and in order code structure compare to facebook docs
+* build for `fastapi`, fast, async, and auto documentation
+* use [the latest API](https://developers.facebook.com/docs/graph-api/changelog/#graph-api-changelog) version v7.0
+* add verify token mechanics
+* beautiful docs
 
 
 ## Alternatives
@@ -47,30 +52,28 @@ pip install songmam
 # Handle webhook
 how to handle messages from user to facebook page
 
-### Usage (with flask)
+### Usage (with fastapi)
 ```python
-from flask import Flask, request
-from fbmq import Page
+from fastapi import FastAPI
+from songmam import Page, VerificationMiddleware, Webhook, MessageEvent
 
-page = Page(PAGE_ACCESS_TOKEN)
+page = Page("EAAo8TBakcvcBAORRcGRraHxdhFO3mLEZB5Yy9wnFbXsZAuT17xZCdgkQWN36u7cJ0vr8UHfKvTvVIZCEzbK4FFDWywcZA4CQ0G9JcKZB5UPrmm0SYzmOtOZAxeiDTplKwcqMpJoH8JuFWVekMc0orhjhFiinNgrsR0ZBlOMZBEYVxTGuVitlXvR7AfmvqWvsHHpcZD", "abc")
 
-@app.route('/webhook', methods=['POST'])
-def webhook():
-  page.handle_webhook(request.get_data(as_text=True))
-  return "ok"
+app = FastAPI()
+app.add_middleware(VerificationMiddleware, verify_token=page.verify_token)
+
+@app.post("/webhook")
+async def handle_entry(webhook: Webhook):
+    await page.handle_webhook(webhook)
+    return "ok"
 
 @page.handle_message
-def message_handler(event):
-  """:type event: fbmq.Event"""
-  sender_id = event.sender_id
-  message = event.message_text
-  
-  page.send(sender_id, "thank you! your message is '%s'" % message)
+def echo(message: MessageEvent):
+    page.send(message.sender.id, "thank you! your message is '%s'" % message.text)
 
-@page.after_send
-def after_send(payload, response):
-  """:type payload: fbmq.Payload"""
-  print("complete")
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True, log_level='debug')
 ```
 
 ### handlers
@@ -154,7 +157,7 @@ how to send a message from facebook page to user
 
 ##### Import
 ```python
-from fbmq import Attachment, Template, QuickReply, Page
+from songmam import Attachment, Template, QuickReply, Page
 ```
 
 ##### Text

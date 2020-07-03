@@ -1,7 +1,6 @@
 import unittest
-from fbmq import payload as Payload
-from fbmq import attachment as Attachment
-from fbmq import utils
+from songmam import payload as Payload
+from songmam import utils
 
 
 class PayloadTest(unittest.TestCase):
@@ -31,7 +30,7 @@ class PayloadTest(unittest.TestCase):
 
     def test_message(self):
         with self.assertRaises(Exception):
-            m = Payload.Message(text="hello", attachment=Attachment.Image('img'))
+            m = Payload.Message(text="hello", attachment=attachment.Image('img'))
         with self.assertRaises(ValueError):
             m = Payload.Message(text="hello", quick_replies=Payload.QuickReply(title='Yes', payload='PICK_YES'))
 

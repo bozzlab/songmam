@@ -1,3 +1,9 @@
+from typing import Literal, Optional
+
+from pydantic import validator, HttpUrl, root_validator
+from pydantic.main import BaseModel
+
+
 class Buttons(object):
     def __init__(self, text, buttons):
         self.type = 'template'
@@ -29,9 +35,6 @@ class Buttons(object):
                             result.append(ButtonPostBack(title=title, payload=value))
                         elif type == 'phone_number':
                             result.append(ButtonPhoneNumber(title=title, payload=value))
-                        elif type == 'element_share':
-                            share_contents = item.get('share_contents')
-                            result.append(ButtonShare(share_contents))
 
                     else:
                         raise ValueError('Invalid button type')
@@ -42,39 +45,48 @@ class Buttons(object):
             return items
 
 
-class BaseButton(object):
-    pass
-
+class BaseButton(BaseModel):
+    type: str
+    title: str
 
 class ButtonWeb(BaseButton):
-    def __init__(self, title, url, webview_height_ratio='full', messenger_extensions=False, fallback_url=None, webview_share_button='show'):
-        self.type = 'web_url'
-        self.title = title
-        self.url = url
-        self.webview_height_ratio = webview_height_ratio
-        self.messenger_extensions = messenger_extensions
-        self.fallback_url = fallback_url
-        self.webview_share_button = webview_share_button
+    """
+    https://developers.facebook.com/docs/messenger-platform/reference/buttons/url
+    Updated: 04/07/2020
+    """
+    type: str = 'web_url'
+    title: str
+    url: HttpUrl
+    webview_height_ratio: Literal['compact', 'tall', 'full'] = 'full'
+    messenger_extensions: bool = False
+    fallback_url: HttpUrl
+    webview_share_button: Optional[Literal['hide']]
+
+    @validator('title')
+    def title_limit_to_20_characters(cls, v):
+        if len(v) > 20:
+            raise ValueError('Button title. 20 character limit.')
+        return v
+
+    @root_validator
+    def fallback_url_should_not_be_specify_if_messenger_extensions_is_false(cls, values):
+        messenger_extensions, fallback_url = values.get('messenger_extensions'),values.get('fallback_url')
+        if fallback_url:
+            if not messenger_extensions:
+                raise ValueError('`fallback_url` may only be specified if `messenger_extensions` is true.')
+        return values
 
 
 class ButtonPostBack(BaseButton):
-    def __init__(self, title, payload):
-        self.type = 'postback'
-        self.title = title
-        self.payload = payload
-
+    type: str = 'postback'
+    payload: str
 
 class ButtonPhoneNumber(BaseButton):
-    def __init__(self, title, payload):
-        self.type = 'phone_number'
-        self.title = title
-        self.payload = payload
+    type = 'phone_number'
+    payload: str
 
+    # TODO: https://pypi.org/project/phonenumbers/
 
-class ButtonShare(BaseButton):
-    def __init__(self, share_contents):
-        self.type = 'element_share'
-        self.share_contents = share_contents
 
 
 class Generic(object):
