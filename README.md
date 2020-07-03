@@ -1,11 +1,11 @@
-# dude
+# songmam
 
 
-*a fork of  FBMQ*
+***songmam**, comes from 'ส่งแหม่' meaning SEND IT, is 
+a Python Library For Using The Facebook Messenger Platform API (Python Facebook Chat & Chatbot Library)
+Facebook messenger platform api full features are supported a fork of FBMQ*
 
 
-A Python Library For Using The Facebook Messenger Platform API (Python Facebook Chat & Chatbot Library)
-Facebook messenger platform api full features are supported
 
 ## Alternatives
 - fbbotw - https://github.com/JoabMendes/fbbotw
@@ -41,7 +41,7 @@ Facebook messenger platform api full features are supported
 
 # Install
 ```
-pip install fbmq
+pip install songmam
 ```
 
 # Handle webhook
