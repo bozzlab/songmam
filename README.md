@@ -1,5 +1,5 @@
-# (Deprecated Project)
-## FBMQ (Facebook Messenger Platform Python Library)
+# dude
+* a fork of  FBMQ *
 [![PyPI](https://img.shields.io/pypi/v/fbmq.svg?v=1&maxAge=3601)](https://pypi.python.org/pypi/fbmq)
 [![Build Status](https://travis-ci.org/conbus/fbmq.svg?branch=master&v=1)](https://travis-ci.org/conbus/fbmq)
 [![Coverage Status](https://coveralls.io/repos/github/conbus/fbmq/badge.svg?branch=master)](https://coveralls.io/github/conbus/fbmq?branch=master)
@@ -7,6 +7,10 @@
 
 A Python Library For Using The Facebook Messenger Platform API (Python Facebook Chat & Chatbot Library)
 Facebook messenger platform api full features are supported
+
+## Alternatives
+- fbbotw - https://github.com/JoabMendes/fbbotw
+
 ## Table of Contents
 
 * [Install](#install)
