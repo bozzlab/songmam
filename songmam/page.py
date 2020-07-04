@@ -345,7 +345,7 @@ class Page:
         if r.status_code != requests.codes.ok:
             raise ConnectionError(r.text)
 
-        user_profile = UserProfile.parse_raw(r.raw)
+        user_profile = UserProfile.parse_raw(r.text)
         return user_profile
 
     def get_messenger_code(self, ref=None, image_size=1000):
