@@ -24,7 +24,7 @@ class Message(BaseModel):
     reply_to: Optional[ReplyTo]
     attachments: Optional[List[Attachment]]
 
-class TextMessage(MessagingWithTimestamp):
+class MessageEntry(MessagingWithTimestamp):
     sender: Sender
     message: Message
 

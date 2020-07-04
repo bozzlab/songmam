@@ -1,15 +1,17 @@
-from typing import List
+from typing import List, Union
 
 from loguru import logger
 from pydantic import BaseModel, validator
 
-from songmam.facebook.entries.messages import TextMessage
+from songmam.facebook.entries.echo import EchoEntry
+from songmam.facebook.entries.handovers import HandoversEntry
+from songmam.facebook.entries.messages import MessageEntry
 
 
 class Entry(BaseModel):
     id: str
     time: int
-    messaging: List[TextMessage]
+    messaging: List[Union[MessageEntry, EchoEntry, HandoversEntry]]
 
     @property
     def theMessaging(self):
