@@ -4,15 +4,15 @@ from pydantic import BaseModel
 
 from songmam.facebook.entries.base import MessagingWithTimestamp
 
-class Referral(BaseModel):
-    ref:
+class PostbacksReferral(BaseModel):
+    ref: str
     source: Literal["SHORTLINK", "ADS"]
     type: Literal["OPEN_THREAD"]
 
 class Postbacks(BaseModel):
     title: str
     payload: str
-    referral: Referral
+    referral: PostbacksReferral
 
 class PostbacksEntry(MessagingWithTimestamp):
     postback: Postbacks
