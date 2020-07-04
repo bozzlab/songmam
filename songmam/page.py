@@ -11,7 +11,7 @@ from furl import furl
 from loguru import logger
 
 from .api.events import MessageEvent
-from .facebook.entries.messages import TextMessage
+from .facebook.entries.messages import MessageEntry
 from .facebook.page import Me
 from .facebook.user_profile import UserProfile
 from .webhook import Webhook
@@ -551,10 +551,10 @@ class Page:
         self._webhook_handlers['optin'] = func
 
     def handle_message_sync(self, func: callable):
-        self._webhook_handlers_sync[TextMessage] = func
+        self._webhook_handlers_sync[MessageEntry] = func
 
     def handle_message(self, func: callable):
-        self._webhook_handlers[TextMessage] = func
+        self._webhook_handlers[MessageEntry] = func
 
     def handle_echo(self, func):
         self._webhook_handlers['echo'] = func
