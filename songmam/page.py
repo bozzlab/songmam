@@ -1,15 +1,22 @@
+import inspect
+import json
 import sys
 import re
+import hmac
+import hashlib
 import requests
+from decouple import config, UndefinedValueError
+from fastapi import FastAPI, Request
+from furl import furl
 from loguru import logger
 
 from .api.events import MessageEvent
+from .facebook.entries.messages import TextMessage
+from .facebook.page import Me
+from .facebook.user_profile import UserProfile
 from .webhook import Webhook
-from .events.messages import TextMessage
 from .payload import *
 from .template import *
-from .events import *
-
 
 # See https://developers.facebook.com/docs/graph-api/changelog
 SUPPORTED_API_VERS=[
@@ -201,23 +208,53 @@ class SenderAction:
 
 
 class Page:
-    page_access_token: str
-    verify_token: str
+    access_token: str
+    verify_token: Optional[str] = None
+    app_secret: Optional[str] = None
+    api_version: str = 'v7.0'
 
-    def __init__(self, page_access_token: str, verify_token: str, **options):
-        self.page_access_token = page_access_token
-        self.verify_token = verify_token
-        self._after_send = options.pop('after_send', None)
-        self._api_ver = options.pop('api_ver', 'v7.0')
-        if self._api_ver not in SUPPORTED_API_VERS:
-            raise ValueError('Unsupported API Version : ' + self._api_ver)
-        self._page_id = None
-        self._page_name = None
+    page: Optional[Me] = None
+
+    def __init__(self, *,
+                 access_token: Optional[str] = None,
+                 verify_token: Optional[str] = None,
+                 app_secret: Optional[str] = None
+                 ):
+        if access_token:
+            self.access_token = access_token
+        else:
+            self.access_token = config("PAGE_ACCESS_TOKEN")
+
+        if verify_token:
+            self.verify_token = verify_token
+        else:
+            try:
+                self.verify_token = config("PAGE_VERIFY_TOKEN")
+            except UndefinedValueError:
+                # value is None by default
+                pass
+
+        if app_secret:
+            self.app_secret = app_secret
+        else:
+            try:
+                self.app_secret = config("APP_SECRET")
+            except UndefinedValueError:
+                # value is None by default
+                pass
+
+
+        # self._after_send = options.pop('after_send', None)
+        # self._api_ver = options.pop('api_ver', 'v7.0')
+        # if self._api_ver not in SUPPORTED_API_VERS:
+        #     raise ValueError('Unsupported API Version : ' + self._api_ver)
+
 
     WEBHOOK_ENDPOINTS = ['optin', 'message', 'echo', 'delivery', 'postback', 'read', 'account_linking', 'referral', 'standby']
 
     # these are set by decorators or the 'set_webhook_handler' method
     _webhook_handlers = {}
+    _webhook_handlers_sync = {}
 
     _quick_reply_callbacks = {}
     _button_callbacks = {}
@@ -227,67 +264,89 @@ class Page:
 
     _after_send = None
 
+    @property
+    def base_api_furl(self) -> furl:
+        furl_url = furl("https://graph.facebook.com/") / self.api_version
+        # furl_url.args['access_token'] = self.access_token
+        return furl_url
+
     def _api_uri(self, sub):
-        return "https://graph.facebook.com/" + self._api_ver + "/" + sub
+        return "https://graph.facebook.com/" + self.api_version + "/" + sub
 
-    def _call_handler(self, name, *args, **kwargs):
-        if name in self._webhook_handlers:
-            self._webhook_handlers[name](*args, **kwargs)
-        else:
-            logger.warning("there's no %s handler" % name)
 
-    # def handle_webhook(self, webhook: Webhook):
-    #     pass
+    def add_verification_middleware(self, app: FastAPI):
+        from songmam import VerificationMiddleware
+        app.add_middleware(VerificationMiddleware, verify_token=self.verify_token)
 
-    async def handle_webhook(self, webhook: Webhook):
+    def handle_webhook_sync(self, webhook: Webhook):
         for entry in webhook.entry:
-            handler = self._webhook_handlers.get(type(entry.theMessaging))
+            handler = self._webhook_handlers_sync.get(type(entry.theMessaging))
             if handler:
                 handler(MessageEvent(entry))
             else:
                 logger.warning("there's no {} handler", type(entry.theMessaging))
 
+    async def handle_webhook(self, webhook: Webhook, *, request: Optional[Request] = None):
+
+        # TODO: Convert this to middleware
+        # Do the Webhook validation
+        # https://developers.facebook.com/docs/messenger-platform/webhook#security
+        if self.app_secret and request:
+            header_signature = request.headers['X-Hub-Signature']
+            if len(header_signature) == 45 and header_signature.startswith('sha1='):
+                header_signature = header_signature[5:]
+            else:
+                raise NotImplementedError("Dev: how to handle this?")
+
+            body = await request.body()
+            expected_signature = hmac.new(self.app_secret, body, hashlib.sha1)
+
+            if expected_signature != header_signature:
+                raise AssertionError('SIGNATURE VERIFICATION FAIL')
+
+
+        for entry in webhook.entry:
+            handler = self._webhook_handlers.get(type(entry.theMessaging))
+            if handler:
+                await handler(MessageEvent(entry))
+            else:
+                logger.warning("there's no {} handler", type(entry.theMessaging))
+
     @property
-    def page_id(self):
-        if self._page_id is None:
+    def id(self):
+        if self.page is None:
             self._fetch_page_info()
 
-        return self._page_id
+        return self.page.id
 
     @property
-    def page_name(self):
-        if self._page_name is None:
+    def name(self):
+        if self.page is None:
             self._fetch_page_info()
 
-        return self._page_name
+        return self.page.name
 
     def _fetch_page_info(self):
-        r = requests.get(self._api_uri("me"),
-                         params={"access_token": self.page_access_token},
+        r = requests.get(self.base_api_furl / "me",
+                         params={"access_token": self.access_token},
                          headers={'Content-type': 'application/json'})
 
         if r.status_code != requests.codes.ok:
             print(r.text)
             return
 
-        data = json.loads(r.text)
-        if 'id' not in data or 'name' not in data:
-            raise ValueError('Could not fetch data : GET /' + self._api_ver +
-                             '/me')
+        self.page = Me.parse_raw(r.text)
 
-        self._page_id = data['id']
-        self._page_name = data['name']
-
-    def get_user_profile(self, fb_user_id):
-        r = requests.get(self._api_uri(fb_user_id),
-                         params={"access_token": self.page_access_token},
+    def get_user_profile(self, fb_user_id) -> UserProfile:
+        r = requests.get(self.base_api_furl / fb_user_id,
+                         params={"access_token": self.access_token},
                          headers={'Content-type': 'application/json'})
 
         if r.status_code != requests.codes.ok:
-            print(r.text)
-            return
+            raise ConnectionError(r.text)
 
-        return json.loads(r.text)
+        user_profile = UserProfile.parse_raw(r.raw)
+        return user_profile
 
     def get_messenger_code(self, ref=None, image_size=1000):
         d = {}
@@ -297,7 +356,7 @@ class Page:
             d['data'] = {'ref': ref}
 
         r = requests.post(self._api_uri("me/messenger_codes"),
-                          params={"access_token": self.page_access_token},
+                          params={"access_token": self.access_token},
                           json=d,
                           headers={'Content-type': 'application/json'})
         if r.status_code != requests.codes.ok:
@@ -307,13 +366,13 @@ class Page:
         data = json.loads(r.text)
         if 'uri' not in data:
             raise ValueError('Could not fetch messener code : GET /' +
-                             self._api_ver + '/me')
+                             self.api_version + '/me')
 
         return data['uri']
 
     def _send(self, payload, callback=None):
         r = requests.post(self._api_uri("me/messages"),
-                          params={"access_token": self.page_access_token},
+                          params={"access_token": self.access_token},
                           data=payload.to_json(),
                           headers={'Content-type': 'application/json'})
 
@@ -377,7 +436,7 @@ class Page:
 
     def _set_profile_property(self, pname, pval):
         r = requests.post(self._api_uri("me/messenger_profile"),
-                          params={"access_token": self.page_access_token},
+                          params={"access_token": self.access_token},
                           data=json.dumps({
                               pname: pval
                           }),
@@ -388,7 +447,7 @@ class Page:
 
     def _del_profile_property(self, pname):
         r = requests.delete(self._api_uri("me/messenger_profile"),
-                            params={"access_token": self.page_access_token},
+                            params={"access_token": self.access_token},
                             data=json.dumps({
                                 'fields': [pname,]
                             }),
@@ -427,9 +486,11 @@ class Page:
     def hide_starting_button(self):
         self._del_profile_property(pname="get_started")
 
-    def show_persistent_menu(self, buttons):
+    def show_persistent_menu(self, buttons: Buttons) -> None:
         self.show_localized_persistent_menu([LocalizedObj(locale="default",
                                                           obj=buttons)])
+    def hide_persistent_menu(self):
+        self._del_profile_property(pname="persistent_menu")
 
     def show_localized_persistent_menu(self, locale_list):
         if not locale_list:
@@ -466,8 +527,7 @@ class Page:
             })
         self._set_profile_property(pname="persistent_menu", pval=pval)
 
-    def hide_persistent_menu(self):
-        self._del_profile_property(pname="persistent_menu")
+
 
     """
     handlers and decorations
@@ -490,7 +550,10 @@ class Page:
     def handle_optin(self, func):
         self._webhook_handlers['optin'] = func
 
-    def handle_message(self, func):
+    def handle_message_sync(self, func: callable):
+        self._webhook_handlers_sync[TextMessage] = func
+
+    def handle_message(self, func: callable):
         self._webhook_handlers[TextMessage] = func
 
     def handle_echo(self, func):

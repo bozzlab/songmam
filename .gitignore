@@ -12,3 +12,5 @@ env
 .venv/
 
 songmam.egg-info/
+
+.env

@@ -4,7 +4,7 @@ import mock
 import responses
 from songmam.page import Page, LocalizedObj, SUPPORTED_API_VERS
 from songmam import template as Template
-from songmam import events as Event
+from songmam.facebook import entries as Event
 
 
 class MessengerAPIMock():
@@ -163,14 +163,14 @@ class PageTest(unittest.TestCase):
 
     def test_page_info(self):
         self.assertEquals(0, self.page._fetch_page_info.call_count)
-        self.page.page_id
+        self.page.id
         self.assertEquals(1, self.page._fetch_page_info.call_count)
-        self.page.page_name
+        self.page.name
         self.assertEquals(2, self.page._fetch_page_info.call_count)
 
         self.page._page_id = 1
         self.page._page_name = 'name'
-        print(self.page.page_id, self.page.page_name)
+        print(self.page.id, self.page.name)
 
         self.assertEquals(2, self.page._fetch_page_info.call_count)
 

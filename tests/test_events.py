@@ -1,5 +1,5 @@
 import unittest
-from songmam.events import *
+
 
 class TestEvents(unittest.TestCase):
     def test_message_event(self):

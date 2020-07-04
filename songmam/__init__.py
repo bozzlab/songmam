@@ -3,5 +3,5 @@
 from .page import *
 from .middleware import VerificationMiddleware
 from .webhook import Webhook
-from .events import attachment as Attachment
+from .facebook.entries.message import attachment as Attachment
 from . import template as Template

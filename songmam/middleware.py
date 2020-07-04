@@ -23,10 +23,10 @@ class VerificationMiddleware:
                 criteria = {'hub.mode', 'hub.verify_token', 'hub.challenge'}
                 if set(query_params.keys()).issuperset(criteria):
                     mode = query_params.get('hub.mode')
-                    token = query_params.get('hub.verify_token')
+                    test_token = query_params.get('hub.verify_token')
                     challenge = query_params.get('hub.challenge')
-                    if mode and token:
-                        if mode == 'subscribe' and token == self.verify_token:
+                    if mode and test_token:
+                        if mode == 'subscribe' and test_token == self.verify_token:
                             response = PlainTextResponse(challenge)
                         else:
                             response = Response("", status_code=403)

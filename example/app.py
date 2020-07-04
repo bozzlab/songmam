@@ -1,17 +1,18 @@
+import os
 from typing import Any, Dict
 
+from decouple import config
 from fastapi import FastAPI, Body, Request
 
-from songmam import Page, VerificationMiddleware, Webhook, TextMessage, MessageEvent
-from songmam.webhook import Entry
+from songmam import Page, VerificationMiddleware, Webhook, MessageEvent
 
-page = Page("EAAo8TBakcvcBAORRcGRraHxdhFO3mLEZB5Yy9wnFbXsZAuT17xZCdgkQWN36u7cJ0vr8UHfKvTvVIZCEzbK4FFDWywcZA4CQ0G9JcKZB5UPrmm0SYzmOtOZAxeiDTplKwcqMpJoH8JuFWVekMc0orhjhFiinNgrsR0ZBlOMZBEYVxTGuVitlXvR7AfmvqWvsHHpcZD", "abc")
+# os.environ['PAGE_ACCESS_TOKEN'] = "MY Access token"
+# os.environ['PAGE_VERIFY_TOKEN'] = "MY Verify token"
 
+page = Page()
 app = FastAPI()
 
-app.add_middleware(VerificationMiddleware, verify_token=page.verify_token)
-
-
+page.add_verification_middleware(app)
 
 @app.get("/healthz")
 async def show_server_is_alive(request: Request):
@@ -37,9 +38,12 @@ async def handle_entry(webhook: Dict[str, Any], request: Request):
     return "ok"
 
 @page.handle_message
-def echo(message: MessageEvent):
+async def echo(message: MessageEvent):
+    page.get_user_profile(message.sender.id)
     page.send(message.sender.id, "thank you! your message is '%s'" % message.text)
 
 if __name__ == "__main__":
+    page.id
+
     import uvicorn
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True, log_level='debug')

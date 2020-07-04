@@ -5,62 +5,39 @@
 a Python Library For Using The Facebook Messenger Platform, *a fork of [fbmq](https://github.com/conbus/fbmq)*
 
 ## What's new in `songmam`
+* production ready, fast, correct, fully typed
 * parallel and in order code structure compare to facebook docs
 * build for `fastapi`, fast, async, and auto documentation
 * use [the latest API](https://developers.facebook.com/docs/graph-api/changelog/#graph-api-changelog) version v7.0
 * add verify token mechanics
 * beautiful docs
 
+## RoadMap
+See issue
 
 ## Alternatives
 - fbbotw - https://github.com/JoabMendes/fbbotw
 
-## Table of Contents
 
-* [Install](#install)
-* [Handle webhook](#handle-webhook)
-  * [usage (with flask)](#usage-with-flask)
-  * [handlers](#handlers)
-* [Send a message](#send-a-message)
-  * [basic](#basic)
-    * [text](#text)
-    * [image](#image) / [audio](#audio) / [video](#video) / [file](#file)
-    * [quick reply](#quick-reply)
-      * [quick reply callback](#quick-reply-callback)
-    * [typing on/off](#typing-onoff)
-  * [templates](#templates)
-    * [button](#template--button)
-      * [button callback](#button-callback)
-    * [generic](#template--generic)
-    * [receipt](#template--receipt)
-  * [options](#options)
-    * [notification type](#notification-type)
-    * [callback](#callback) 
-* [Thread settings](#thread-settings)
-  * [greeting text](#greeting-text)
-  * [get started button](#get-started-button)
-  * [persistent menu](#persistent-menu)
-* [Fetch user/page profile](#fetch-userpage-profile)
-* [Example](#example)
-
-
-# Install
+## Install
 ```
 pip install songmam
 ```
 
-# Handle webhook
-how to handle messages from user to facebook page
-
-### Usage (with fastapi)
+## Quickstart
 ```python
+import os
 from fastapi import FastAPI
-from songmam import Page, VerificationMiddleware, Webhook, MessageEvent
+from songmam import Page, Webhook, MessageEvent
 
-page = Page("EAAo8TBakcvcBAORRcGRraHxdhFO3mLEZB5Yy9wnFbXsZAuT17xZCdgkQWN36u7cJ0vr8UHfKvTvVIZCEzbK4FFDWywcZA4CQ0G9JcKZB5UPrmm0SYzmOtOZAxeiDTplKwcqMpJoH8JuFWVekMc0orhjhFiinNgrsR0ZBlOMZBEYVxTGuVitlXvR7AfmvqWvsHHpcZD", "abc")
+os.environ['PAGE_ACCESS_TOKEN'] = "MY Access token"
+os.environ['PAGE_VERIFY_TOKEN'] = "MY Verify token"
+# Alternatively this could be specify in .env
 
 app = FastAPI()
-app.add_middleware(VerificationMiddleware, verify_token=page.verify_token)
+page = Page()
+
+page.add_verification_middleware(app)
 
 @app.post("/webhook")
 async def handle_entry(webhook: Webhook):
@@ -76,94 +53,12 @@ if __name__ == "__main__":
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True, log_level='debug')
 ```
 
-### handlers
-A spec in detail - https://developers.facebook.com/docs/messenger-platform/webhook-reference
-
-`@page.handle_message` - This callback will occur when a message has been sent to your page. (`quick reply` is also handled in here)
-
-`@page.handle_echo` - This callback will occur when a message has been sent by your page
-
-`@page.handle_delivery` - This callback will occur when a message a page has sent has been delivered.
-
-`@page.handle_optin` - This callback will occur when the [Send-to-Messenger](https://developers.facebook.com/docs/messenger-platform/plugin-reference/send-to-messenger) plugin has been tapped
-
-`@page.handle_postback` - Postbacks occur when a Postback button, Get Started button, Persistent menu or Structured Message is tapped.
-
-`@page.handle_read` - This callback will occur when a message a page has sent has been read by the user.
-
-`@page.handle_account_linking` - This callback will occur when the Linked Account or Unlink Account call-to-action have been tapped.
-
-`@page.after_send` - This callback will occur when page.send function has been called.
-
-#### Event parameter (fbmq.Event class)
-
-`event.sender_id` _str_ : message sender id, user id
-
-`event.recipient_id` _str_ : message receiver id, page id
-
-`event.timestamp` _number_ : timestamp when message is received
-
-`event.message` _dict_ : message dict that is received. [more detail](https://developers.facebook.com/docs/messenger-platform/webhook-reference/message-received)
-
-`event.message_text` _str_ : `event.message.get('text')`
-
-`event.message_attachments` _str_ : `event.message.get('attachments')`
-
-`event.quick_reply` _dict_ : quick reply dict that is received. [more detail](https://developers.facebook.com/docs/messenger-platform/webhook-reference/message-received)
-
-`event.quick_reply_payload` _str_ : `event.quick_reply.get('payload')
-
-`event.postback` _dict_ : postback dict that is received. [more detail](https://developers.facebook.com/docs/messenger-platform/webhook-reference/postback-received)
-
-`event.postback_payload` _str_ : `event.postback.get('payload')
-
-`event.optin` _dict_ : dict that is received. [more detail](https://developers.facebook.com/docs/messenger-platform/webhook-reference/authentication)
-
-`event.account_linking` _dict_: dict that is received. [more detail](https://developers.facebook.com/docs/messenger-platform/account-linking)
-
-`event.delivery` _dict_: dict that is received. [more detail](https://developers.facebook.com/docs/messenger-platform/webhook-reference/message-delivered)
-
-`event.read` _dict_: dict that is received. [more detail](https://developers.facebook.com/docs/messenger-platform/webhook-reference/message-read)
-
-
-`event.is_*` _bool_ - True if event type is valid
-
-#### if you don't need a decorator
-```python
-page = fbmq.Page(PAGE_ACCESS_TOKEN, after_send=after_send)
-
-@app.route('/webhook', methods=['POST'])
-def webhook():
-  page.handle_webhook(request.get_data(as_text=True),
-                      message=message_handler)
-  return "ok"
-
-def message_handler(event):
-  """:type event: fbmq.Event"""
-  sender_id = event.sender_id
-  message = event.message_text
-  
-  page.send(sender_id, "thank you! your message is '%s'" % message)
-
-def after_send(payload, response):
-  """:type event: fbmq.Payload"""
-  print("complete")
-```
 
 # Send a message
 how to send a message from facebook page to user
 
 ### Basic
 
-##### Import
-```python
-from songmam import Attachment, Template, QuickReply, Page
-```
-
-##### Text
-```python
-page.send(recipient_id, "hello world!")
-```
 
 
 ##### Image

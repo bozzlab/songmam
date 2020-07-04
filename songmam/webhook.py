@@ -1,10 +1,9 @@
-from typing import Union, List
+from typing import List
 
 from loguru import logger
 from pydantic import BaseModel, validator
 
-from songmam.events.base import Messaging
-from songmam.events.messages import TextMessage
+from songmam.facebook.entries.messages import TextMessage
 
 
 class Entry(BaseModel):
@@ -22,7 +21,7 @@ class Entry(BaseModel):
         return v
 
 class Webhook(BaseModel):
-    """An object contains one or more events
+    """An object contains one or more entries
     https://developers.facebook.com/docs/messenger-platform/reference/webhook-events/#payload
     """
     object: str
