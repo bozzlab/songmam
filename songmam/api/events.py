@@ -1,17 +1,16 @@
-
 import json
 
-from songmam.webhook import Entry
+from songmam.facebook.entries.messages import MessageEntry
+from songmam.facebook.entries.postbacks import PostbacksEntry
 
 
 class Event:
-    entry: Entry
+    entry: MessageEntry
 
     def __init__(self, entry):
         self.entry = entry
         self.sender = self.entry.theMessaging.sender
         self.recipient = self.entry.theMessaging.recipient
-
 
     def __str__(self):
         # TODO: some infomative
@@ -19,6 +18,8 @@ class Event:
 
 
 class MessageEvent(Event):
+    entry: MessageEntry
+
     def __init__(self, entry):
         super(MessageEvent, self).__init__(entry)
 
@@ -27,9 +28,18 @@ class MessageEvent(Event):
         self.text = self.entry.theMessaging.message.text
         self.message_id = self.entry.theMessaging.message.mid
         self.quick_reply = self.entry.theMessaging.message.quick_reply
-        self.reply_to= self.entry.theMessaging.message.reply_to
-        self.attachments= self.entry.theMessaging.message.attachments
+        self.reply_to = self.entry.theMessaging.message.reply_to
+        self.attachments = self.entry.theMessaging.message.attachments
 
+
+class PostBackEvent(Event):
+    entry: PostbacksEntry
+
+    def __init__(self, entry: PostbacksEntry):
+        super(PostBackEvent, self).__init__(entry)
+        self.title = self.entry.postback.title
+        self.payload = self.entry.postback.payload
+        self.referal = self.entry.postback.referral
 
 
 class DeliveriesEvent(Event):
@@ -236,26 +246,6 @@ class PolicyEnforcementEvent(Event):
         return self.policy_enforcement.get('reason')
 
 
-class PostBackEvent(Event):
-    def __init__(self, postback, **kwargs):
-        super(PostBackEvent, self).__init__(**kwargs)
-
-        self.name = 'postback'
-        self.postback = postback
-
-    @property
-    def title(self):
-        return self.postback.get('title')
-
-    @property
-    def payload(self):
-        return self.postback.get('payload')
-
-    @property
-    def referral(self):
-        return self.postback.get('referral')
-
-
 class ReferralEvent(Event):
     def __init__(self, referral, **kwargs):
         super(ReferralEvent, self).__init__(**kwargs)
@@ -280,7 +270,7 @@ class ReferralEvent(Event):
         return self.referral.get('referer_uri')
 
 
-class CheckOutUpdateEvent(Event): #beta
+class CheckOutUpdateEvent(Event):  # beta
     def __init__(self, checkout_update, **kwargs):
         super(CheckOutUpdateEvent, self).__init__(**kwargs)
 
@@ -296,7 +286,7 @@ class CheckOutUpdateEvent(Event): #beta
         return self.checkout_update.get('shipping_address')
 
 
-class PaymentEvent(Event): #beta
+class PaymentEvent(Event):  # beta
     def __init__(self, payment, **kwargs):
         super(PaymentEvent, self).__init__(**kwargs)
 
@@ -330,4 +320,3 @@ class StandByEvent(Event):
 
         self.name = 'standby'
         self.standby = standby
-
