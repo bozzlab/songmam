@@ -4,7 +4,8 @@ from typing import Any, Dict
 from decouple import config
 from fastapi import FastAPI, Body, Request
 
-from songmam import Page, VerificationMiddleware, Webhook, MessageEvent
+from songmam import Page, VerificationMiddleware, Webhook, MessageEvent, ButtonWeb, ButtonPostBack, ButtonPhoneNumber, \
+    Buttons
 
 # os.environ['PAGE_ACCESS_TOKEN'] = "MY Access token"
 # os.environ['PAGE_VERIFY_TOKEN'] = "MY Verify token"
@@ -39,11 +40,23 @@ async def handle_entry(webhook: Dict[str, Any], request: Request):
 
 @page.handle_message
 async def echo(message: MessageEvent):
-    page.get_user_profile(message.sender.id)
-    page.send(message.sender.id, "thank you! your message is '%s'" % message.text)
+    # page.get_user_profile(message.sender.id)
+    # page.send(message.sender.id, "thank you! your message is '%s'" % message.text)
+    buttons = [
+        ButtonWeb(title="Open Web URL", url="https://www.oculus.com/en-us/rift/"),
+        ButtonPostBack(title="trigger Postback", payload="DEVELOPED_DEFINED_PAYLOAD"),
+        ButtonPhoneNumber(title="Call Phone Number", payload="+16505551234")
+    ]
+
+    # you can use a dict instead of a Button class
+    #
+    # buttons = [{'type': 'web_url', 'title': 'Open Web URL', 'value': 'https://www.oculus.com/en-us/rift/'},
+    #          {'type': 'postback', 'title': 'trigger Postback', 'value': 'DEVELOPED_DEFINED_PAYLOAD'},
+    #          {'type': 'phone_number', 'title': 'Call Phone Number', 'value': '+16505551234'}]
+
+    page.send(message.sender.id, Buttons("hello", buttons))
 
 if __name__ == "__main__":
-    page.id
 
     import uvicorn
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True, log_level='debug')
