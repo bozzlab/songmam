@@ -1,6 +1,9 @@
-from typing import Optional, List
+from typing import Optional, List, Union
 
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
+
+from songmam.facebook.entries.echo import EchoEntry
+from songmam.facebook.entries.handovers import HandoversEntry
 
 from songmam.facebook.entries.message.attachment import Attachment
 from songmam.facebook.entries.base import ThingWithID, MessagingWithTimestamp
@@ -24,7 +27,21 @@ class Message(BaseModel):
     reply_to: Optional[ReplyTo]
     attachments: Optional[List[Attachment]]
 
-class TextMessage(MessagingWithTimestamp):
+class Messaging(MessagingWithTimestamp):
     sender: Sender
     message: Message
 
+
+class MessageEntry(BaseModel):
+    id: str
+    time: int
+    messaging: List[Messaging]
+
+    @property
+    def theMessaging(self):
+        return self.messaging[0]
+
+    @validator('messaging')
+    def messaging_must_has_one_and_only_one_element(cls, v):
+        assert len(v) == 1
+        return v

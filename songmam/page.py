@@ -1,4 +1,3 @@
-import inspect
 import json
 import sys
 import re
@@ -10,11 +9,12 @@ from fastapi import FastAPI, Request
 from furl import furl
 from loguru import logger
 
-from .api.events import MessageEvent
-from .facebook.entries.messages import TextMessage
+from .api.events import MessageEvent, PostBackEvent
+from .facebook.entries.messages import Messaging, MessageEntry
+from .facebook.entries.postbacks import Postbacks, PostbacksEntry
 from .facebook.page import Me
 from .facebook.user_profile import UserProfile
-from .webhook import Webhook
+from songmam.facebook.webhook import Webhook
 from .payload import *
 from .template import *
 
@@ -250,7 +250,10 @@ class Page:
         #     raise ValueError('Unsupported API Version : ' + self._api_ver)
 
 
-    WEBHOOK_ENDPOINTS = ['optin', 'message', 'echo', 'delivery', 'postback', 'read', 'account_linking', 'referral', 'standby']
+    _entryCaster = {
+        MessageEntry: MessageEvent,
+        PostbacksEntry: PostBackEvent
+    }
 
     # these are set by decorators or the 'set_webhook_handler' method
     _webhook_handlers = {}
@@ -306,9 +309,10 @@ class Page:
 
 
         for entry in webhook.entry:
-            handler = self._webhook_handlers.get(type(entry.theMessaging))
+            handler = self._webhook_handlers.get(type(entry))
+            EntryConstructor = self._entryCaster.get(type(entry))
             if handler:
-                await handler(MessageEvent(entry))
+                await handler(EntryConstructor(entry))
             else:
                 logger.warning("there's no {} handler", type(entry.theMessaging))
 
@@ -345,7 +349,7 @@ class Page:
         if r.status_code != requests.codes.ok:
             raise ConnectionError(r.text)
 
-        user_profile = UserProfile.parse_raw(r.raw)
+        user_profile = UserProfile.parse_raw(r.text)
         return user_profile
 
     def get_messenger_code(self, ref=None, image_size=1000):
@@ -551,10 +555,10 @@ class Page:
         self._webhook_handlers['optin'] = func
 
     def handle_message_sync(self, func: callable):
-        self._webhook_handlers_sync[TextMessage] = func
+        self._webhook_handlers_sync[MessageEntry] = func
 
     def handle_message(self, func: callable):
-        self._webhook_handlers[TextMessage] = func
+        self._webhook_handlers[MessageEntry] = func
 
     def handle_echo(self, func):
         self._webhook_handlers['echo'] = func
@@ -562,8 +566,11 @@ class Page:
     def handle_delivery(self, func):
         self._webhook_handlers['delivery'] = func
 
+    def handle_postback_sync(self, func):
+        self._webhook_handlers_sync[PostbacksEntry] = func
+
     def handle_postback(self, func):
-        self._webhook_handlers['postback'] = func
+        self._webhook_handlers[PostbacksEntry] = func
 
     def handle_read(self, func):
         self._webhook_handlers['read'] = func

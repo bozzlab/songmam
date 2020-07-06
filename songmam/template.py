@@ -49,6 +49,12 @@ class BaseButton(BaseModel):
     type: str
     title: str
 
+    @validator('title')
+    def title_limit_to_20_characters(cls, v):
+        if len(v) > 20:
+            raise ValueError('Button title. 20 character limit.')
+        return v
+
 class ButtonWeb(BaseButton):
     """
     https://developers.facebook.com/docs/messenger-platform/reference/buttons/url
@@ -59,14 +65,9 @@ class ButtonWeb(BaseButton):
     url: HttpUrl
     webview_height_ratio: Literal['compact', 'tall', 'full'] = 'full'
     messenger_extensions: bool = False
-    fallback_url: HttpUrl
+    fallback_url: Optional[HttpUrl]
     webview_share_button: Optional[Literal['hide']]
 
-    @validator('title')
-    def title_limit_to_20_characters(cls, v):
-        if len(v) > 20:
-            raise ValueError('Button title. 20 character limit.')
-        return v
 
     @root_validator
     def fallback_url_should_not_be_specify_if_messenger_extensions_is_false(cls, values):
