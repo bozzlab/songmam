@@ -65,7 +65,7 @@ class ButtonWeb(BaseButton):
     url: HttpUrl
     webview_height_ratio: Literal['compact', 'tall', 'full'] = 'full'
     messenger_extensions: bool = False
-    fallback_url: HttpUrl
+    fallback_url: Optional[HttpUrl]
     webview_share_button: Optional[Literal['hide']]
 
 
