@@ -12,5 +12,5 @@ class UserProfile(BaseModel):
     last_name: str
     profile_pic: HttpUrl
     locale: Optional[str] # TODO: to be changed to `literal`
-    timezone: Optional [int]
+    timezone: Optional[int]
     gender: Optional[str] # TODO: to be changed to `literal`
