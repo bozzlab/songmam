@@ -12,6 +12,7 @@ from loguru import logger
 from .api.events import MessageEvent, PostBackEvent
 from .facebook.entries.messages import Messaging, MessageEntry
 from .facebook.entries.postbacks import Postbacks, PostbacksEntry
+from .facebook.messaging import SenderAction
 from .facebook.page import Me
 from .facebook.send import MessageTag, SendResponse
 from .facebook.user_profile import UserProfile
@@ -141,67 +142,6 @@ class LocalizedObj:
             raise ValueError("Object is mandatory")
         self.locale = locale
         self.obj = obj
-
-
-
-
-
-class SenderAction:
-    TYPING_ON = 'typing_on'
-    TYPING_OFF = 'typing_off'
-    MARK_SEEN = 'mark_seen'
-
-
-# def event_parser(messaging=None):
-#     if messaging is None:
-#         messaging = dict()
-#
-#     if 'message' in messaging:
-#         is_echo = messaging.get('message', {}).get('is_echo')
-#         if is_echo:
-#             event_type = EchoEvent
-#         else:
-#             event_type = MessageEvent
-#     elif 'delivery' in messaging:
-#         event_type = DeliveriesEvent
-#     elif 'read' in messaging:
-#         event_type = ReadEvent.new_from_json_dict(messaging)
-#     elif 'account_linking' in messaging:
-#         event_type = AccountLinkingEvent
-#     elif 'checkout_update' in messaging:
-#         event_type = CheckOutUpdateEvent
-#     elif 'game_play' in messaging:
-#         event_type = GamePlayEvent.new_from_json_dict(messaging)
-#     elif 'pass_thread_control' in messaging:
-#         event_type = PassThreadEvent
-#     elif 'take_thread_control' in messaging:
-#         event_type = TakeThreadEvent
-#     elif 'request_thread_control' in messaging:
-#         event_type = RequestThreadEvent
-#     elif 'app_roles' in messaging:
-#         event_type = AppRoleEvent
-#     elif 'optin' in messaging:
-#         event_type = OptinEvent
-#     elif 'payment' in messaging:
-#         event_type = PaymentEvent
-#     elif 'policy-enforcement' in messaging:
-#         # key name must be changed for properly use to class instance.
-#         messaging['policy_enforcement'] = messaging['policy-enforcement']
-#         del messaging['policy-enforcement']
-#         event_type = PolicyEnforcementEvent
-#     elif 'postback' in messaging:
-#         event_type = PostBackEvent
-#     elif 'referral' in messaging:
-#         event_type = ReferralEvent
-#     elif 'standby' in messaging:
-#         event_type = StandByEvent
-#     else:
-#         print("Webhook received unknown messaging")
-#         return
-#     event = event_type.new_from_json_dict(messaging)
-#
-#     return event
-
 
 
 class Page:
