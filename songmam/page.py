@@ -213,10 +213,13 @@ class Page:
     page: Optional[Me] = None
 
     def __init__(self, *,
+                 auto_mark_as_seen: bool=True,
                  access_token: Optional[str] = None,
                  verify_token: Optional[str] = None,
                  app_secret: Optional[str] = None
                  ):
+        self.auto_mark_as_seen = auto_mark_as_seen
+
         if access_token:
             self.access_token = access_token
         else:
@@ -390,6 +393,9 @@ class Page:
 
     def send(self, recipient_id, message, *, quick_replies=None, metadata=None,
              notification_type=None, tag:Optional[MessageTag]=None, callback: Optional[callable]=None):
+
+        if self.auto_mark_as_seen:
+            self.mark_seen(recipient_id)
 
         text = message if isinstance(message, str) else None
         
