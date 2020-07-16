@@ -1,4 +1,5 @@
 import json
+from enum import Enum
 
 
 def to_json(obj):
@@ -10,3 +11,10 @@ class AutoName(Enum):
     """
     def _generate_next_value_(name, start, count, last_values):
         return name
+
+class AutoNameLower(Enum):
+    """
+    https://docs.python.org/3/library/enum.html#using-automatic-values
+    """
+    def _generate_next_value_(name, start, count, last_values):
+        return name.lower()
