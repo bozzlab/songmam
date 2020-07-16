@@ -5,7 +5,7 @@ from decouple import config
 from fastapi import FastAPI, Body, Request
 from loguru import logger
 
-from songmam import Page, Webhook, MessageEvent, ButtonWeb, ButtonPostBack, ButtonPhoneNumber, \
+from songmam import Page, VerificationMiddleware, Webhook, MessageEvent, ButtonWeb, ButtonPostBack, ButtonPhoneNumber, \
     Buttons
 
 # os.environ['PAGE_ACCESS_TOKEN'] = "MY Access token"
@@ -43,11 +43,23 @@ async def handle_entry(webhook: Dict[str, Any], request: Request):
 async def echo(message: MessageEvent):
     # page.get_user_profile(message.sender.id)
     # page.send(message.sender.id, "thank you! your message is '%s'" % message.text)
-    buttons = [
-        ButtonWeb(title="Open Web URL", url="https://www.oculus.com/en-us/rift/"),
-        ButtonPostBack(title="trigger Postback", payload="DEVELOPED_DEFINED_PAYLOAD"),
-        ButtonPhoneNumber(title="Call Phone Number", payload="+16505551234")
-    ]
+    # buttons = [
+    #     ButtonWeb(title="Open Web URL", url="https://www.oculus.com/en-us/rift/"),
+    #     ButtonPostBack(title="trigger Postback", payload="DEVELOPED_DEFINED_PAYLOAD"),
+    #     ButtonPhoneNumber(title="Call Phone Number", payload="+16505551234")
+    # ]
+    logger.info(f"{message.sender.id} sent {message.text}")
+
+    ben_id = "2892682217518683"
+    pat_id = "3035678546494620"
+
+    if message.sender.id == ben_id:
+        page.send(pat_id, message.text)
+    elif message.sender.id == pat_id:
+        page.send(ben_id, message.text)
+    else:
+        page.send(message.sender.id, "thank you! your message is '%s'" % message.text)
+
 
     # you can use a dict instead of a Button class
     #
@@ -58,5 +70,6 @@ async def echo(message: MessageEvent):
     # page.send(message.sender.id, Buttons("hello", buttons))
 
 if __name__ == "__main__":
+
     import uvicorn
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True, log_level='debug')

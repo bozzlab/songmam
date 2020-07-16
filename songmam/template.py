@@ -4,7 +4,9 @@ from pydantic import validator, HttpUrl, root_validator
 from pydantic.main import BaseModel
 
 
-class Buttons(object):
+class Buttons(BaseModel):
+    
+    
     def __init__(self, text, buttons):
         self.type = 'template'
         self.payload = {

@@ -393,10 +393,9 @@ class Page:
 
     def send(self, recipient_id, message, quick_replies=None, metadata=None,
              notification_type=None, callback=None, tag=None):
-        if sys.version_info >= (3, 0):
-            text = message if isinstance(message, str) else None
-        else:
-            text = message if isinstance(message, str) else message.encode('utf-8') if isinstance(message, unicode) else None
+
+        text = message if isinstance(message, str) else None
+        
 
         attachment = message if not text else None
 
@@ -409,6 +408,9 @@ class Page:
                           tag=tag)
 
         return self._send(payload, callback=callback)
+
+    def reply(self):
+        
 
     def send_json(self, json_payload, callback=None):
         return self._send(Payload(**json.loads(json_payload)), callback)

@@ -1,0 +1,1 @@
+# https://developers.facebook.com/docs/messenger-platform/send-messages#send_api_basics
