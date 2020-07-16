@@ -13,6 +13,7 @@ from .api.events import MessageEvent, PostBackEvent
 from .facebook.entries.messages import Messaging, MessageEntry
 from .facebook.entries.postbacks import Postbacks, PostbacksEntry
 from .facebook.page import Me
+from .facebook.send import MessageTag, SendResponse
 from .facebook.user_profile import UserProfile
 from songmam.facebook.webhook import Webhook
 from .payload import *
@@ -142,11 +143,7 @@ class LocalizedObj:
         self.obj = obj
 
 
-# I agree with him : http://stackoverflow.com/a/36937/3843242
-class NotificationType:
-    REGULAR = 'REGULAR'
-    SILENT_PUSH = 'SILENT_PUSH'
-    NO_PUSH = 'NO_PUSH'
+
 
 
 class SenderAction:
@@ -374,25 +371,25 @@ class Page:
 
         return data['uri']
 
-    def _send(self, payload, callback=None):
-        r = requests.post(self._api_uri("me/messages"),
+    def _send(self, payload, callback=None) -> SendResponse:
+        response = requests.post(self._api_uri("me/messages"),
                           params={"access_token": self.access_token},
                           data=payload.to_json(),
                           headers={'Content-type': 'application/json'})
 
-        if r.status_code != requests.codes.ok:
-            print(r.text)
+        if response.status_code != requests.codes.ok:
+            print(response.text)
 
         if callback is not None:
-            callback(payload, r)
+            callback(payload, response)
 
         if self._after_send is not None:
-            self._after_send(payload, r)
+            self._after_send(payload, response)
 
-        return r
+        return SendResponse.parse_raw(response.text)
 
-    def send(self, recipient_id, message, quick_replies=None, metadata=None,
-             notification_type=None, callback=None, tag=None):
+    def send(self, recipient_id, message, *, quick_replies=None, metadata=None,
+             notification_type=None, tag:Optional[MessageTag]=None, callback: Optional[callable]=None):
 
         text = message if isinstance(message, str) else None
         
@@ -408,9 +405,6 @@ class Page:
                           tag=tag)
 
         return self._send(payload, callback=callback)
-
-    def reply(self):
-        
 
     def send_json(self, json_payload, callback=None):
         return self._send(Payload(**json.loads(json_payload)), callback)
