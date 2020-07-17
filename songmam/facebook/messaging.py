@@ -1,43 +1,15 @@
 # https://developers.facebook.com/docs/messenger-platform/send-messages#send_api_basics
 from typing import Literal, List, Optional, Union
-# https://developers.facebook.com/docs/messenger-platform/send-messages/quick-replies
 from enum import auto
 
 from pydantic import BaseModel, HttpUrl
 
-from songmam.facebook.entries.base import ThingWithID
 
 
-#  QUICK REPLIES START
+#  TEMPLATES START
 from songmam.facebook.send import SendRecipient
 
 
-class QuickReplies(BaseModel):
-    content_type: Literal["text", "location", "user_phone_number", "user_email"]
-    title: Optional[str]  # Required if content_type is 'text'
-    payload: Optional[Union[str, int]]  # "payload":"<POSTBACK_PAYLOAD>"
-    image_url: Optional[HttpUrl]  # Required if title is an empty string.
-
-
-class SendingQuickRepliesMessage(BaseModel):
-    text: str
-    quick_replies: List[QuickReplies]
-
-
-class SendingQuickRepliesEntry(BaseModel):
-    """
-    https://developers.facebook.com/docs/messenger-platform/reference/buttons/quick-replies
-    """
-    recipient: ThingWithID
-    messaging_type: Literal["RESPONSE"]
-    message: SendingQuickRepliesMessage
-
-
-#  END OF QUICK REPLIES
-
-###############################################################
-
-#  TEMPLATES START
 class DefaultAction(BaseModel):
     """ # Mentioned as URL Button with no 'title'
     https://developers.facebook.com/docs/messenger-platform/reference/buttons/url

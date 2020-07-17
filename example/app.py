@@ -16,6 +16,8 @@ app = FastAPI()
 
 page.add_verification_middleware(app)
 
+page.
+
 @app.get("/healthz")
 async def show_server_is_alive(request: Request):
     body = await request.body()
