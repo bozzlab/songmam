@@ -1,28 +1,28 @@
 import json
-import sys
 import re
 import hmac
 import hashlib
-from typing import Union
+from typing import Union, Optional, Literal, Set, List
 
 import requests
 from decouple import config, UndefinedValueError
 from fastapi import FastAPI, Request
 from furl import furl
 from loguru import logger
-from pydantic import BaseModel
 
+from .api.content import Content
 from .api.events import MessageEvent, PostBackEvent
-from .facebook.entries.messages import Messaging, MessageEntry
-from .facebook.entries.postbacks import Postbacks, PostbacksEntry
-from .facebook.mess.persistent_menu import UserPersistentMenu
+from .facebook.entries.messages import MessageEntry, Sender
+from .facebook.entries.postbacks import PostbacksEntry
+from .facebook.messaging.message_tags import MessageTag
+from .facebook.messaging.payload import BasePayload, SenderActionPayload
+from songmam.facebook.messenger_profile.persistent_menu import UserPersistentMenu, MenuPerLocale
 from .facebook.messaging import SenderAction
+from .facebook.messenger_profile import MessengerProfileProperty, MessengerProfile
 from .facebook.page import Me
-from .facebook.send import SendResponse
+from .facebook.send import SendResponse, SendRecipient
 from .facebook.user_profile import UserProfile
 from songmam.facebook.webhook import Webhook
-from .payload import *
-from .template import *
 
 # See https://developers.facebook.com/docs/graph-api/changelog
 SUPPORTED_API_VERS = Literal[
@@ -43,7 +43,8 @@ class Page:
                  auto_mark_as_seen: bool=True,
                  access_token: Optional[str] = None,
                  verify_token: Optional[str] = None,
-                 app_secret: Optional[str] = None
+                 app_secret: Optional[str] = None,
+                 persistent_menu = Optional[List[MenuPerLocale]]
                  ):
         self.auto_mark_as_seen = auto_mark_as_seen
 
@@ -69,6 +70,12 @@ class Page:
             except UndefinedValueError:
                 # value is None by default
                 pass
+
+        profile = MessengerProfile()
+        if persistent_menu:
+            profile.persistent_menu = persistent_menu
+
+        self._set_profile_property(profile)
 
 
         # self._after_send = options.pop('after_send', None)
@@ -99,9 +106,6 @@ class Page:
         furl_url = furl("https://graph.facebook.com/") / self.api_version
         # furl_url.args['access_token'] = self.access_token
         return furl_url
-
-    def _api_uri(self, sub):
-        return "https://graph.facebook.com/" + self.api_version + "/" + sub
 
 
     def add_verification_middleware(self, app: FastAPI):
@@ -201,11 +205,12 @@ class Page:
 
         return data['uri']
 
-    def _send(self, payload: Union[BaseModel], callback=None) -> SendResponse:
+    def _send(self, payload: Union[BasePayload], callback=None) -> SendResponse:
         f_url = self.base_api_furl / "me/messages"
+        data = payload.json(exclude_none=True)
         response = requests.post(f_url.url,
                                  params={"access_token": self.access_token},
-                                 data=payload.json(),
+                                 data=data,
                                  headers={'Content-type': 'application/json'})
 
         if response.status_code != requests.codes.ok:
@@ -219,24 +224,31 @@ class Page:
 
         return SendResponse.parse_raw(response.text)
 
-    def send(self, recipient_id, message, *, quick_replies=None, metadata=None,
+    def send(self, sender: Sender, message: Content, *, quick_replies=None, metadata=None,
              notification_type=None, tag:Optional[MessageTag]=None, callback: Optional[callable]=None):
 
         if self.auto_mark_as_seen:
-            self.mark_seen(recipient_id)
+            self.mark_seen(sender.id)
 
-        text = message if isinstance(message, str) else None
-        
 
-        attachment = message if not text else None
+        return self._send(
+            BasePayload(
+                recipient=sender,
+                message=message.message
+        ), callback=callback)
 
-        message = Message(text=text, attachment=attachment, quick_replies=quick_replies, metadata=metadata)
-        payload = Payload(recipient=Recipient(id=recipient_id),
-                          message=message,
-                          notification_type=notification_type,
-                          tag=tag)
+    def reply(self, message_to_reply_to: MessageEvent, message: Content, *, quick_replies=None, metadata=None,
+              notification_type=None, tag:Optional[MessageTag]=None, callback: Optional[callable]=None):
 
-        return self._send(payload, callback=callback)
+        if self.auto_mark_as_seen:
+            self.mark_seen(message_to_reply_to.sender.id)
+
+
+        return self._send(
+            BasePayload(
+                recipient=message_to_reply_to.sender,
+                message=message.message
+        ), callback=callback)
 
     def send_json(self, json_payload, callback=None):
         return self._send(Payload(**json.loads(json_payload)), callback)
@@ -257,13 +269,7 @@ class Page:
         self._send(payload)
 
     def mark_seen(self, recipient_id):
-        payload = Payload(recipient=Recipient(id=recipient_id),
-                          sender_action=SenderAction.MARK_SEEN)
-
-        payload1 = Payload(recipient=Recipient(id=recipient_id),
-                          sender_action=SenderAction.MARK_SEEN)
-
-        payload2 = Payload(recipient=Recipient(id=recipient_id),
+        payload = SenderActionPayload(recipient=SendRecipient(id=recipient_id),
                           sender_action=SenderAction.MARK_SEEN)
 
         self._send(payload)
@@ -272,98 +278,106 @@ class Page:
     messenger profile (see https://developers.facebook.com/docs/messenger-platform/reference/messenger-profile-api)
     """
 
-    def _set_profile_property(self, pname, pval):
-        r = requests.post(self._api_uri("me/messenger_profile"),
+    def _set_profile_property(self, data: MessengerProfile):
+
+        f_url = self.base_api_furl / "me" / "messenger_profile"
+        r = requests.post(f_url.url,
                           params={"access_token": self.access_token},
-                          data=json.dumps({
-                              pname: pval
-                          }),
+                          data=data.json(exclude_none=True),
                           headers={'Content-type': 'application/json'})
 
         if r.status_code != requests.codes.ok:
-            print(r.text)
+            raise Exception(r.text)
 
-    def _del_profile_property(self, pname):
-        r = requests.delete(self._api_uri("me/messenger_profile"),
+    def _del_profile_property(self, properties: Set[MessengerProfileProperty]):
+        f_url = self.base_api_furl / "me" / "messenger_profile"
+        r = requests.delete(f_url.url,
                             params={"access_token": self.access_token},
                             data=json.dumps({
-                                'fields': [pname,]
+                                'fields': [p.value for p in properties]
                             }),
                             headers={'Content-type': 'application/json'})
 
         if r.status_code != requests.codes.ok:
-            print(r.text)
+            logger.error("Facebook Server replied" + r.text)
+            raise Exception(r.text)
 
-    def set_greeting(self, g):
-        self.localized_greeting([LocalizedObj(locale="default", obj=text)])
+    def set_persistent_menu(self):
+        """
+        page.set_persistent_menu()
+        Returns:
 
-    def localized_greeting(self, locale_list):
-        if not locale_list:
-            raise ValueError("List of locales is mandatory")
-        pval = []
-        for l in locale_list:
-            if not isinstance(l, LocalizedObj):
-                raise ValueError("greeting type error")
-            if not isinstance(l.obj, str):
-                raise ValueError("greeting text error")
-            pval.append({
-                "locale": l.locale,
-                "text": l.obj
-            })
-        self._set_profile_property(pname="greeting", pval=pval)
+        """
+    # def set_greeting(self, g):
+    #     self.localized_greeting([LocalizedObj(locale="default", obj=text)])
+    #
+    # def localized_greeting(self, locale_list):
+    #     if not locale_list:
+    #         raise ValueError("List of locales is mandatory")
+    #     pval = []
+    #     for l in locale_list:
+    #         if not isinstance(l, LocalizedObj):
+    #             raise ValueError("greeting type error")
+    #         if not isinstance(l.obj, str):
+    #             raise ValueError("greeting text error")
+    #         pval.append({
+    #             "locale": l.locale,
+    #             "text": l.obj
+    #         })
+    #     self._set_profile_property(pname="greeting", pval=pval)
 
-    def hide_greeting(self):
-        self._del_profile_property(pname="greeting")
+    # def hide_greeting(self):
+    #     self._del_profile_property(pname="greeting")
+    #
+    # def show_starting_button(self, payload):
+    #     if not payload or not isinstance(payload, str):
+    #         raise ValueError("show_starting_button payload error")
+    #     self._set_profile_property(pname="get_started",
+    #                                pval={"payload": payload})
 
-    def show_starting_button(self, payload):
-        if not payload or not isinstance(payload, str):
-            raise ValueError("show_starting_button payload error")
-        self._set_profile_property(pname="get_started",
-                                   pval={"payload": payload})
+    # def hide_starting_button(self):
+    #     self._del_profile_property(pname="get_started")
 
-    def hide_starting_button(self):
-        self._del_profile_property(pname="get_started")
+    # def show_persistent_menu(self, buttons: Buttons) -> None:
+    #     self.show_localized_persistent_menu([LocalizedObj(locale="default",
+    #                                                       obj=buttons)])
+    # def hide_persistent_menu(self):
+    #     self._del_profile_property(pname="persistent_menu")
 
-    def show_persistent_menu(self, buttons: Buttons) -> None:
-        self.show_localized_persistent_menu([LocalizedObj(locale="default",
-                                                          obj=buttons)])
-    def hide_persistent_menu(self):
-        self._del_profile_property(pname="persistent_menu")
-
-    def show_localized_persistent_menu(self, locale_list):
-        if not locale_list:
-            raise ValueError("List of locales is mandatory")
-        pval = []
-        for l in locale_list:
-            if not isinstance(l, LocalizedObj):
-                raise ValueError("persistent_menu error")
-            if not isinstance(l.obj, list):
-                raise ValueError("menu call_to_actions error")
-
-            buttons = Buttons.convert_shortcut_buttons(l.obj)
-
-            buttons_dict = []
-            for button in buttons:
-                if isinstance(button, ButtonWeb):
-                    buttons_dict.append({
-                        "type": "web_url",
-                        "title": button.title,
-                        "url": button.url
-                    })
-                elif isinstance(button, ButtonPostBack):
-                    buttons_dict.append({
-                        "type": "postback",
-                        "title": button.title,
-                        "payload": button.payload
-                    })
-                else:
-                    raise ValueError('show_persistent_menu button type must be "url" or "postback"')
-
-            pval.append({
-                "locale": l.locale,
-                "call_to_actions": buttons_dict
-            })
-        self._set_profile_property(pname="persistent_menu", pval=pval)
+    # def show_localized_persistent_menu(self, locale_list):
+    #     if not locale_list:
+    #         raise ValueError("List of locales is mandatory")
+    #     pval = []
+    #     for l in locale_list:
+    #         if not isinstance(l, LocalizedObj):
+    #             raise ValueError("persistent_menu error")
+    #         if not isinstance(l.obj, list):
+    #             raise ValueError("menu call_to_actions error")
+    #
+    #         buttons = Buttons.convert_shortcut_buttons(l.obj)
+    #
+    #         buttons_dict = []
+    #         for button in buttons:
+    #             if isinstance(button, ButtonWeb):
+    #                 buttons_dict.append({
+    #                     "type": "web_url",
+    #                     "title": button.title,
+    #                     "url": button.url
+    #                 })
+    #             elif isinstance(button, ButtonPostBack):
+    #                 buttons_dict.append({
+    #                     "type": "postback",
+    #                     "title": button.title,
+    #                     "payload": button.payload
+    #                 })
+    #             else:
+    #                 raise ValueError('show_persistent_menu button type must be "url" or "postback"')
+    #
+    #         pval.append({
+    #             "locale": l.locale,
+    #             "call_to_actions": buttons_dict
+    #         })
+    #     self._set_profile_property(pname="persistent_menu", pval=pval)
 
     """
     Custom User Settings

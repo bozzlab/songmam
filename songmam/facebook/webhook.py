@@ -14,6 +14,11 @@ class Webhook(BaseModel):
     object: str
     entry: List[Union[MessageEntry, PostbacksEntry]]
 
+    # @validator('entry')
+    # def get_the_right_type(cls, value):
+    #     if getattr(value, 'messaging'):
+    #         return
+
     @validator('object')
     def object_equal_page(cls, v):
         if v != 'page':

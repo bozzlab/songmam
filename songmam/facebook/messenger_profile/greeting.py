@@ -3,7 +3,7 @@ from typing import List
 
 from pydantic import BaseModel, validator
 
-from songmam.facebook.mess.locale import ThingWithLocale
+from songmam.facebook.messaging.locale import ThingWithLocale
 
 
 class GreetingPerLocale(ThingWithLocale):
@@ -15,5 +15,3 @@ class GreetingPerLocale(ThingWithLocale):
             raise ValueError("Must be in UTF-8. 160 character limit.")
 
 
-class Greeting(BaseModel):
-    greeting: List[GreetingPerLocale]

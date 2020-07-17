@@ -145,7 +145,7 @@ buttons = [
 #          {'type': 'postback', 'title': 'trigger Postback', 'value': 'DEVELOPED_DEFINED_PAYLOAD'},
 #          {'type': 'phone_number', 'title': 'Call Phone Number', 'value': '+16505551234'}]
 
-page.send(recipient_id, Template.Buttons("hello", buttons))
+page.send(recipient_id, Template.Button("hello", buttons))
 ```
 
 ##### button callback

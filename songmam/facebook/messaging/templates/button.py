@@ -1,18 +1,7 @@
-from typing import Literal, Optional
+from typing import Literal, Optional, List
 
 from pydantic import BaseModel, validator, HttpUrl, root_validator
 
-
-class DefaultAction(BaseModel):
-    """ # Mentioned as URL Button with no 'title'
-    https://developers.facebook.com/docs/messenger-platform/reference/buttons/url
-    """
-    type: str = "web_url"
-    url: HttpUrl
-    webview_height_ratio: Literal["compact", "tall", "full"] = 'full'
-    messenger_extensions: bool = False
-    fallback_url: HttpUrl
-    webview_share_button: Optional[str]
 
 
 class BaseButton(BaseModel):
@@ -49,7 +38,7 @@ class URLButton(BaseButton):
         return values
 
 
-class PostBackButton(BaseButton):
+class PostbackButton(BaseButton):
     type: str = 'postback'
     payload: str
 
@@ -94,16 +83,40 @@ class GamePlayButton(BaseButton):
     game_metadata: Optional[GameMetadata]
 
 
-class Buttons(BaseModel):
+# class Button(BaseModel):
+#     """
+#     https://developers.facebook.com/docs/messenger-platform/reference/buttons/url#properties
+#     """
+#     type: Literal["web_url", "postback", "phone_number", "account_link", "account_unlink", "game_play"]
+#     title: str
+#     payload: Optional[str]  # for type : postback / phone_number / game_play
+#     url: Optional[HttpUrl]  # for type: web_url / LogIn
+#     webview_height_ratio: Optional[Literal["compact", "tall", "full"]]  # for type: web_url
+#     messenger_extensions: Optional[bool]  # for type: web_url
+#     fallback_url: Optional[HttpUrl]  # for type: web_url
+#     webview_share_button: Optional[str]  # for type: web_url
+#     game_metadata: Optional[GameMetadata]  # for type : game_play
+
+
+
+class Payload(BaseModel):
     """
-    https://developers.facebook.com/docs/messenger-platform/reference/buttons/url#properties
+    https://developers.facebook.com/docs/messenger-platform/reference/templates/button
     """
-    type: Literal["web_url", "postback", "phone_number", "account_link", "account_unlink", "game_play"]
-    title: str
-    payload: Optional[str]  # for type : postback / phone_number / game_play
-    url: Optional[HttpUrl]  # for type: web_url / LogIn
-    webview_height_ratio: Optional[Literal["compact", "tall", "full"]]  # for type: web_url
-    messenger_extensions: Optional[bool]  # for type: web_url
-    fallback_url: Optional[HttpUrl]  # for type: web_url
-    webview_share_button: Optional[str]  # for type: web_url
-    game_metadata: Optional[GameMetadata]  # for type : game_play
+    template_type: Literal["button"] = "button"
+    text: str
+    buttons: List[BaseButton]  # Set of 1-3 buttons that appear as call-to-actions.
+
+    @validator('text')
+    def title_limit_to_640_characters(cls, v):
+        if len(v) > 640:
+            raise ValueError('UTF-8-encoded text of up to 640 characters.')
+        return v
+
+    @validator('buttons')
+    def limit_buttons_from_1_to_3(cls, value):
+        num_char = len(value)
+        if num_char < 0 or num_char > 3:
+            raise ValueError('Set of 1-3 buttons only.')
+        return value
+

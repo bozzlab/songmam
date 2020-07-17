@@ -3,7 +3,7 @@ from typing import Literal, Optional, Union, List
 
 from pydantic import BaseModel, HttpUrl
 
-from songmam.facebook.entries.base import ThingWithID
+from songmam.facebook import ThingWithID
 
 
 class QuickReplies(BaseModel):
@@ -18,13 +18,7 @@ class SendingQuickRepliesMessage(BaseModel):
     quick_replies: List[QuickReplies]
 
 
-class SendingQuickRepliesEntry(BaseModel):
-    """
-    https://developers.facebook.com/docs/messenger-platform/reference/buttons/quick-replies
-    """
-    recipient: ThingWithID
-    messaging_type: Literal["RESPONSE"]
-    message: SendingQuickRepliesMessage
+
 
 
 #  END OF QUICK REPLIES

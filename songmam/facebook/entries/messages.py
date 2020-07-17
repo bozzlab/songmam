@@ -6,7 +6,8 @@ from songmam.facebook.entries.echo import EchoEntry
 from songmam.facebook.entries.handovers import HandoversEntry
 
 from songmam.facebook.entries.message.attachment import Attachment
-from songmam.facebook.entries.base import ThingWithID, MessagingWithTimestamp
+from songmam.facebook.entries.base import MessagingWithTimestamp
+from songmam.facebook import ThingWithID
 
 
 class Sender(ThingWithID):

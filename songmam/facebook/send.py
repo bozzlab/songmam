@@ -2,7 +2,8 @@
 from pydantic import BaseModel
 from typing import Optional, Literal, List
 
-from songmam.facebook.entries.base import ThingWithID
+from songmam.facebook import ThingWithID
+from songmam.facebook.messaging.messaging_type import MessagingType
 
 
 class SendResponse(BaseModel):
@@ -10,14 +11,13 @@ class SendResponse(BaseModel):
     message_id: Optional[str]
 
 
-class SendRecipient(BaseModel):
-    id: ThingWithID
+class SendRecipient(ThingWithID):
     user_ref: Optional[str]
     post_id: Optional[str]
     comment_id: Optional[str]
 
 
-class MessageAttachmentPayload:
+class MessageAttachmentPayload(BaseModel):
     # Payload of attachment, can either be
     # a Template Payload
     """
@@ -34,7 +34,7 @@ class MessageAttachmentPayload:
     is_reusable: Optional[bool]
 
 
-class MessageAttachment:
+class MessageAttachment(BaseModel):
     """
     https://developers.facebook.com/docs/messenger-platform/reference/send-api/#attachment
     """
@@ -50,7 +50,7 @@ class SendMessage(BaseModel):
 
 
 class RequestUriEntry(BaseModel):
-    messaging_type: Optional[Literal["RESPONSE", "UPDATE", "MESSAGE_TAG"]]
+    messaging_type: Optional[MessagingType]
     recipient: Optional[SendRecipient]
     message: Optional[SendMessage]
     sender_action: Optional[Literal["typing_on", "typing_off", "mark_seen"]] # confused by description
