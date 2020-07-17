@@ -12,198 +12,19 @@ from loguru import logger
 from .api.events import MessageEvent, PostBackEvent
 from .facebook.entries.messages import Messaging, MessageEntry
 from .facebook.entries.postbacks import Postbacks, PostbacksEntry
+from .facebook.mess.persistent_menu import UserPersistentMenu
+from .facebook.messaging import SenderAction
 from .facebook.page import Me
+from .facebook.send import SendResponse
 from .facebook.user_profile import UserProfile
 from songmam.facebook.webhook import Webhook
 from .payload import *
 from .template import *
 
 # See https://developers.facebook.com/docs/graph-api/changelog
-SUPPORTED_API_VERS=[
+SUPPORTED_API_VERS = Literal[
     "v7.0" # May 5, 2020
 ]
-
-# See https://developers.facebook.com/docs/messenger-platform/messenger-profile/supported-locales
-SUPPORTED_LOCALES=[
-    "default",
-    "en_US",
-    "ca_ES",
-    "cs_CZ",
-    "cx_PH",
-    "cy_GB",
-    "da_DK",
-    "de_DE",
-    "eu_ES",
-    "en_UD",
-    "es_LA",
-    "es_ES",
-    "gn_PY",
-    "fi_FI",
-    "fr_FR",
-    "gl_ES",
-    "hu_HU",
-    "it_IT",
-    "ja_JP",
-    "ko_KR",
-    "nb_NO",
-    "nn_NO",
-    "nl_NL",
-    "fy_NL",
-    "pl_PL",
-    "pt_BR",
-    "pt_PT",
-    "ro_RO",
-    "ru_RU",
-    "sk_SK",
-    "sl_SI",
-    "sv_SE",
-    "th_TH",
-    "tr_TR",
-    "ku_TR",
-    "zh_CN",
-    "zh_HK",
-    "zh_TW",
-    "af_ZA",
-    "sq_AL",
-    "hy_AM",
-    "az_AZ",
-    "be_BY",
-    "bn_IN",
-    "bs_BA",
-    "bg_BG",
-    "hr_HR",
-    "nl_BE",
-    "en_GB",
-    "et_EE",
-    "fo_FO",
-    "fr_CA",
-    "ka_GE",
-    "el_GR",
-    "gu_IN",
-    "hi_IN",
-    "is_IS",
-    "id_ID",
-    "ga_IE",
-    "jv_ID",
-    "kn_IN",
-    "kk_KZ",
-    "lv_LV",
-    "lt_LT",
-    "mk_MK",
-    "mg_MG",
-    "ms_MY",
-    "mt_MT",
-    "mr_IN",
-    "mn_MN",
-    "ne_NP",
-    "pa_IN",
-    "sr_RS",
-    "so_SO",
-    "sw_KE",
-    "tl_PH",
-    "ta_IN",
-    "te_IN",
-    "ml_IN",
-    "uk_UA",
-    "uz_UZ",
-    "vi_VN",
-    "km_KH",
-    "tg_TJ",
-    "ar_AR",
-    "he_IL",
-    "ur_PK",
-    "fa_IR",
-    "ps_AF",
-    "my_MM",
-    "qz_MM",
-    "or_IN",
-    "si_LK",
-    "rw_RW",
-    "cb_IQ",
-    "ha_NG",
-    "ja_KS",
-    "br_FR",
-    "tz_MA",
-    "co_FR",
-    "as_IN",
-    "ff_NG",
-    "sc_IT",
-    "sz_PL",
-]
-
-
-class LocalizedObj:
-    def __init__(self, locale, obj):
-        if locale not in SUPPORTED_LOCALES:
-            raise ValueError("Unsupported locale: {}".format(locale))
-        if not obj:
-            raise ValueError("Object is mandatory")
-        self.locale = locale
-        self.obj = obj
-
-
-# I agree with him : http://stackoverflow.com/a/36937/3843242
-class NotificationType:
-    REGULAR = 'REGULAR'
-    SILENT_PUSH = 'SILENT_PUSH'
-    NO_PUSH = 'NO_PUSH'
-
-
-class SenderAction:
-    TYPING_ON = 'typing_on'
-    TYPING_OFF = 'typing_off'
-    MARK_SEEN = 'mark_seen'
-
-
-# def event_parser(messaging=None):
-#     if messaging is None:
-#         messaging = dict()
-#
-#     if 'message' in messaging:
-#         is_echo = messaging.get('message', {}).get('is_echo')
-#         if is_echo:
-#             event_type = EchoEvent
-#         else:
-#             event_type = MessageEvent
-#     elif 'delivery' in messaging:
-#         event_type = DeliveriesEvent
-#     elif 'read' in messaging:
-#         event_type = ReadEvent.new_from_json_dict(messaging)
-#     elif 'account_linking' in messaging:
-#         event_type = AccountLinkingEvent
-#     elif 'checkout_update' in messaging:
-#         event_type = CheckOutUpdateEvent
-#     elif 'game_play' in messaging:
-#         event_type = GamePlayEvent.new_from_json_dict(messaging)
-#     elif 'pass_thread_control' in messaging:
-#         event_type = PassThreadEvent
-#     elif 'take_thread_control' in messaging:
-#         event_type = TakeThreadEvent
-#     elif 'request_thread_control' in messaging:
-#         event_type = RequestThreadEvent
-#     elif 'app_roles' in messaging:
-#         event_type = AppRoleEvent
-#     elif 'optin' in messaging:
-#         event_type = OptinEvent
-#     elif 'payment' in messaging:
-#         event_type = PaymentEvent
-#     elif 'policy-enforcement' in messaging:
-#         # key name must be changed for properly use to class instance.
-#         messaging['policy_enforcement'] = messaging['policy-enforcement']
-#         del messaging['policy-enforcement']
-#         event_type = PolicyEnforcementEvent
-#     elif 'postback' in messaging:
-#         event_type = PostBackEvent
-#     elif 'referral' in messaging:
-#         event_type = ReferralEvent
-#     elif 'standby' in messaging:
-#         event_type = StandByEvent
-#     else:
-#         print("Webhook received unknown messaging")
-#         return
-#     event = event_type.new_from_json_dict(messaging)
-#
-#     return event
 
 
 
@@ -211,15 +32,18 @@ class Page:
     access_token: str
     verify_token: Optional[str] = None
     app_secret: Optional[str] = None
-    api_version: str = 'v7.0'
+    api_version: SUPPORTED_API_VERS = 'v7.0'
 
     page: Optional[Me] = None
 
     def __init__(self, *,
+                 auto_mark_as_seen: bool=True,
                  access_token: Optional[str] = None,
                  verify_token: Optional[str] = None,
                  app_secret: Optional[str] = None
                  ):
+        self.auto_mark_as_seen = auto_mark_as_seen
+
         if access_token:
             self.access_token = access_token
         else:
@@ -374,25 +198,28 @@ class Page:
 
         return data['uri']
 
-    def _send(self, payload, callback=None):
-        r = requests.post(self._api_uri("me/messages"),
+    def _send(self, payload, callback=None) -> SendResponse:
+        response = requests.post(self._api_uri("me/messages"),
                           params={"access_token": self.access_token},
                           data=payload.to_json(),
                           headers={'Content-type': 'application/json'})
 
-        if r.status_code != requests.codes.ok:
-            print(r.text)
+        if response.status_code != requests.codes.ok:
+            print(response.text)
 
         if callback is not None:
-            callback(payload, r)
+            callback(payload, response)
 
         if self._after_send is not None:
-            self._after_send(payload, r)
+            self._after_send(payload, response)
 
-        return r
+        return SendResponse.parse_raw(response.text)
 
-    def send(self, recipient_id, message, quick_replies=None, metadata=None,
-             notification_type=None, callback=None, tag=None):
+    def send(self, recipient_id, message, *, quick_replies=None, metadata=None,
+             notification_type=None, tag:Optional[MessageTag]=None, callback: Optional[callable]=None):
+
+        if self.auto_mark_as_seen:
+            self.mark_seen(recipient_id)
 
         text = message if isinstance(message, str) else None
         
@@ -408,9 +235,6 @@ class Page:
                           tag=tag)
 
         return self._send(payload, callback=callback)
-
-    def reply(self):
-        pass
 
     def send_json(self, json_payload, callback=None):
         return self._send(Payload(**json.loads(json_payload)), callback)
@@ -462,7 +286,7 @@ class Page:
         if r.status_code != requests.codes.ok:
             print(r.text)
 
-    def greeting(self, text):
+    def set_greeting(self, g):
         self.localized_greeting([LocalizedObj(locale="default", obj=text)])
 
     def localized_greeting(self, locale_list):
@@ -533,7 +357,68 @@ class Page:
             })
         self._set_profile_property(pname="persistent_menu", pval=pval)
 
+    """
+    Custom User Settings
+    """
 
+    # def _set_user_settings(self, payload: BaseModel):
+    #     f_url = self.base_api_furl / 'me' / 'custom_user_settings'
+    #     r = requests.post(f_url.url,
+    #                       params={"access_token": self.access_token},
+    #                       data=payload.json(),
+    #                       headers={'Content-type': 'application/json'})
+    #
+    #     if r.status_code != requests.codes.ok:
+    #         raise Exception(r.text)
+
+    # def _del_profile_property(self, pname):
+    #     r = requests.delete(self._api_uri("me/messenger_profile"),
+    #                         params={"access_token": self.access_token},
+    #                         data=json.dumps({
+    #                             'fields': [pname,]
+    #                         }),
+    #                         headers={'Content-type': 'application/json'})
+    #
+    #     if r.status_code != requests.codes.ok:
+    #         raise Exception(r.text)
+    def get_user_settings(self, user_id: str):
+        f_url = self.base_api_furl / 'me' / 'custom_user_settings'
+        params = {
+            "access_token": self.access_token,
+            "psid": user_id
+        }
+        r = requests.get(f_url.url,
+                         params=params)
+
+        if r.status_code != requests.codes.ok:
+            raise Exception(r.text)
+
+        # TODO: create object for this GET Request https://developers.facebook.com/docs/messenger-platform/send-messages/persistent-menu
+        return r.json()
+
+    def set_user_menu(self, payload: UserPersistentMenu):
+        f_url = self.base_api_furl / 'me' / 'custom_user_settings'
+        r = requests.post(f_url.url,
+                          params={"access_token": self.access_token},
+                          data=payload.json(),
+                          headers={'Content-type': 'application/json'})
+
+        if r.status_code != requests.codes.ok:
+            raise Exception(r.text)
+
+    def delete_user_menu(self, user_id: str):
+        f_url = self.base_api_furl / 'me' / 'custom_user_settings'
+
+        params = {
+            "access_token": self.access_token,
+            "psid": user_id,
+            "params": "[%22persistent_menu%22]"
+        }
+        r = requests.delete(f_url.url,
+                          params=params)
+
+        if r.status_code != requests.codes.ok:
+            raise Exception(r.text)
 
     """
     handlers and decorations
