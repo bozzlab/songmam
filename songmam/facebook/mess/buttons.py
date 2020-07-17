@@ -7,7 +7,7 @@ class DefaultAction(BaseModel):
     """ # Mentioned as URL Button with no 'title'
     https://developers.facebook.com/docs/messenger-platform/reference/buttons/url
     """
-    type: Literal["web_url"]
+    type: str = "web_url"
     url: HttpUrl
     webview_height_ratio: Literal["compact", "tall", "full"] = 'full'
     messenger_extensions: bool = False
@@ -55,7 +55,7 @@ class PostBackButton(BaseButton):
 
 
 class CallButton(BaseButton):
-    type = 'phone_number'
+    type: str = 'phone_number'
     payload: str
 
     # TODO: https://pypi.org/project/phonenumbers/
@@ -65,7 +65,7 @@ class LogInButton(BaseModel):
     """
     https://developers.facebook.com/docs/messenger-platform/send-messages/buttons#login
     """
-    type: Literal["account_link"]
+    type: str = "account_link"
     url: HttpUrl  # Authentication callback URL. Must use HTTPS protocol.
 
 
@@ -73,7 +73,7 @@ class LogOutButton(BaseModel):
     """
     https://developers.facebook.com/docs/messenger-platform/reference/buttons/logout
     """
-    type: Literal["account_unlink"]
+    type: str = "account_unlink"
 
 
 class GameMetadata(BaseModel):
@@ -84,11 +84,26 @@ class GameMetadata(BaseModel):
     context_id: Optional[str]
 
 
-class GamePlayButton(BaseModel):
+class GamePlayButton(BaseButton):
     """
     https://developers.facebook.com/docs/messenger-platform/reference/buttons/game-play
     """
-    type: Literal["game_play"]
+    type: str = "game_play"
     title: str
     payload: Optional[str]
     game_metadata: Optional[GameMetadata]
+
+
+class Buttons(BaseModel):
+    """
+    https://developers.facebook.com/docs/messenger-platform/reference/buttons/url#properties
+    """
+    type: Literal["web_url", "postback", "phone_number", "account_link", "account_unlink", "game_play"]
+    title: str
+    payload: Optional[str]  # for type : postback / phone_number / game_play
+    url: Optional[HttpUrl]  # for type: web_url / LogIn
+    webview_height_ratio: Optional[Literal["compact", "tall", "full"]]  # for type: web_url
+    messenger_extensions: Optional[bool]  # for type: web_url
+    fallback_url: Optional[HttpUrl]  # for type: web_url
+    webview_share_button: Optional[str]  # for type: web_url
+    game_metadata: Optional[GameMetadata]  # for type : game_play
