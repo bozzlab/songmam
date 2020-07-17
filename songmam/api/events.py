@@ -1,7 +1,7 @@
 import json
 
 from songmam.facebook.entries.messages import MessageEntry
-from songmam.facebook.entries.postbacks import PostbacksEntry
+from songmam.facebook.entries.postback import PostbackEntry
 
 
 class Event:
@@ -37,13 +37,13 @@ class MessageEvent(Event):
 
 
 class PostBackEvent(Event):
-    entry: PostbacksEntry
+    entry: PostbackEntry
 
-    def __init__(self, entry: PostbacksEntry):
+    def __init__(self, entry: PostbackEntry):
         super(PostBackEvent, self).__init__(entry)
-        self.title = self.entry.postback.title
-        self.payload = self.entry.postback.payload
-        self.referal = self.entry.postback.referral
+        # self.title = self.entry.postback.title
+        # self.payload = self.entry.postback.payload
+        # self.referal = self.entry.postback.referral
 
 
 class DeliveriesEvent(Event):

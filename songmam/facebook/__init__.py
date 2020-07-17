@@ -1,5 +1,5 @@
 from pydantic import BaseModel
 
 
-class ThingWithID(BaseModel):
+class ThingWithId(BaseModel):
     id: str

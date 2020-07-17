@@ -3,28 +3,30 @@ from typing import List, Union, Optional
 from loguru import logger
 from pydantic import BaseModel, validator
 
+from songmam.facebook.entries.echo import EchoEntry
 from songmam.facebook.entries.messages import MessageEntry, Messaging
-from songmam.facebook.entries.postbacks import PostbacksEntry, Postbacks
+from songmam.facebook.entries.postback import PostbackEntry, Postback
 
 
-class GenericEntry(BaseModel):
-    id: Optional[str]
-    time: Optional[int]
-    messaging: Optional[List[Messaging]]
-    postback: Optional[Postbacks]
-
-    def convert_to_specific(self):
-        if self.messaging:
-            return MessageEntry(**self.dict())
-        elif self.postback:
-            return PostbacksEntry(**self.dict())
+# class GenericEntry(BaseModel):
+#     id: Optional[str]
+#     time: Optional[int]
+#     messaging: Optional[List[Messaging]]
+#     postback: Optional[Postbacks]
+#
+#     def convert_to_specific(self):
+#         if self.messaging:
+#             return MessageEntry(**self.dict())
+#         elif self.postback:
+#             return PostbacksEntry(**self.dict())
 
 class Webhook(BaseModel):
     """An object contains one or more entries
     https://developers.facebook.com/docs/messenger-platform/reference/webhook-events/#payload
     """
     object: str
-    entry: List[Union[MessageEntry, PostbacksEntry]]
+    # entry: List[Union[PostbackEntry]]
+    entry: List[Union[PostbackEntry, MessageEntry, EchoEntry]]
 
     # @validator('entry')
     # def get_the_right_type(cls, value):

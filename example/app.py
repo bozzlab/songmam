@@ -6,12 +6,15 @@ from fastapi import FastAPI, Request
 
 # os.environ['PAGE_ACCESS_TOKEN'] = "MY Access token"
 # os.environ['PAGE_VERIFY_TOKEN'] = "MY Verify token"
+from loguru import logger
+
 from songmam import Webhook
-from songmam.api.events import MessageEvent
+from songmam.api.events import MessageEvent, PostBackEvent, EchoEvent
 from songmam.api.content import Content
 from songmam.facebook.messaging.locale import Locale
+from songmam.facebook.messaging.quick_replies import QuickReply
 from songmam.facebook.messaging.templates.button import URLButton, PostbackButton, CallButton
-from songmam.facebook.messenger_profile import MenuPerLocale
+from songmam.facebook.messenger_profile import MenuPerLocale, GreetingPerLocale
 from songmam.page import Page
 
 
@@ -29,7 +32,13 @@ th_menu = MenuPerLocale(
     ]
 )
 
-page = Page(persistent_menu=[default_menu, th_menu])
+default_greeting = GreetingPerLocale(text="Hi {{user_first_name}}, This is Songmum Bot." )
+th_greeting = GreetingPerLocale(locale=Locale.th_TH, text="สวัสดีครัช {{user_first_name}}, เรียกผมว่า ส่งแหม่!" )
+
+page = Page(
+    persistent_menu=[default_menu, th_menu],
+    greeting=[default_greeting, th_greeting]
+)
 app = FastAPI()
 
 page.add_verification_middleware(app)
@@ -75,15 +84,22 @@ async def echo(message: MessageEvent):
 
     content = Content(
         text="Sample Button",
-        buttons=buttons
+        # buttons=buttons,
+        quick_replies=[QuickReply(title='hi', payload='test')]
     )
-    page.send(message.sender, content)
-    # page.reply(message, content)
+    # page.send(message.sender, content)
+    page.reply(message, content)
     # page._send(
     #
     #     )
 
+@page.handle_postback
+async def log(event: PostBackEvent):
+    logger.info(f"{event.entry} ")
 
+@page.handle_echo
+async def log2(event: EchoEvent):
+    logger.info(f"{event.message}")
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True, log_level='debug')

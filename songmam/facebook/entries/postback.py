@@ -1,21 +1,29 @@
-from typing import Literal
+from typing import Literal, Optional, List
 
 from pydantic import BaseModel
 
 from songmam.facebook.entries.base import MessagingWithTimestamp
+from songmam.facebook.entries.echo import Message
+from songmam.facebook.entries.messages import MessageEntry, Messaging
 
-class PostbacksReferral(BaseModel):
+
+class PostbackReferral(BaseModel):
     ref: str
     source: Literal["SHORTLINK", "ADS"]
     type: Literal["OPEN_THREAD"]
 
-class Postbacks(BaseModel):
+class Postback(BaseModel):
     title: str
     payload: str
-    referral: PostbacksReferral
+    referral: Optional[PostbackReferral]
 
-class PostbacksEntry(MessagingWithTimestamp):
-    postback: Postbacks
+class PostbackMessaging(Messaging):
+    postback: Postback
+
+class PostbackEntry(MessageEntry):
+    # message: Optional[Message]
+    messaging: List[PostbackMessaging]
+    # postback: Optional[Postback]
 
 # {
 #   "sender":{

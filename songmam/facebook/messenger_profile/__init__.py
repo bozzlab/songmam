@@ -1,9 +1,11 @@
 from enum import auto
-from typing import Optional, List, Any
+from typing import Optional, List
 
 from pydantic import BaseModel, HttpUrl
 
+from songmam.facebook.messenger_profile.get_started import GetStarted
 from songmam.facebook.messenger_profile.greeting import GreetingPerLocale
+from songmam.facebook.messenger_profile.ice_breakers import IceBreaker
 from songmam.facebook.messenger_profile.persistent_menu import MenuPerLocale
 from songmam.utils import AutoName
 
@@ -17,10 +19,10 @@ class MessengerProfileProperty(AutoName):
     account_linking_url = auto()
 
 class MessengerProfile(BaseModel):
-    get_started: Any
+    get_started: Optional[GetStarted]
     greeting: Optional[List[GreetingPerLocale]]
-    ice_breakers: Any
+    ice_breakers: Optional[List[IceBreaker]]
     persistent_menu: Optional[List[MenuPerLocale]]
-    whitelisted_domains: Any
+    whitelisted_domains: Optional[List[str]]
     account_linking_url: Optional[HttpUrl]
 

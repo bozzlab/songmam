@@ -2,11 +2,11 @@
 Payload is final data  form ready to use with request api
 """
 from enum import auto
-from typing import Literal, List, Union, Optional, Any
+from typing import List, Union, Optional, Any
 
 from pydantic import BaseModel, validator
 
-from songmam.facebook import ThingWithID
+from songmam.facebook import ThingWithId
 from songmam.facebook.entries.messages import Sender
 from songmam.facebook.messaging.message_tags import MessageTag
 from songmam.facebook.messaging.messaging_type import MessagingType
@@ -20,7 +20,8 @@ from songmam.facebook.send import SendRecipient
 ButtonTypeList = Union[URLButton, PostbackButton, CallButton, LogInButton, LogOutButton, GamePlayButton]
 
 class BasePayload(BaseModel):
-    recipient: Union[SendRecipient, Sender]
+    template_type: Optional[str] = None
+    recipient: Union[SendRecipient, Sender, ThingWithId]
     message: Optional[Message]
     messaging_type: Optional[MessagingType] = MessagingType.RESPONSE
     tag: Optional[MessageTag]
@@ -56,3 +57,5 @@ class SenderAction(AutoNameLower):
     TYPING_ON = auto()
     TYPING_OFF = auto()
     MARK_SEEN = auto()
+
+

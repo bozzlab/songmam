@@ -1,14 +1,17 @@
+from typing import Optional
+
 from pydantic import BaseModel
 
 from songmam.facebook.entries.base import MessagingWithTimestamp
+from songmam.facebook.entries.messages import MessageEntry, Message as Message_
 
-class Message(BaseModel):
+
+class Message(Message_):
     is_echo: bool
     app_id: str
-    metadata: str
-    mid: str
+    metadata: Optional[str]
 
-class EchoEntry(MessagingWithTimestamp):
+class EchoEntry(MessageEntry):
     message: Message
 
 # {

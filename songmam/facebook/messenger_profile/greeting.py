@@ -1,7 +1,7 @@
 # https://developers.facebook.com/docs/messenger-platform/reference/messenger-profile-api/greeting
 from typing import List
 
-from pydantic import BaseModel, validator
+from pydantic import validator
 
 from songmam.facebook.messaging.locale import ThingWithLocale
 
@@ -13,5 +13,5 @@ class GreetingPerLocale(ThingWithLocale):
     def char_limit_to_160(cls, value):
         if len(value) > 160:
             raise ValueError("Must be in UTF-8. 160 character limit.")
-
+        return value
 

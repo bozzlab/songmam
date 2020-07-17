@@ -2,7 +2,7 @@ import json
 import re
 import hmac
 import hashlib
-from typing import Union, Optional, Literal, Set, List
+from typing import Union, Optional, Literal, Set, List, Type
 
 import requests
 from decouple import config, UndefinedValueError
@@ -12,13 +12,15 @@ from loguru import logger
 
 from .api.content import Content
 from .api.events import MessageEvent, PostBackEvent
+from .facebook import ThingWithId
+from .facebook.entries.echo import EchoEntry
 from .facebook.entries.messages import MessageEntry, Sender
-from .facebook.entries.postbacks import PostbacksEntry
+from .facebook.entries.postback import PostbackEntry
 from .facebook.messaging.message_tags import MessageTag
-from .facebook.messaging.payload import BasePayload, SenderActionPayload
+from .facebook.messaging.buttonmeesage import BasePayload, SenderActionPayload
 from songmam.facebook.messenger_profile.persistent_menu import UserPersistentMenu, MenuPerLocale
 from .facebook.messaging import SenderAction
-from .facebook.messenger_profile import MessengerProfileProperty, MessengerProfile
+from .facebook.messenger_profile import MessengerProfileProperty, MessengerProfile, GreetingPerLocale
 from .facebook.page import Me
 from .facebook.send import SendResponse, SendRecipient
 from .facebook.user_profile import UserProfile
@@ -44,8 +46,10 @@ class Page:
                  access_token: Optional[str] = None,
                  verify_token: Optional[str] = None,
                  app_secret: Optional[str] = None,
-                 persistent_menu = Optional[List[MenuPerLocale]]
-                 ):
+                 persistent_menu: Optional[List[MenuPerLocale]]= None,
+                greeting: Optional[List[GreetingPerLocale]]= None
+
+    ):
         self.auto_mark_as_seen = auto_mark_as_seen
 
         if access_token:
@@ -71,11 +75,15 @@ class Page:
                 # value is None by default
                 pass
 
-        profile = MessengerProfile()
-        if persistent_menu:
-            profile.persistent_menu = persistent_menu
+        if persistent_menu or greeting:
+            profile = MessengerProfile()
 
-        self._set_profile_property(profile)
+            if persistent_menu:
+                profile.persistent_menu = persistent_menu
+            if greeting:
+                profile.greeting = greeting
+
+            self._set_profile_property(profile)
 
 
         # self._after_send = options.pop('after_send', None)
@@ -86,7 +94,7 @@ class Page:
 
     _entryCaster = {
         MessageEntry: MessageEvent,
-        PostbacksEntry: PostBackEvent
+        PostbackEntry: PostBackEvent
     }
 
     # these are set by decorators or the 'set_webhook_handler' method
@@ -250,26 +258,21 @@ class Page:
                 message=message.message
         ), callback=callback)
 
-    def send_json(self, json_payload, callback=None):
-        return self._send(Payload(**json.loads(json_payload)), callback)
 
-    def send_dict(self, dict_payload, callback=None):
-        return self._send(Payload(**dict_payload), callback)
-
-    def typing_on(self, recipient_id):
-        payload = Payload(recipient=Recipient(id=recipient_id),
+    def typing_on(self, recipient: Type[ThingWithId]):
+        payload = SenderActionPayload(recipient=recipient,
                           sender_action=SenderAction.TYPING_ON)
 
         self._send(payload)
 
-    def typing_off(self, recipient_id):
-        payload = Payload(recipient=Recipient(id=recipient_id),
+    def typing_off(self, recipient: Type[ThingWithId]):
+        payload = SenderActionPayload(recipient=recipient,
                           sender_action=SenderAction.TYPING_OFF)
 
         self._send(payload)
 
-    def mark_seen(self, recipient_id):
-        payload = SenderActionPayload(recipient=SendRecipient(id=recipient_id),
+    def mark_seen(self, recipient: Type[ThingWithId]):
+        payload = SenderActionPayload(recipient=recipient,
                           sender_action=SenderAction.MARK_SEEN)
 
         self._send(payload)
@@ -308,101 +311,12 @@ class Page:
         Returns:
 
         """
-    # def set_greeting(self, g):
-    #     self.localized_greeting([LocalizedObj(locale="default", obj=text)])
-    #
-    # def localized_greeting(self, locale_list):
-    #     if not locale_list:
-    #         raise ValueError("List of locales is mandatory")
-    #     pval = []
-    #     for l in locale_list:
-    #         if not isinstance(l, LocalizedObj):
-    #             raise ValueError("greeting type error")
-    #         if not isinstance(l.obj, str):
-    #             raise ValueError("greeting text error")
-    #         pval.append({
-    #             "locale": l.locale,
-    #             "text": l.obj
-    #         })
-    #     self._set_profile_property(pname="greeting", pval=pval)
-
-    # def hide_greeting(self):
-    #     self._del_profile_property(pname="greeting")
-    #
-    # def show_starting_button(self, payload):
-    #     if not payload or not isinstance(payload, str):
-    #         raise ValueError("show_starting_button payload error")
-    #     self._set_profile_property(pname="get_started",
-    #                                pval={"payload": payload})
-
-    # def hide_starting_button(self):
-    #     self._del_profile_property(pname="get_started")
-
-    # def show_persistent_menu(self, buttons: Buttons) -> None:
-    #     self.show_localized_persistent_menu([LocalizedObj(locale="default",
-    #                                                       obj=buttons)])
-    # def hide_persistent_menu(self):
-    #     self._del_profile_property(pname="persistent_menu")
-
-    # def show_localized_persistent_menu(self, locale_list):
-    #     if not locale_list:
-    #         raise ValueError("List of locales is mandatory")
-    #     pval = []
-    #     for l in locale_list:
-    #         if not isinstance(l, LocalizedObj):
-    #             raise ValueError("persistent_menu error")
-    #         if not isinstance(l.obj, list):
-    #             raise ValueError("menu call_to_actions error")
-    #
-    #         buttons = Buttons.convert_shortcut_buttons(l.obj)
-    #
-    #         buttons_dict = []
-    #         for button in buttons:
-    #             if isinstance(button, ButtonWeb):
-    #                 buttons_dict.append({
-    #                     "type": "web_url",
-    #                     "title": button.title,
-    #                     "url": button.url
-    #                 })
-    #             elif isinstance(button, ButtonPostBack):
-    #                 buttons_dict.append({
-    #                     "type": "postback",
-    #                     "title": button.title,
-    #                     "payload": button.payload
-    #                 })
-    #             else:
-    #                 raise ValueError('show_persistent_menu button type must be "url" or "postback"')
-    #
-    #         pval.append({
-    #             "locale": l.locale,
-    #             "call_to_actions": buttons_dict
-    #         })
-    #     self._set_profile_property(pname="persistent_menu", pval=pval)
 
     """
     Custom User Settings
     """
 
-    # def _set_user_settings(self, payload: BaseModel):
-    #     f_url = self.base_api_furl / 'me' / 'custom_user_settings'
-    #     r = requests.post(f_url.url,
-    #                       params={"access_token": self.access_token},
-    #                       data=payload.json(),
-    #                       headers={'Content-type': 'application/json'})
-    #
-    #     if r.status_code != requests.codes.ok:
-    #         raise Exception(r.text)
 
-    # def _del_profile_property(self, pname):
-    #     r = requests.delete(self._api_uri("me/messenger_profile"),
-    #                         params={"access_token": self.access_token},
-    #                         data=json.dumps({
-    #                             'fields': [pname,]
-    #                         }),
-    #                         headers={'Content-type': 'application/json'})
-    #
-    #     if r.status_code != requests.codes.ok:
-    #         raise Exception(r.text)
     def get_user_settings(self, user_id: str):
         f_url = self.base_api_furl / 'me' / 'custom_user_settings'
         params = {
@@ -418,7 +332,20 @@ class Page:
         # TODO: create object for this GET Request https://developers.facebook.com/docs/messenger-platform/send-messages/persistent-menu
         return r.json()
 
-    def set_user_menu(self, payload: UserPersistentMenu):
+    def set_user_menu(self, sender: Type[ThingWithId], menus: List[MenuPerLocale]):
+        f_url = self.base_api_furl / 'me' / 'custom_user_settings'
+        r = requests.post(f_url.url,
+                          params={"access_token": self.access_token},
+                          data=UserPersistentMenu(
+                              psid=sender.id,
+                              persistent_menu=menus
+                          ).json(),
+                          headers={'Content-type': 'application/json'})
+
+        if r.status_code != requests.codes.ok:
+            raise Exception(r.text)
+
+    def _set_user_menu(self, payload: UserPersistentMenu):
         f_url = self.base_api_furl / 'me' / 'custom_user_settings'
         r = requests.post(f_url.url,
                           params={"access_token": self.access_token},
@@ -445,20 +372,20 @@ class Page:
     """
     handlers and decorations
     """
-    def set_webhook_handler(self, scope, callback):
-        """
-        Allows adding a webhook_handler as an alternative to the decorators
-        """
-        scope = scope.lower()
-
-        if scope == 'after_send':
-            self._after_send = callback
-            return
-
-        if scope not in Page.WEBHOOK_ENDPOINTS:
-            raise ValueError("The 'scope' argument must be one of {}.".format(Page.WEBHOOK_ENDPOINTS))
-
-        self._webhook_handlers[scope] = callback
+    # def set_webhook_handler(self, scope, callback):
+    #     """
+    #     Allows adding a webhook_handler as an alternative to the decorators
+    #     """
+    #     scope = scope.lower()
+    #
+    #     if scope == 'after_send':
+    #         self._after_send = callback
+    #         return
+    #
+    #     if scope not in Page.WEBHOOK_ENDPOINTS:
+    #         raise ValueError("The 'scope' argument must be one of {}.".format(Page.WEBHOOK_ENDPOINTS))
+    #
+    #     self._webhook_handlers[scope] = callback
 
     def handle_optin(self, func):
         self._webhook_handlers['optin'] = func
@@ -469,17 +396,20 @@ class Page:
     def handle_message(self, func: callable):
         self._webhook_handlers[MessageEntry] = func
 
-    def handle_echo(self, func):
-        self._webhook_handlers['echo'] = func
+    def handle_echo_sync(self, func: callable):
+        self._webhook_handlers_sync[EchoEntry] = func
 
-    def handle_delivery(self, func):
-        self._webhook_handlers['delivery'] = func
+    def handle_echo(self, func: callable):
+        self._webhook_handlers[EchoEntry] = func
+
+    # def handle_delivery(self, func):
+    #     self._webhook_handlers[DeliveryEntry] = func
 
     def handle_postback_sync(self, func):
-        self._webhook_handlers_sync[PostbacksEntry] = func
+        self._webhook_handlers_sync[PostbackEntry] = func
 
     def handle_postback(self, func):
-        self._webhook_handlers[PostbacksEntry] = func
+        self._webhook_handlers[PostbackEntry] = func
 
     def handle_read(self, func):
         self._webhook_handlers['read'] = func
@@ -523,25 +453,17 @@ class Page:
 
     _callback_default_types = ['QUICK_REPLY', 'POSTBACK']
 
-    def callback(self, payloads=None, types=None):
-        if types is None:
-            types = self._callback_default_types
+    def callback(self, payloads=None, quick_reply=True, button=True):
 
-        if not isinstance(types, list):
-            raise ValueError('callback types must be list')
-
-        for type in types:
-            if type not in self._callback_default_types:
-                raise ValueError('callback types must be "QUICK_REPLY" or "POSTBACK"')
 
         def wrapper(func):
             if payloads is None:
                 return func
 
             for payload in payloads:
-                if 'QUICK_REPLY' in types:
+                if quick_reply:
                     self._quick_reply_callbacks[payload] = func
-                if 'POSTBACK' in types:
+                if button:
                     self._button_callbacks[payload] = func
 
             return func

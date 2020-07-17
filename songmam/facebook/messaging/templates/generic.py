@@ -3,7 +3,7 @@ from typing import Optional, List, Literal
 from pydantic import BaseModel, HttpUrl
 
 from songmam.facebook.messaging import DefaultAction
-from songmam.facebook.messaging.payload import ButtonTypeList
+from songmam.facebook.messaging.buttonmeesage import ButtonTypeList
 
 
 class GenericElements(BaseModel):
