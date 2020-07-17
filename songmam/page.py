@@ -410,7 +410,7 @@ class Page:
         return self._send(payload, callback=callback)
 
     def reply(self):
-        
+        pass
 
     def send_json(self, json_payload, callback=None):
         return self._send(Payload(**json.loads(json_payload)), callback)
