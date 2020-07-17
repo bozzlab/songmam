@@ -3,11 +3,14 @@ import sys
 import re
 import hmac
 import hashlib
+from typing import Union
+
 import requests
 from decouple import config, UndefinedValueError
 from fastapi import FastAPI, Request
 from furl import furl
 from loguru import logger
+from pydantic import BaseModel
 
 from .api.events import MessageEvent, PostBackEvent
 from .facebook.entries.messages import Messaging, MessageEntry
@@ -198,11 +201,12 @@ class Page:
 
         return data['uri']
 
-    def _send(self, payload, callback=None) -> SendResponse:
-        response = requests.post(self._api_uri("me/messages"),
-                          params={"access_token": self.access_token},
-                          data=payload.to_json(),
-                          headers={'Content-type': 'application/json'})
+    def _send(self, payload: Union[BaseModel], callback=None) -> SendResponse:
+        f_url = self.base_api_furl / "me/messages"
+        response = requests.post(f_url.url,
+                                 params={"access_token": self.access_token},
+                                 data=payload.json(),
+                                 headers={'Content-type': 'application/json'})
 
         if response.status_code != requests.codes.ok:
             print(response.text)
@@ -226,11 +230,9 @@ class Page:
 
         attachment = message if not text else None
 
+        message = Message(text=text, attachment=attachment, quick_replies=quick_replies, metadata=metadata)
         payload = Payload(recipient=Recipient(id=recipient_id),
-                          message=Message(text=text,
-                                          attachment=attachment,
-                                          quick_replies=quick_replies,
-                                          metadata=metadata),
+                          message=message,
                           notification_type=notification_type,
                           tag=tag)
 
@@ -256,6 +258,12 @@ class Page:
 
     def mark_seen(self, recipient_id):
         payload = Payload(recipient=Recipient(id=recipient_id),
+                          sender_action=SenderAction.MARK_SEEN)
+
+        payload1 = Payload(recipient=Recipient(id=recipient_id),
+                          sender_action=SenderAction.MARK_SEEN)
+
+        payload2 = Payload(recipient=Recipient(id=recipient_id),
                           sender_action=SenderAction.MARK_SEEN)
 
         self._send(payload)
