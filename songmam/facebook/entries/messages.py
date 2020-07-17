@@ -8,6 +8,7 @@ from songmam.facebook.entries.handovers import HandoversEntry
 from songmam.facebook.entries.message.attachment import Attachment
 from songmam.facebook.entries.base import MessagingWithTimestamp
 from songmam.facebook import ThingWithID
+from songmam.facebook.messaging.templates.button import PostbackButton
 
 
 class Sender(ThingWithID):
@@ -28,9 +29,14 @@ class Message(BaseModel):
     reply_to: Optional[ReplyTo]
     attachments: Optional[List[Attachment]]
 
+class Postback(BaseModel):
+    title: str
+    payload: str
+
 class Messaging(MessagingWithTimestamp):
     sender: Sender
-    message: Message
+    message: Optional[Message]
+    postback: Optional[Postback]
 
 
 class MessageEntry(BaseModel):

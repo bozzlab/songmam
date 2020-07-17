@@ -1,11 +1,23 @@
-from typing import List, Union
+from typing import List, Union, Optional
 
 from loguru import logger
 from pydantic import BaseModel, validator
 
-from songmam.facebook.entries.messages import MessageEntry
-from songmam.facebook.entries.postbacks import PostbacksEntry
+from songmam.facebook.entries.messages import MessageEntry, Messaging
+from songmam.facebook.entries.postbacks import PostbacksEntry, Postbacks
 
+
+class GenericEntry(BaseModel):
+    id: Optional[str]
+    time: Optional[int]
+    messaging: Optional[List[Messaging]]
+    postback: Optional[Postbacks]
+
+    def convert_to_specific(self):
+        if self.messaging:
+            return MessageEntry(**self.dict())
+        elif self.postback:
+            return PostbacksEntry(**self.dict())
 
 class Webhook(BaseModel):
     """An object contains one or more entries

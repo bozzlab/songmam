@@ -25,11 +25,15 @@ class MessageEvent(Event):
 
         self.name = 'message'
         # self.message = self.entry.theMessaging.message
-        self.text = self.entry.theMessaging.message.text
-        self.message_id = self.entry.theMessaging.message.mid
-        self.quick_reply = self.entry.theMessaging.message.quick_reply
-        self.reply_to = self.entry.theMessaging.message.reply_to
-        self.attachments = self.entry.theMessaging.message.attachments
+        try:
+            self.text = self.entry.theMessaging.message.text
+            self.message_id = self.entry.theMessaging.message.mid
+            self.quick_reply = self.entry.theMessaging.message.quick_reply
+            self.reply_to = self.entry.theMessaging.message.reply_to
+            self.attachments = self.entry.theMessaging.message.attachments
+        except AttributeError as e:
+            # case for postback event
+            pass
 
 
 class PostBackEvent(Event):
