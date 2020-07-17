@@ -1,5 +1,5 @@
 # https://developers.facebook.com/docs/messenger-platform/send-messages#send_api_basics
-from typing import Literal, List, Optional, Union
+from typing import Literal, List, Optional
 from enum import auto
 
 from pydantic import BaseModel, HttpUrl
@@ -7,6 +7,7 @@ from pydantic import BaseModel, HttpUrl
 
 
 #  TEMPLATES START
+from songmam.facebook.mess.payload import PayloadButton
 from songmam.facebook.send import SendRecipient
 
 
@@ -93,16 +94,6 @@ class Buttons(BaseModel):
     fallback_url: Optional[HttpUrl]  # for type: web_url
     webview_share_button: Optional[str]  # for type: web_url
     game_metadata: Optional[GameMetadata]  # for type : game_play
-
-
-
-class PayloadButton(BaseModel):
-    """
-    https://developers.facebook.com/docs/messenger-platform/reference/templates/button
-    """
-    template_type: Literal["button"]
-    text: str
-    buttons: List[Buttons]  # Set of 1-3 buttons that appear as call-to-actions.
 
 
 class GenericElements(BaseModel):
