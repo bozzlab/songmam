@@ -3,6 +3,18 @@ from typing import Literal, Optional
 from pydantic import BaseModel, validator, HttpUrl, root_validator
 
 
+class DefaultAction(BaseModel):
+    """ # Mentioned as URL Button with no 'title'
+    https://developers.facebook.com/docs/messenger-platform/reference/buttons/url
+    """
+    type: Literal["web_url"]
+    url: HttpUrl
+    webview_height_ratio: Literal["compact", "tall", "full"] = 'full'
+    messenger_extensions: bool = False
+    fallback_url: HttpUrl
+    webview_share_button: Optional[str]
+
+
 class BaseButton(BaseModel):
     type: str
     title: str
@@ -13,7 +25,8 @@ class BaseButton(BaseModel):
             raise ValueError('Button title. 20 character limit.')
         return v
 
-class ButtonWeb(BaseButton):
+
+class URLButton(BaseButton):
     """
     https://developers.facebook.com/docs/messenger-platform/reference/buttons/url
     Updated: 04/07/2020
@@ -36,12 +49,46 @@ class ButtonWeb(BaseButton):
         return values
 
 
-class ButtonPostBack(BaseButton):
+class PostBackButton(BaseButton):
     type: str = 'postback'
     payload: str
 
-class ButtonPhoneNumber(BaseButton):
+
+class CallButton(BaseButton):
     type = 'phone_number'
     payload: str
 
     # TODO: https://pypi.org/project/phonenumbers/
+
+
+class LogInButton(BaseModel):
+    """
+    https://developers.facebook.com/docs/messenger-platform/send-messages/buttons#login
+    """
+    type: Literal["account_link"]
+    url: HttpUrl  # Authentication callback URL. Must use HTTPS protocol.
+
+
+class LogOutButton(BaseModel):
+    """
+    https://developers.facebook.com/docs/messenger-platform/reference/buttons/logout
+    """
+    type: Literal["account_unlink"]
+
+
+class GameMetadata(BaseModel):
+    """
+    https://developers.facebook.com/docs/messenger-platform/reference/buttons/game-play#game_metadata
+    """
+    player_id: Optional[str]
+    context_id: Optional[str]
+
+
+class GamePlayButton(BaseModel):
+    """
+    https://developers.facebook.com/docs/messenger-platform/reference/buttons/game-play
+    """
+    type: Literal["game_play"]
+    title: str
+    payload: Optional[str]
+    game_metadata: Optional[GameMetadata]
