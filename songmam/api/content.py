@@ -19,7 +19,7 @@ class Content:
 
 
         if self.buttons:
-            payload = CompletePayload(text=self.text)
+            payload = CompletePayload(template_type='button' ,text=self.text)
             payload.buttons = self.buttons
             message.attachment = TemplateAttachment(payload=payload)
         else:

@@ -1,12 +1,16 @@
 from functools import partial
+from pathlib import Path
 from typing import Any, Dict
 
 from fastapi import FastAPI, Request
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
 
 # from songmam import Page, Webhook, MessageEvent, BasePayload
 
 # os.environ['PAGE_ACCESS_TOKEN'] = "MY Access token"
 # os.environ['PAGE_VERIFY_TOKEN'] = "MY Verify token"
+from jinja2 import Environment, PackageLoader, select_autoescape, FileSystemLoader
 from loguru import logger
 
 from songmam import Webhook
@@ -43,13 +47,22 @@ page = Page(
     whitelisted_domains=["https://e1bbfd3fd123.ngrok.io"],
     auto_mark_as_seen=True,
 )
-app = FastAPI()
+app = FastAPI(
+    title="Showcase Project",
+    description="This is a very fancy project.",
+    version="3.0.0",
+)
 humanTyping =HumanTyping()
 
-page.add_verification_middleware(app)
-# page.auto_mark_as_seen = False
 
-# page.set_user_menu()
+env = Environment(
+    loader=FileSystemLoader(Path()/ 'templates'),
+    autoescape=select_autoescape(['html', 'xml'])
+)
+
+page.add_verification_middleware(app)
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/healthz")
 async def show_server_is_alive(request: Request):
@@ -61,10 +74,11 @@ async def show_server_is_alive(request: Request):
 #     await page.handle_webhook(webhook)
 #     return "ok"
 
-@app.get("/sampleMessagerSDK")
-async def show_server_is_alive(request: Request):
-    body = await request.body()
-    return "server is online."
+@app.get("/sampleMessagerSDK", response_class=HTMLResponse)
+async def sample():
+    template = env.get_template('allResponse.html')
+    return template.render()
+
 
 @app.post("/webhook")
 async def handle_entry(webhook: Dict[str, Any], request: Request):
@@ -81,7 +95,8 @@ async def echo(message: MessageEvent):
     # page.get_user_profile(message.sender.id)
     # page.send(message.sender.id, "thank you! your message is '%s'" % message.text)
     buttons = [
-        URLButton(title="Open Web URL", url="https://www.oculus.com/en-us/rift/"),
+        # URLButton(title="Open Web URL", url="https://www.oculus.com/en-us/rift/"),
+        URLButton(title="Open Webview", url="https://e1bbfd3fd123.ngrok.io/sampleMessagerSDK", messenger_extensions=True),
         PostbackButton(title="trigger Postback", payload="DEVELOPED_DEFINED_PAYLOAD"),
         CallButton(title="Call Phone Number", payload="+66992866936")
     ]
@@ -89,8 +104,8 @@ async def echo(message: MessageEvent):
 
     content = Content(
         text=f"re[lied to {message.text}",
-        # buttons=buttons,
-        quick_replies=[QuickReply(title='hi', payload='test')]
+        buttons=buttons,
+        # quick_replies=[QuickReply(title='hi', payload='test')]
     )
     # page.send(message.sender, content)
     typing_fn = partial(page.typing_on, message.sender)

@@ -3,7 +3,7 @@ from typing import Literal, Optional, List, Type, Union
 
 from pydantic import BaseModel, validator, HttpUrl, root_validator
 
-from songmam.facebook.messaging.templates import CompletePayload as Payload_
+# from songmam.facebook.messaging.templates import CompletePayload as Payload_
 from songmam.utils import AutoName
 
 
@@ -111,7 +111,8 @@ class GamePlayButton(BaseButton):
 #     game_metadata: Optional[GameMetadata]  # for type : game_play
 
 
-class BasePayload(Payload_):
+# TODO: Inherit from the CompletePayload?
+class BasePayload(BaseModel):
     """
     https://developers.facebook.com/docs/messenger-platform/reference/templates/button
     """

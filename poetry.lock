@@ -1,4 +1,12 @@
 [[package]]
+category = "dev"
+description = "File support for asyncio."
+name = "aiofiles"
+optional = false
+python-versions = "*"
+version = "0.5.0"
+
+[[package]]
 category = "main"
 description = "A caching library for Python"
 name = "cacheout"
@@ -419,10 +427,14 @@ version = "1.0.1"
 dev = ["pytest (>=4.6.2)", "black (>=19.3b0)"]
 
 [metadata]
-content-hash = "783792ab08b0fb61002373189035ee066833bca507de27b0fbd2c1bf300b6b75"
+content-hash = "2c17e488ad65e12e8256c606ce6181d4c47cc1a0ca341ed851a8cfc501caafa1"
 python-versions = "^3.8"
 
 [metadata.files]
+aiofiles = [
+    {file = "aiofiles-0.5.0-py3-none-any.whl", hash = "sha256:377fdf7815cc611870c59cbd07b68b180841d2a2b79812d8c218be02448c2acb"},
+    {file = "aiofiles-0.5.0.tar.gz", hash = "sha256:98e6bcfd1b50f97db4980e182ddd509b7cc35909e903a8fe50d8849e02d815af"},
+]
 cacheout = [
     {file = "cacheout-0.11.2-py3-none-any.whl", hash = "sha256:402e2a8a4630ec1180ca744e31c0f0b483131f7b23949809fcde67a19a30b5a6"},
     {file = "cacheout-0.11.2.tar.gz", hash = "sha256:bc87d1a2f21be500a8a21f1c0440777172033711dd5727ab14bac901eea1902c"},
