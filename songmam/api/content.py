@@ -3,7 +3,7 @@ from typing import Optional, List
 
 
 from songmam.facebook.messaging.quick_replies import QuickReply
-from songmam.facebook.messaging.templates import Attachment, Message, ButtonMeesage
+from songmam.facebook.messaging.templates import TemplateAttachment, Message, CompletePayload
 from songmam.facebook.messaging.templates.button import URLButton
 
 
@@ -15,11 +15,15 @@ class Content:
 
     @property
     def message(self):
-        payload = ButtonMeesage(text="Sample Button")
-        message = Message(attachment=Attachment(payload=payload))
+        message = Message()
+
 
         if self.buttons:
+            payload = CompletePayload(text=self.text)
             payload.buttons = self.buttons
+            message.attachment = TemplateAttachment(payload=payload)
+        else:
+            message.text = self.text
         if self.quick_replies:
             message.quick_replies = self.quick_replies
 

@@ -1,5 +1,16 @@
 [[package]]
 category = "main"
+description = "A caching library for Python"
+name = "cacheout"
+optional = false
+python-versions = "*"
+version = "0.11.2"
+
+[package.extras]
+dev = ["coverage", "flake8", "pylint", "pytest", "pytest-cov", "sphinx", "sphinx-rtd-theme", "tox", "twine", "wheel"]
+
+[[package]]
+category = "main"
 description = "Python package for providing Mozilla's CA Bundle."
 name = "certifi"
 optional = false
@@ -408,10 +419,14 @@ version = "1.0.1"
 dev = ["pytest (>=4.6.2)", "black (>=19.3b0)"]
 
 [metadata]
-content-hash = "e0047405954f3e071b485eb32516522c061cf068f8153054222459cd3197aee6"
+content-hash = "783792ab08b0fb61002373189035ee066833bca507de27b0fbd2c1bf300b6b75"
 python-versions = "^3.8"
 
 [metadata.files]
+cacheout = [
+    {file = "cacheout-0.11.2-py3-none-any.whl", hash = "sha256:402e2a8a4630ec1180ca744e31c0f0b483131f7b23949809fcde67a19a30b5a6"},
+    {file = "cacheout-0.11.2.tar.gz", hash = "sha256:bc87d1a2f21be500a8a21f1c0440777172033711dd5727ab14bac901eea1902c"},
+]
 certifi = [
     {file = "certifi-2020.6.20-py2.py3-none-any.whl", hash = "sha256:8fc0819f1f30ba15bdb34cceffb9ef04d99f420f68eb75d901e9560b8749fc41"},
     {file = "certifi-2020.6.20.tar.gz", hash = "sha256:5930595817496dd21bb8dc35dad090f1c2cd0adfaf21204bf6732ca5d8ee34d3"},

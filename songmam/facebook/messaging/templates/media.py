@@ -1,8 +1,8 @@
 from typing import Optional, Literal, List
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, validator, conlist
 
-from songmam.facebook.messaging.buttonmeesage import ButtonTypeList
+from songmam.facebook.messaging.templates.button import AllButtonTypes
 
 
 class MediaElements(BaseModel):
@@ -12,13 +12,7 @@ class MediaElements(BaseModel):
     media_type: Optional[Literal["image", "video"]]
     attachment_id: Optional[str]  # Cannot be used if url is set.
     url: Optional[str]  # Cannot be used if attachment_id is set.
-    buttons: Optional[List[ButtonTypeList]]  # A maximum of 1 button is supported.
-
-    @validator('buttons')
-    def buttons_limit_to_3_buttons(cls, v):
-        if len(v) > 3:
-            raise ValueError('Max buttons at 3 for Button Template.')
-        return v
+    buttons: Optional[conlist(AllButtonTypes, min_items=1, max_items=3)]  # A maximum of 1 button is supported.
 
 
 class PayloadMedia(BaseModel):
@@ -26,5 +20,5 @@ class PayloadMedia(BaseModel):
     https://developers.facebook.com/docs/messenger-platform/reference/templates/media#payload
     """
     template_type: Literal["media"]
-    elements: List[MediaElements]
+    elements: conlist(MediaElements, max_items=1)
     sharable: Optional[bool]

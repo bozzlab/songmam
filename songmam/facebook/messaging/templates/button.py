@@ -1,11 +1,17 @@
-from typing import Literal, Optional
+from enum import auto
+from typing import Literal, Optional, List, Type, Union
 
 from pydantic import BaseModel, validator, HttpUrl, root_validator
+
+from songmam.facebook.messaging.templates import CompletePayload as Payload_
+from songmam.utils import AutoName
 
 
 class BaseButton(BaseModel):
     type: str
-    title: str
+
+    # make optional for default action
+    title: Optional[str]
 
     @validator('title')
     def title_limit_to_20_characters(cls, v):
@@ -13,6 +19,14 @@ class BaseButton(BaseModel):
             raise ValueError('Button title. 20 character limit.')
         return v
 
+    def get_default_action(self):
+        self.title = None
+        return self
+
+    @classmethod
+    def create_default_action(cls, *args, **kargs):
+        b = cls(**kargs)
+        return b.get_default_action()
 
 class URLButton(BaseButton):
     """
@@ -97,4 +111,35 @@ class GamePlayButton(BaseButton):
 #     game_metadata: Optional[GameMetadata]  # for type : game_play
 
 
+class BasePayload(Payload_):
+    """
+    https://developers.facebook.com/docs/messenger-platform/reference/templates/button
+    """
+    template_type = 'button'
+    text: str
+    buttons: List[Type[BaseButton]] = None # Set of 1-3 buttons that appear as call-to-actions.
 
+    @validator('text')
+    def title_limit_to_640_characters(cls, v):
+        if len(v) > 640:
+            raise ValueError('UTF-8-encoded text of up to 640 characters.')
+        return v
+
+    @validator('buttons')
+    def limit_buttons_from_1_to_3(cls, value):
+        num_char = len(value)
+        if num_char < 0 or num_char > 3:
+            raise ValueError('Set of 1-3 buttons only.')
+        return value
+
+
+AllButtonTypes = Union[URLButton, PostbackButton, CallButton, LogInButton, LogOutButton, GamePlayButton]
+
+
+class ButtonType(AutoName):
+    web_url = auto()
+    postback = auto()
+    phone_number = auto()
+    account_link = auto()
+    account_unlink = auto()
+    game_play = auto()

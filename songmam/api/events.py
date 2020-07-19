@@ -20,20 +20,23 @@ class Event:
 class MessageEvent(Event):
     entry: MessageEntry
 
+    @property
+    def is_quick_reply(self):
+        if self.entry.theMessaging.message.quick_reply:
+            return True
+        else:
+            return False
+
     def __init__(self, entry):
         super(MessageEvent, self).__init__(entry)
 
         self.name = 'message'
         # self.message = self.entry.theMessaging.message
-        try:
-            self.text = self.entry.theMessaging.message.text
-            self.message_id = self.entry.theMessaging.message.mid
-            self.quick_reply = self.entry.theMessaging.message.quick_reply
-            self.reply_to = self.entry.theMessaging.message.reply_to
-            self.attachments = self.entry.theMessaging.message.attachments
-        except AttributeError as e:
-            # case for postback event
-            pass
+        self.text = self.entry.theMessaging.message.text
+        self.message_id = self.entry.theMessaging.message.mid
+        self.quick_reply = self.entry.theMessaging.message.quick_reply
+        self.reply_to = self.entry.theMessaging.message.reply_to
+        self.attachments = self.entry.theMessaging.message.attachments
 
 
 class PostBackEvent(Event):
@@ -41,8 +44,9 @@ class PostBackEvent(Event):
 
     def __init__(self, entry: PostbackEntry):
         super(PostBackEvent, self).__init__(entry)
-        # self.title = self.entry.postback.title
-        # self.payload = self.entry.postback.payload
+
+        self.title = self.entry.theMessaging.postback.title
+        self.payload = self.entry.theMessaging.postback.payload
         # self.referal = self.entry.postback.referral
 
 

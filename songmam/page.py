@@ -5,6 +5,7 @@ import hashlib
 from typing import Union, Optional, Literal, Set, List, Type
 
 import requests
+from cacheout import Cache
 from decouple import config, UndefinedValueError
 from fastapi import FastAPI, Request
 from furl import furl
@@ -17,9 +18,9 @@ from .facebook.entries.echo import EchoEntry
 from .facebook.entries.messages import MessageEntry, Sender
 from .facebook.entries.postback import PostbackEntry
 from .facebook.messaging.message_tags import MessageTag
-from .facebook.messaging.buttonmeesage import BasePayload, SenderActionPayload
+from .facebook.messaging.payload import BasePayload, SenderActionPayload
 from songmam.facebook.messenger_profile.persistent_menu import UserPersistentMenu, MenuPerLocale
-from .facebook.messaging import SenderAction
+from .facebook.messaging.sender_action import SenderAction
 from .facebook.messenger_profile import MessengerProfileProperty, MessengerProfile, GreetingPerLocale
 from .facebook.page import Me
 from .facebook.send import SendResponse, SendRecipient
@@ -28,9 +29,8 @@ from songmam.facebook.webhook import Webhook
 
 # See https://developers.facebook.com/docs/graph-api/changelog
 SUPPORTED_API_VERS = Literal[
-    "v7.0" # May 5, 2020
+    "v7.0"  # May 5, 2020
 ]
-
 
 
 class Page:
@@ -42,14 +42,22 @@ class Page:
     page: Optional[Me] = None
 
     def __init__(self, *,
-                 auto_mark_as_seen: bool=True,
+                 auto_mark_as_seen: bool = True,
                  access_token: Optional[str] = None,
                  verify_token: Optional[str] = None,
                  app_secret: Optional[str] = None,
-                 persistent_menu: Optional[List[MenuPerLocale]]= None,
-                greeting: Optional[List[GreetingPerLocale]]= None
+                 persistent_menu: Optional[List[MenuPerLocale]] = None,
+                 greeting: Optional[List[GreetingPerLocale]] = None,
+                 skip_quick_reply: bool = True,
+                 prevent_repeated_reply: bool = True,
+                 ):
+        # Non-Dynamic Change
+        self.prevent_repeated_reply = prevent_repeated_reply
+        if prevent_repeated_reply:
+            self.reply_cache = Cache(maxsize=10000, ttl=60*15, default=None)
 
-    ):
+
+        self.skip_quick_reply = skip_quick_reply
         self.auto_mark_as_seen = auto_mark_as_seen
 
         if access_token:
@@ -85,12 +93,10 @@ class Page:
 
             self._set_profile_property(profile)
 
-
         # self._after_send = options.pop('after_send', None)
         # self._api_ver = options.pop('api_ver', 'v7.0')
         # if self._api_ver not in SUPPORTED_API_VERS:
         #     raise ValueError('Unsupported API Version : ' + self._api_ver)
-
 
     _entryCaster = {
         MessageEntry: MessageEvent,
@@ -114,7 +120,6 @@ class Page:
         furl_url = furl("https://graph.facebook.com/") / self.api_version
         # furl_url.args['access_token'] = self.access_token
         return furl_url
-
 
     def add_verification_middleware(self, app: FastAPI):
         from songmam import VerificationMiddleware
@@ -146,12 +151,29 @@ class Page:
             if expected_signature != header_signature:
                 raise AssertionError('SIGNATURE VERIFICATION FAIL')
 
-
         for entry in webhook.entry:
-            handler = self._webhook_handlers.get(type(entry))
-            EntryConstructor = self._entryCaster.get(type(entry))
+            entry_type = type(entry)
+            handler = self._webhook_handlers.get(entry_type)
+            eventConstructor = self._entryCaster.get(entry_type)
             if handler:
-                await handler(EntryConstructor(entry))
+                event = eventConstructor(entry)
+
+
+
+                if entry_type is MessageEntry:
+                    if self.auto_mark_as_seen:
+                        self.mark_seen(event.sender)
+
+                    if event.is_quick_reply:
+                        matched_callbacks = self.get_quick_reply_callbacks(event)
+                        for callback in matched_callbacks:
+                            await callback(event)
+                elif entry_type is PostBackEvent:
+                    matched_callbacks = self.get_postback_callbacks(event)
+                    for callback in matched_callbacks:
+                        await callback(event)
+
+                await handler(event)
             else:
                 logger.warning("there's no {} handler", type(entry.theMessaging))
 
@@ -193,7 +215,7 @@ class Page:
 
     def get_messenger_code(self, ref=None, image_size=1000):
         d = {}
-        d['type']='standard'
+        d['type'] = 'standard'
         d['image_size'] = image_size
         if ref:
             d['data'] = {'ref': ref}
@@ -233,47 +255,48 @@ class Page:
         return SendResponse.parse_raw(response.text)
 
     def send(self, sender: Sender, message: Content, *, quick_replies=None, metadata=None,
-             notification_type=None, tag:Optional[MessageTag]=None, callback: Optional[callable]=None):
-
-        if self.auto_mark_as_seen:
-            self.mark_seen(sender.id)
-
+             notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
 
         return self._send(
             BasePayload(
                 recipient=sender,
                 message=message.message
-        ), callback=callback)
+            ), callback=callback)
 
     def reply(self, message_to_reply_to: MessageEvent, message: Content, *, quick_replies=None, metadata=None,
-              notification_type=None, tag:Optional[MessageTag]=None, callback: Optional[callable]=None):
+              notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
 
-        if self.auto_mark_as_seen:
-            self.mark_seen(message_to_reply_to.sender.id)
-
+        if self.prevent_repeated_reply:
+            message_id = message_to_reply_to.entry.theMessaging.message.mid
+            if message_id not in self.reply_cache:
+                # good to go
+                self.reply_cache.set(message_id, True)
+            else:
+                logger.warning("Songmum prevented a message from being reply to the same event multiple times.")
+                logger.warning(message_to_reply_to)
+                return
 
         return self._send(
             BasePayload(
                 recipient=message_to_reply_to.sender,
                 message=message.message
-        ), callback=callback)
-
+            ), callback=callback)
 
     def typing_on(self, recipient: Type[ThingWithId]):
         payload = SenderActionPayload(recipient=recipient,
-                          sender_action=SenderAction.TYPING_ON)
+                                      sender_action=SenderAction.TYPING_ON)
 
         self._send(payload)
 
     def typing_off(self, recipient: Type[ThingWithId]):
         payload = SenderActionPayload(recipient=recipient,
-                          sender_action=SenderAction.TYPING_OFF)
+                                      sender_action=SenderAction.TYPING_OFF)
 
         self._send(payload)
 
     def mark_seen(self, recipient: Type[ThingWithId]):
         payload = SenderActionPayload(recipient=recipient,
-                          sender_action=SenderAction.MARK_SEEN)
+                                      sender_action=SenderAction.MARK_SEEN)
 
         self._send(payload)
 
@@ -305,17 +328,9 @@ class Page:
             logger.error("Facebook Server replied" + r.text)
             raise Exception(r.text)
 
-    def set_persistent_menu(self):
-        """
-        page.set_persistent_menu()
-        Returns:
-
-        """
-
     """
     Custom User Settings
     """
-
 
     def get_user_settings(self, user_id: str):
         f_url = self.base_api_furl / 'me' / 'custom_user_settings'
@@ -364,7 +379,7 @@ class Page:
             "params": "[%22persistent_menu%22]"
         }
         r = requests.delete(f_url.url,
-                          params=params)
+                            params=params)
 
         if r.status_code != requests.codes.ok:
             raise Exception(r.text)
@@ -372,6 +387,7 @@ class Page:
     """
     handlers and decorations
     """
+
     # def set_webhook_handler(self, scope, callback):
     #     """
     #     Allows adding a webhook_handler as an alternative to the decorators
@@ -411,50 +427,47 @@ class Page:
     def handle_postback(self, func):
         self._webhook_handlers[PostbackEntry] = func
 
-    def handle_read(self, func):
-        self._webhook_handlers['read'] = func
-
-    def handle_account_linking(self, func):
-        self._webhook_handlers['account_linking'] = func
-
-    def handle_referral(self, func):
-        self._webhook_handlers['referral'] = func
-
-    def handle_game_play(self, func):
-        self._webhook_handlers['game_play'] = func
-
-    def handle_pass_thread_control(self, func):
-        self._webhook_handlers['pass_thread_control'] = func
-
-    def handle_take_thread_control(self, func):
-        self._webhook_handlers['take_thread_control'] = func
-
-    def handle_request_thread_control(self, func):
-        self._webhook_handlers['request_thread_control'] = func
-
-    def handle_app_roles(self, func):
-        self._webhook_handlers['app_roles'] = func
-
-    def handle_policy_enforcement(self, func):
-        self._webhook_handlers['policy_enforcement'] = func
-
-    def handle_checkout_update(self, func):
-        self._webhook_handlers['checkout_update'] = func
-
-    def handle_payment(self, func):
-        self._webhook_handlers['payment'] = func
-
-    def handle_standby(self, func):
-        self._webhook_handlers['standby'] = func
-
-
+    # def handle_read(self, func):
+    #     self._webhook_handlers['read'] = func
+    #
+    # def handle_account_linking(self, func):
+    #     self._webhook_handlers['account_linking'] = func
+    #
+    # def handle_referral(self, func):
+    #     self._webhook_handlers['referral'] = func
+    #
+    # def handle_game_play(self, func):
+    #     self._webhook_handlers['game_play'] = func
+    #
+    # def handle_pass_thread_control(self, func):
+    #     self._webhook_handlers['pass_thread_control'] = func
+    #
+    # def handle_take_thread_control(self, func):
+    #     self._webhook_handlers['take_thread_control'] = func
+    #
+    # def handle_request_thread_control(self, func):
+    #     self._webhook_handlers['request_thread_control'] = func
+    #
+    # def handle_app_roles(self, func):
+    #     self._webhook_handlers['app_roles'] = func
+    #
+    # def handle_policy_enforcement(self, func):
+    #     self._webhook_handlers['policy_enforcement'] = func
+    #
+    # def handle_checkout_update(self, func):
+    #     self._webhook_handlers['checkout_update'] = func
+    #
+    # def handle_payment(self, func):
+    #     self._webhook_handlers['payment'] = func
+    #
+    # def handle_standby(self, func):
+    #     self._webhook_handlers['standby'] = func
+    #
     def after_send(self, func):
         self._after_send = func
 
-    _callback_default_types = ['QUICK_REPLY', 'POSTBACK']
 
     def callback(self, payloads=None, quick_reply=True, button=True):
-
 
         def wrapper(func):
             if payloads is None:
@@ -470,18 +483,18 @@ class Page:
 
         return wrapper
 
-    def get_quick_reply_callbacks(self, event):
+    def get_quick_reply_callbacks(self, event: MessageEvent):
         callbacks = []
         for key in self._quick_reply_callbacks.keys():
             if key not in self._quick_reply_callbacks_key_regex:
                 self._quick_reply_callbacks_key_regex[key] = re.compile(key + '$')
 
-            if self._quick_reply_callbacks_key_regex[key].match(event.quick_reply_payload):
+            if self._quick_reply_callbacks_key_regex[key].match(event.quick_reply.payload):
                 callbacks.append(self._quick_reply_callbacks[key])
 
         return callbacks
 
-    def get_postback_callbacks(self, event):
+    def get_postback_callbacks(self, event: PostBackEvent):
         callbacks = []
         for key in self._button_callbacks.keys():
             if key not in self._button_callbacks_key_regex:

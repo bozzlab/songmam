@@ -11,13 +11,11 @@ from songmam.facebook.entries.messages import Sender
 from songmam.facebook.messaging.message_tags import MessageTag
 from songmam.facebook.messaging.messaging_type import MessagingType
 from songmam.facebook.messaging.notification_type import NotificationType
-from songmam.facebook.messaging import SenderAction
-from songmam.facebook.messaging.templates.button import URLButton, PostbackButton, CallButton, LogInButton, \
-    LogOutButton, GamePlayButton
+from songmam.facebook.messaging.sender_action import SenderAction
+from songmam.facebook.messaging.templates.button import AllButtonTypes
 from songmam.facebook.messaging.templates import Message
 from songmam.facebook.send import SendRecipient
 
-ButtonTypeList = Union[URLButton, PostbackButton, CallButton, LogInButton, LogOutButton, GamePlayButton]
 
 class BasePayload(BaseModel):
     template_type: Optional[str] = None
@@ -36,7 +34,7 @@ class SendingQuickRepliesEntry(BasePayload):
     https://developers.facebook.com/docs/messenger-platform/reference/buttons/quick-replies
     """
     message: Any
-    buttons: List[ButtonTypeList]  # Set of 1-3 buttons that appear as call-to-actions.
+    buttons: List[AllButtonTypes]  # Set of 1-3 buttons that appear as call-to-actions.
 
     @validator('buttons')
     def buttons_limit_to_3_buttons(cls, v):

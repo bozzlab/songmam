@@ -1,9 +1,11 @@
-from typing import Optional, List, Literal
+from typing import Optional, List, Literal, Type
 
 from pydantic import BaseModel, HttpUrl
 
-from songmam.facebook.messaging import DefaultAction
-from songmam.facebook.messaging.buttonmeesage import ButtonTypeList
+from songmam.facebook.messaging.templates import CompletePayload
+from songmam.facebook.messaging.templates.button import BaseButton
+
+
 
 
 class GenericElements(BaseModel):
@@ -13,14 +15,16 @@ class GenericElements(BaseModel):
     title: str
     subtitle: Optional[str]
     image_url: Optional[HttpUrl]
-    default_action: Optional[DefaultAction]
-    buttons: Optional[List[ButtonTypeList]]
+    default_action: Optional[Type[BaseButton]]
+    buttons: Optional[Type[BaseButton]]
 
 
-class PayloadGeneric(BaseModel):
+class PayloadGeneric(CompletePayload):
     """
     https://developers.facebook.com/docs/messenger-platform/reference/templates/generic
     """
-    template_type: Literal["generic"]
-    image_aspect_ratio: Optional[Literal["horizontal", "square"]]
+    template_type = "generic"
+    image_aspect_ratio: Optional[Literal["horizontal", "square"]] = None
     elements: List[GenericElements]
+
+

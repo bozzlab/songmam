@@ -12,6 +12,7 @@ starlette = "^0.13.4"
 loguru = "^0.5.1"
 httpx = "^0.13.3"
 furl = "^2.1.0"
+cacheout = "^0.11.2"
 
 [tool.poetry.dev-dependencies]
 mock = "^4.0.2"
