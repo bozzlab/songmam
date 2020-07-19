@@ -4,12 +4,13 @@ from pydantic import BaseModel, root_validator, conlist
 
 from songmam.facebook.entries.message.attachment import Attachment as Attachment_
 from songmam.facebook.messaging.quick_replies import QuickReply
+from songmam.facebook.messaging.templates.button import AllButtonTypes
 
 
 class CompletePayload:
     template_type: Literal["generic", "button", "media", "receipt"]
     text: Optional[str]
-    buttons: Optional[conlist()]
+    buttons: Optional[conlist(AllButtonTypes,min_items=1, max_items=3)]
     elements: Optional[List[BaseModel]]
 
 class TemplateAttachment(Attachment_):

@@ -10,6 +10,7 @@ from decouple import config, UndefinedValueError
 from fastapi import FastAPI, Request
 from furl import furl
 from loguru import logger
+from pydantic import HttpUrl
 
 from .api.content import Content
 from .api.events import MessageEvent, PostBackEvent
@@ -48,6 +49,7 @@ class Page:
                  app_secret: Optional[str] = None,
                  persistent_menu: Optional[List[MenuPerLocale]] = None,
                  greeting: Optional[List[GreetingPerLocale]] = None,
+                 whitelisted_domains: Optional[List[HttpUrl]] = None,
                  skip_quick_reply: bool = True,
                  prevent_repeated_reply: bool = True,
                  ):
@@ -90,6 +92,8 @@ class Page:
                 profile.persistent_menu = persistent_menu
             if greeting:
                 profile.greeting = greeting
+            if whitelisted_domains:
+                profile.whitelisted_domains = whitelisted_domains
 
             self._set_profile_property(profile)
 

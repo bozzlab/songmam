@@ -23,6 +23,6 @@ class MessengerProfile(BaseModel):
     greeting: Optional[List[GreetingPerLocale]]
     ice_breakers: Optional[List[IceBreaker]]
     persistent_menu: Optional[List[MenuPerLocale]]
-    whitelisted_domains: Optional[List[str]]
+    whitelisted_domains: Optional[List[HttpUrl]]
     account_linking_url: Optional[HttpUrl]
 

@@ -38,9 +38,10 @@ default_greeting = GreetingPerLocale(text="Hi {{user_first_name}}, This is Songm
 th_greeting = GreetingPerLocale(locale=Locale.th_TH, text="สวัสดีครัช {{user_first_name}}, เรียกผมว่า ส่งแหม่!" )
 
 page = Page(
-    # persistent_menu=[default_menu, th_menu],
-    # greeting=[default_greeting, th_greeting]
-    auto_mark_as_seen=True
+    persistent_menu=[default_menu, th_menu],
+    greeting=[default_greeting, th_greeting],
+    whitelisted_domains=["https://e1bbfd3fd123.ngrok.io"],
+    auto_mark_as_seen=True,
 )
 app = FastAPI()
 humanTyping =HumanTyping()
@@ -59,6 +60,11 @@ async def show_server_is_alive(request: Request):
 # async def handle_entry(webhook: Webhook, request: Request):
 #     await page.handle_webhook(webhook)
 #     return "ok"
+
+@app.get("/sampleMessagerSDK")
+async def show_server_is_alive(request: Request):
+    body = await request.body()
+    return "server is online."
 
 @app.post("/webhook")
 async def handle_entry(webhook: Dict[str, Any], request: Request):
