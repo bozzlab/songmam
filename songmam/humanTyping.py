@@ -15,12 +15,12 @@ class HumanTyping:
     @property
     def gap_between_seen_and_start_typing(self):
         """
-        in milisecodn
+        in milisecond
         """
         return random.normalvariate(100,100)
 
     async def act_typing(self, text, typing_func: Awaitable, stop_typing_func: Awaitable):
-        duration_min = len(text) /  self.charactor_per_min
+        duration_min = len(text) / self.charactor_per_min
         num_of_word = len(text) / 5
         num_of_sentence = num_of_word // 5
         duration_sec = duration_min * 60

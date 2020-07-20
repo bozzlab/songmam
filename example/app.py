@@ -103,17 +103,19 @@ async def echo(message: MessageEvent):
 
 
     content = Content(
-        text=f"re[lied to {message.text}",
+        text=f"replied to {message.text}",
         buttons=buttons,
         # quick_replies=[QuickReply(title='hi', payload='test')]
     )
     # page.send(message.sender, content)
     typing_fn = partial(page.typing_on, message.sender)
-    stop_typing_fn = partial(page.typing_on, message.sender)
+    stop_typing_fn = partial(page.typing_off, message.sender)
     await humanTyping.act_typing_simple(message.text, typing_fn, stop_typing_fn)
     page.reply(message, content)
+    page.send(message.sender, content)
     # page._send(
     #
+
     #     )
 
 
