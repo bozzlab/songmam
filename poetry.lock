@@ -276,7 +276,7 @@ email = ["email-validator (>=1.0.3)"]
 typing_extensions = ["typing-extensions (>=3.7.2)"]
 
 [[package]]
-category = "dev"
+category = "main"
 description = "Strict separation of settings from code."
 name = "python-decouple"
 optional = false
@@ -427,7 +427,7 @@ version = "1.0.1"
 dev = ["pytest (>=4.6.2)", "black (>=19.3b0)"]
 
 [metadata]
-content-hash = "2c17e488ad65e12e8256c606ce6181d4c47cc1a0ca341ed851a8cfc501caafa1"
+content-hash = "37666a411949ae848bba3884e899a59a634f8a2e9a1350936a097799d0af0af6"
 python-versions = "^3.8"
 
 [metadata.files]
