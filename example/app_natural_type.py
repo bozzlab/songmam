@@ -10,7 +10,7 @@ from loguru import logger
 
 from songmam import Webhook
 from songmam.api.events import MessageEvent, PostBackEvent
-from songmam.api.content import Content
+from songmam.api.content import ContentButton
 
 from songmam.humanTyping import HumanTyping
 from songmam.page import Page
@@ -38,7 +38,7 @@ async def handle_entry(webhook: Webhook, request: Request):
 @page.handle_message
 async def echo(message: MessageEvent):
 
-    content = Content(
+    content = ContentButton(
         text=f"replied to {message.text}",
     )
     # page.send(message.sender, content)
