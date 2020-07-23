@@ -9,8 +9,8 @@ class ReceiptElements(BaseModel):
     """
     title: str
     subtitle: Optional[str]
-    quantity: Optional[str]
-    price: int  # The price of the item. For free items, '0' is allowed.
+    quantity: Optional[float]
+    price: float
     currency: Optional[str]
     image_url: Optional[HttpUrl]
 
@@ -31,10 +31,10 @@ class Summary(BaseModel):
     """
     https://developers.facebook.com/docs/messenger-platform/reference/templates/receipt#summary
     """
-    subtotal: Optional[int]
-    shipping_cost: Optional[int]
-    total_tax: Optional[int]
-    total_cost: int
+    subtotal: Optional[float]
+    shipping_cost: Optional[float]
+    total_tax: Optional[float]
+    total_cost: float
 
 
 class Adjustments(BaseModel):
@@ -42,7 +42,7 @@ class Adjustments(BaseModel):
     https://developers.facebook.com/docs/messenger-platform/reference/templates/receipt#adjustments
     """
     name: str
-    amount: int
+    amount: float
 
 
 class PayloadReceipt(BaseModel):

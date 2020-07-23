@@ -1,7 +1,7 @@
 from enum import auto
 from typing import Literal, Optional, List, Type, Union
 
-from pydantic import BaseModel, validator, HttpUrl, root_validator
+from pydantic import BaseModel, validator, HttpUrl, root_validator, conlist
 
 # from songmam.facebook.messaging.templates import CompletePayload as Payload_
 from songmam.utils import AutoName
@@ -28,6 +28,7 @@ class BaseButton(BaseModel):
         b = cls(**kargs)
         return b.get_default_action()
 
+
 class URLButton(BaseButton):
     """
     https://developers.facebook.com/docs/messenger-platform/reference/buttons/url
@@ -40,7 +41,6 @@ class URLButton(BaseButton):
     messenger_extensions: bool = False
     fallback_url: Optional[HttpUrl]
     webview_share_button: Optional[Literal['hide']]
-
 
     @root_validator
     def fallback_url_should_not_be_specify_if_messenger_extensions_is_false(cls, values):
@@ -110,31 +110,23 @@ class GamePlayButton(BaseButton):
 #     webview_share_button: Optional[str]  # for type: web_url
 #     game_metadata: Optional[GameMetadata]  # for type : game_play
 
+AllButtonTypes = Union[URLButton, PostbackButton, CallButton, LogInButton, LogOutButton, GamePlayButton]
+
 
 # TODO: Inherit from the CompletePayload?
-class BasePayload(BaseModel):
+class PayloadButtonTemplate(BaseModel):
     """
     https://developers.facebook.com/docs/messenger-platform/reference/templates/button
     """
     template_type = 'button'
     text: str
-    buttons: List[Type[BaseButton]] = None # Set of 1-3 buttons that appear as call-to-actions.
+    buttons: conlist(AllButtonTypes, min_items=1, max_items=3)  # Set of 1-3 buttons that appear as call-to-actions.
 
     @validator('text')
     def title_limit_to_640_characters(cls, v):
         if len(v) > 640:
             raise ValueError('UTF-8-encoded text of up to 640 characters.')
         return v
-
-    @validator('buttons')
-    def limit_buttons_from_1_to_3(cls, value):
-        num_char = len(value)
-        if num_char < 0 or num_char > 3:
-            raise ValueError('Set of 1-3 buttons only.')
-        return value
-
-
-AllButtonTypes = Union[URLButton, PostbackButton, CallButton, LogInButton, LogOutButton, GamePlayButton]
 
 
 class ButtonType(AutoName):
