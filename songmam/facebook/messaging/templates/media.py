@@ -11,7 +11,7 @@ class MediaElements(BaseModel):
     """
     media_type: Optional[Literal["image", "video"]]
     attachment_id: Optional[str]  # Cannot be used if url is set.
-    url: Optional[str]  # Cannot be used if attachment_id is set.
+    url: Optional[str]  # Cannot be used if attachment_id is set. || have to be image / vids in facebook url
     buttons: Optional[conlist(AllButtonTypes, min_items=1, max_items=3)]  # A maximum of 1 button is supported.
 
 

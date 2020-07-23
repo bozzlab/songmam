@@ -13,8 +13,8 @@ from furl import furl
 from loguru import logger
 from pydantic import HttpUrl
 
-from .api.content import Content
-from .api.events import MessageEvent, PostBackEvent, ReferralEvent
+from .api.content import ContentButton, ContentGeneric, ContentMedia, ContentReceipt
+from .api.events import MessageEvent, PostBackEvent
 from .facebook import ThingWithId
 from .facebook.entries.echo import EchoEntry
 from .facebook.entries.messages import MessageEntry, Sender
@@ -297,26 +297,19 @@ class Page:
 
         return SendResponse.parse_raw(response.text)
 
-    def send_sync(self, sender: Sender, message: Content, *, quick_replies=None, metadata=None,
-                  notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
+    def send(self, sender: Sender, message: Union[ContentButton, ContentGeneric, ContentMedia, ContentReceipt], *, quick_replies=None, metadata=None,
+             notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
 
         return self._send_sync(
             BasePayload(
                 recipient=sender,
                 message=message.message
-            ), callback_sync=callback)
+            ),
+            callback=callback
+        )
 
-    async def send(self, sender: Sender, message: Content, *, quick_replies=None, metadata=None,
-                   notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
-
-        return await self._send(
-            BasePayload(
-                recipient=sender,
-                message=message.message
-            ), callback=callback)
-
-    def reply_sync(self, message_to_reply_to: MessageEvent, message: Content, *, quick_replies=None, metadata=None,
-                   notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
+    def reply(self, message_to_reply_to: MessageEvent, message: ContentButton, *, quick_replies=None, metadata=None,
+              notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
 
         if self.prevent_repeated_reply:
             message_id = message_to_reply_to.entry.theMessaging.message.mid
