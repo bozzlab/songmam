@@ -4,22 +4,19 @@ from pydantic import BaseModel, root_validator, conlist
 
 from songmam.facebook.entries.message.attachment import Attachment as Attachment_
 from songmam.facebook.messaging.quick_replies import QuickReply
+from songmam.facebook.messaging.templates.button import AllButtonTypes, PayloadButtonTemplate
+from songmam.facebook.messaging.templates.generic import PayloadGeneric
+from songmam.facebook.messaging.templates.media import PayloadMedia
+from songmam.facebook.messaging.templates.receipt import ReceiptElements, Address, Summary, Adjustments, PayloadReceipt
 from songmam.facebook.messaging.templates.button import AllButtonTypes
 
-
-class CompletePayload(BaseModel):
-    template_type: Literal["generic", "button", "media", "receipt"]
-    text: Optional[str]
-    buttons: Optional[conlist(AllButtonTypes,min_items=1, max_items=3)]
-    elements: Optional[List[Any]]
 
 class TemplateAttachment(Attachment_):
     """
     https://developers.facebook.com/docs/messenger-platform/reference/templates/airline-flight-update#attachment
     """
     type: Literal['audio', 'file', 'image', 'location', 'video', 'fallback', "template"] = "template"
-    payload: Union[CompletePayload]
-
+    payload: Union[PayloadButtonTemplate, PayloadGeneric, PayloadMedia, PayloadReceipt]
 
 
 class Message(BaseModel):
@@ -27,9 +24,9 @@ class Message(BaseModel):
     https://developers.facebook.com/docs/messenger-platform/reference/templates/airline-flight-update#message
     https://developers.facebook.com/docs/messenger-platform/reference/send-api
     """
-    text: Optional[str] = None
-    attachment: Optional[Attachment_] = None
-    quick_replies: Optional[List[QuickReply]] = None
+    text: Optional[str]
+    attachment: Optional[TemplateAttachment]
+    quick_replies: Optional[List[QuickReply]]
     metadata: Optional[str]
 
     @root_validator
@@ -40,6 +37,6 @@ class Message(BaseModel):
             counter += 1
         if attachment:
             counter += 1
-        if counter>0:
+        if counter > 0:
             raise ValueError("text or attachment must be set.")
         return values
