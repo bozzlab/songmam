@@ -294,10 +294,10 @@ if __name__ == "__main__":
         quick_replies=None,
     )
     # ------------------------------------------------------------------- #
-    # page.send(tan, content_button_template)
-    # page.send(tan, content_generic_template)
-    # page.send(tan, content_media_image_template)
-    # page.send(tan, content_media_video_template)
+    page.send(tan, content_button_template)
+    page.send(tan, content_generic_template)
+    page.send(tan, content_media_image_template)
+    page.send(tan, content_media_video_template)
     page.send(tan, content_receipt_template)
     # page.send(message.sender, content)
     # typing_fn = partial(page.typing_on, message.sender)
