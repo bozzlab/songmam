@@ -42,10 +42,10 @@ async def echo(message: MessageEvent):
         text=f"replied to {message.text}",
     )
     # page.send(message.sender, content)
-    typing_fn = partial(page.typing_on, message.sender)
-    stop_typing_fn = partial(page.typing_off, message.sender)
+    typing_fn = partial(page.typing_on_sync, message.sender)
+    stop_typing_fn = partial(page.typing_off_sync, message.sender)
     await humanTyping.act_typing_simple(message.text, typing_fn, stop_typing_fn)
-    page.reply(message, content)
+    page.reply_sync(message, content)
     # page._send(
     #
     #     )

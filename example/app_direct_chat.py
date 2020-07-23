@@ -54,11 +54,11 @@ async def echo(message: MessageEvent):
     pat_id = "3035678546494620"
 
     if message.sender.id == ben_id:
-        page.send(pat_id, message.text)
+        page.send_sync(pat_id, message.text)
     elif message.sender.id == pat_id:
-        page.send(ben_id, message.text)
+        page.send_sync(ben_id, message.text)
     else:
-        page.send(message.sender.id, "thank you! your message is '%s'" % message.text)
+        page.send_sync(message.sender.id, "thank you! your message is '%s'" % message.text)
 
 
     # you can use a dict instead of a Button class
