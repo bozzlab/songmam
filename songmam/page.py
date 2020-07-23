@@ -4,6 +4,7 @@ import hmac
 import hashlib
 from typing import Union, Optional, Literal, Set, List, Type
 
+import httpx
 import requests
 from cacheout import Cache
 from decouple import config, UndefinedValueError
@@ -13,11 +14,12 @@ from loguru import logger
 from pydantic import HttpUrl
 
 from .api.content import Content
-from .api.events import MessageEvent, PostBackEvent
+from .api.events import MessageEvent, PostBackEvent, ReferralEvent
 from .facebook import ThingWithId
 from .facebook.entries.echo import EchoEntry
 from .facebook.entries.messages import MessageEntry, Sender
 from .facebook.entries.postback import PostbackEntry
+from .facebook.entries.referral import ReferralEntry
 from .facebook.messaging.message_tags import MessageTag
 from .facebook.messaging.payload import BasePayload, SenderActionPayload
 from songmam.facebook.messenger_profile.persistent_menu import UserPersistentMenu, MenuPerLocale
@@ -56,8 +58,7 @@ class Page:
         # Non-Dynamic Change
         self.prevent_repeated_reply = prevent_repeated_reply
         if prevent_repeated_reply:
-            self.reply_cache = Cache(maxsize=10000, ttl=60*15, default=None)
-
+            self.reply_cache = Cache(maxsize=10000, ttl=60 * 15, default=None)
 
         self.skip_quick_reply = skip_quick_reply
         self.auto_mark_as_seen = auto_mark_as_seen
@@ -95,7 +96,7 @@ class Page:
             if whitelisted_domains:
                 profile.whitelisted_domains = whitelisted_domains
 
-            self._set_profile_property(profile)
+            self._set_profile_property_sync(profile)
 
         # self._after_send = options.pop('after_send', None)
         # self._api_ver = options.pop('api_ver', 'v7.0')
@@ -104,7 +105,8 @@ class Page:
 
     _entryCaster = {
         MessageEntry: MessageEvent,
-        PostbackEntry: PostBackEvent
+        PostbackEntry: PostBackEvent,
+        ReferralEntry: ReferralEvent
     }
 
     # these are set by decorators or the 'set_webhook_handler' method
@@ -162,11 +164,9 @@ class Page:
             if handler:
                 event = eventConstructor(entry)
 
-
-
                 if entry_type is MessageEntry:
                     if self.auto_mark_as_seen:
-                        self.mark_seen(event.sender)
+                        self.mark_seen_sync(event.sender)
 
                     if event.is_quick_reply:
                         matched_callbacks = self.get_quick_reply_callbacks(event)
@@ -176,6 +176,8 @@ class Page:
                     matched_callbacks = self.get_postback_callbacks(event)
                     for callback in matched_callbacks:
                         await callback(event)
+                elif entry_type is ReferralEvent:
+                    pass
 
                 await handler(event)
             else:
@@ -206,7 +208,7 @@ class Page:
 
         self.page = Me.parse_raw(r.text)
 
-    def get_user_profile(self, fb_user_id) -> UserProfile:
+    def get_user_profile_sync(self, fb_user_id) -> UserProfile:
         r = requests.get(self.base_api_furl / fb_user_id,
                          params={"access_token": self.access_token},
                          headers={'Content-type': 'application/json'})
@@ -216,6 +218,21 @@ class Page:
 
         user_profile = UserProfile.parse_raw(r.text)
         return user_profile
+
+
+    async def get_user_profile(self, user: Type[ThingWithId]) -> UserProfile:
+        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
+                                     params={"access_token": self.access_token}) as client:
+            response = await client.get(
+                f"/{user.id}"
+            )
+
+        if response.status_code != 200:
+            raise Exception(response.text)
+
+        user_profile = UserProfile.parse_raw(response.text)
+        return user_profile
+
 
     def get_messenger_code(self, ref=None, image_size=1000):
         d = {}
@@ -239,7 +256,7 @@ class Page:
 
         return data['uri']
 
-    def _send(self, payload: Union[BasePayload], callback=None) -> SendResponse:
+    def _send_sync(self, payload: Union[BasePayload], callback_sync=None) -> SendResponse:
         f_url = self.base_api_furl / "me/messages"
         data = payload.json(exclude_none=True)
         response = requests.post(f_url.url,
@@ -250,25 +267,56 @@ class Page:
         if response.status_code != requests.codes.ok:
             print(response.text)
 
-        if callback is not None:
-            callback(payload, response)
+        if callback_sync is not None:
+            callback_sync(payload, response)
 
         if self._after_send is not None:
             self._after_send(payload, response)
 
         return SendResponse.parse_raw(response.text)
 
-    def send(self, sender: Sender, message: Content, *, quick_replies=None, metadata=None,
-             notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
+    async def _send(self, payload: Union[BasePayload], callback=None) -> SendResponse:
 
-        return self._send(
+        data = payload.json(exclude_none=True)
+
+        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
+                                     params={"access_token": self.access_token}) as client:
+            response = await client.post(
+                "/me/messages",
+                data=data,
+            )
+
+        if response.status_code != 200:
+            raise Exception(response.text)
+
+        if callback is not None:
+            await callback(payload, response)
+
+        if self._after_send is not None:
+            self._after_send(payload, response)
+
+        return SendResponse.parse_raw(response.text)
+
+    def send_sync(self, sender: Sender, message: Content, *, quick_replies=None, metadata=None,
+                  notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
+
+        return self._send_sync(
+            BasePayload(
+                recipient=sender,
+                message=message.message
+            ), callback_sync=callback)
+
+    async def send(self, sender: Sender, message: Content, *, quick_replies=None, metadata=None,
+                   notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
+
+        return await self._send(
             BasePayload(
                 recipient=sender,
                 message=message.message
             ), callback=callback)
 
-    def reply(self, message_to_reply_to: MessageEvent, message: Content, *, quick_replies=None, metadata=None,
-              notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
+    def reply_sync(self, message_to_reply_to: MessageEvent, message: Content, *, quick_replies=None, metadata=None,
+                   notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
 
         if self.prevent_repeated_reply:
             message_id = message_to_reply_to.entry.theMessaging.message.mid
@@ -280,35 +328,74 @@ class Page:
                 logger.warning(message_to_reply_to)
                 return
 
-        return self._send(
+        return self._send_sync(
             BasePayload(
                 recipient=message_to_reply_to.sender,
                 message=message.message
-            ), callback=callback)
+            ), callback_sync=callback)
 
-    def typing_on(self, recipient: Type[ThingWithId]):
+    async def reply(self, message_to_reply_to: MessageEvent, message: Content, *, quick_replies=None, metadata=None,
+                    notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
+
+        if self.prevent_repeated_reply:
+            message_id = message_to_reply_to.entry.theMessaging.message.mid
+            if message_id not in self.reply_cache:
+                # good to go
+                self.reply_cache.set(message_id, True)
+            else:
+                logger.warning("Songmum prevented a message from being reply to the same event multiple times.")
+                logger.warning(message_to_reply_to)
+                return
+
+        return await self._send(
+            BasePayload(
+                recipient=message_to_reply_to.sender,
+                message=message.message
+            ),
+            callback=callback
+        )
+
+    def typing_on_sync(self, recipient: Type[ThingWithId]):
         payload = SenderActionPayload(recipient=recipient,
                                       sender_action=SenderAction.TYPING_ON)
 
-        self._send(payload)
+        self._send_sync(payload)
 
-    def typing_off(self, recipient: Type[ThingWithId]):
+    async def typing_on(self, recipient: Type[ThingWithId]):
+        payload = SenderActionPayload(recipient=recipient,
+                                      sender_action=SenderAction.TYPING_ON)
+
+        return await self._send(payload)
+
+    def typing_off_sync(self, recipient: Type[ThingWithId]):
         payload = SenderActionPayload(recipient=recipient,
                                       sender_action=SenderAction.TYPING_OFF)
 
-        self._send(payload)
+        self._send_sync(payload)
 
-    def mark_seen(self, recipient: Type[ThingWithId]):
+    async def typing_off(self, recipient: Type[ThingWithId]):
+        payload = SenderActionPayload(recipient=recipient,
+                                      sender_action=SenderAction.TYPING_OFF)
+
+        return await self._send(payload)
+
+    def mark_seen_sync(self, recipient: Type[ThingWithId]):
         payload = SenderActionPayload(recipient=recipient,
                                       sender_action=SenderAction.MARK_SEEN)
 
-        self._send(payload)
+        self._send_sync(payload)
+
+    async def mark_seen(self, recipient: Type[ThingWithId]):
+        payload = SenderActionPayload(recipient=recipient,
+                                      sender_action=SenderAction.MARK_SEEN)
+
+        return await self._send(payload)
 
     """
     messenger profile (see https://developers.facebook.com/docs/messenger-platform/reference/messenger-profile-api)
     """
 
-    def _set_profile_property(self, data: MessengerProfile):
+    def _set_profile_property_sync(self, data: MessengerProfile):
 
         f_url = self.base_api_furl / "me" / "messenger_profile"
         r = requests.post(f_url.url,
@@ -319,7 +406,7 @@ class Page:
         if r.status_code != requests.codes.ok:
             raise Exception(r.text)
 
-    def _del_profile_property(self, properties: Set[MessengerProfileProperty]):
+    def _del_profile_property_sync(self, properties: Set[MessengerProfileProperty]):
         f_url = self.base_api_furl / "me" / "messenger_profile"
         r = requests.delete(f_url.url,
                             params={"access_token": self.access_token},
@@ -407,8 +494,8 @@ class Page:
     #
     #     self._webhook_handlers[scope] = callback
 
-    def handle_optin(self, func):
-        self._webhook_handlers['optin'] = func
+    # def handle_optin(self, func):
+    #     self._webhook_handlers['optin'] = func
 
     def handle_message_sync(self, func: callable):
         self._webhook_handlers_sync[MessageEntry] = func
@@ -436,9 +523,12 @@ class Page:
     #
     # def handle_account_linking(self, func):
     #     self._webhook_handlers['account_linking'] = func
-    #
-    # def handle_referral(self, func):
-    #     self._webhook_handlers['referral'] = func
+
+    # def handle_referral_sync(self, func):
+    #     self._webhook_handlers_sync['referral'] = func
+
+    def handle_referral(self, func):
+        self._webhook_handlers[ReferralEntry] = func
     #
     # def handle_game_play(self, func):
     #     self._webhook_handlers['game_play'] = func
@@ -469,7 +559,6 @@ class Page:
     #
     def after_send(self, func):
         self._after_send = func
-
 
     def callback(self, payloads=None, quick_reply=True, button=True):
 
