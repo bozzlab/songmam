@@ -9,7 +9,7 @@ class ReceiptElements(BaseModel):
     """
     title: str
     subtitle: Optional[str]
-    quantity: Optional[float]
+    quantity: Optional[int]
     price: float
     currency: Optional[str]
     image_url: Optional[HttpUrl]
