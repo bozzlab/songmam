@@ -82,7 +82,7 @@ class PageTest(unittest.TestCase):
     def setUp(self):
         self.page = Page('TOKEN')
         self.page._send_sync = mock.MagicMock()
-        self.page._fetch_page_info = mock.MagicMock()
+        self.page._fetch_page_info_sync = mock.MagicMock()
 
     def test_send(self):
         self.page.send_sync(12345, "hello world", quick_replies=[{'title': 'Yes', 'payload': 'YES'}], callback=1)
@@ -162,17 +162,17 @@ class PageTest(unittest.TestCase):
             pass
 
     def test_page_info(self):
-        self.assertEquals(0, self.page._fetch_page_info.call_count)
+        self.assertEquals(0, self.page._fetch_page_info_sync.call_count)
         self.page.id
-        self.assertEquals(1, self.page._fetch_page_info.call_count)
+        self.assertEquals(1, self.page._fetch_page_info_sync.call_count)
         self.page.name
-        self.assertEquals(2, self.page._fetch_page_info.call_count)
+        self.assertEquals(2, self.page._fetch_page_info_sync.call_count)
 
         self.page._page_id = 1
         self.page._page_name = 'name'
         print(self.page.id, self.page.name)
 
-        self.assertEquals(2, self.page._fetch_page_info.call_count)
+        self.assertEquals(2, self.page._fetch_page_info_sync.call_count)
 
     def test_set_webhook_handler(self):
 

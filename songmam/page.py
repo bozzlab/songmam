@@ -176,7 +176,7 @@ class Page:
                     matched_callbacks = self.get_postback_callbacks(event)
                     for callback in matched_callbacks:
                         await callback(event)
-                elif entry_type is ReferralEvent:
+                elif entry_type is ReferralEntry:
                     pass
 
                 await handler(event)
@@ -186,18 +186,18 @@ class Page:
     @property
     def id(self):
         if self.page is None:
-            self._fetch_page_info()
+            self._fetch_page_info_sync()
 
         return self.page.id
 
     @property
     def name(self):
         if self.page is None:
-            self._fetch_page_info()
+            self._fetch_page_info_sync()
 
         return self.page.name
 
-    def _fetch_page_info(self):
+    def _fetch_page_info_sync(self):
         r = requests.get(self.base_api_furl / "me",
                          params={"access_token": self.access_token},
                          headers={'Content-type': 'application/json'})
@@ -207,6 +207,18 @@ class Page:
             return
 
         self.page = Me.parse_raw(r.text)
+
+    async def _fetch_page_info(self):
+        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
+                                     params={"access_token": self.access_token}) as client:
+            response = await client.get(
+                f"/me"
+            )
+
+        if response.status_code != 200:
+            raise Exception(response.text)
+
+        self.page = Me.parse_raw(response.text)
 
     def get_user_profile_sync(self, fb_user_id) -> UserProfile:
         r = requests.get(self.base_api_furl / fb_user_id,
@@ -432,6 +444,9 @@ class Page:
         return r.json()
 
     def set_user_menu(self, sender: Type[ThingWithId], menus: List[MenuPerLocale]):
+        if isinstance(menus, MenuPerLocale):
+            menus = [menus]
+
         f_url = self.base_api_furl / 'me' / 'custom_user_settings'
         r = requests.post(f_url.url,
                           params={"access_token": self.access_token},
