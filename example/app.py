@@ -8,6 +8,8 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 # from songmam import Page, Webhook, MessageEvent, BasePayload
+from pydantic import ValidationError
+
 from songmam.api import content
 from songmam.facebook.entries.messages import Sender
 from songmam.facebook.messaging.templates import ReceiptElements, Address, Summary, Adjustments
@@ -106,7 +108,11 @@ async def sendResponse():
 @app.post("/webhook")
 async def handle_entry(webhook: Dict[str, Any], request: Request):
     body = await request.body()
-    webhook = Webhook.parse_raw(body)
+    try:
+        webhook = Webhook.parse_raw(body)
+    except ValidationError:
+        return
+        pass
     # print(body)
     print(webhook)
     await page.handle_webhook(webhook)
@@ -116,26 +122,26 @@ async def handle_entry(webhook: Dict[str, Any], request: Request):
 @page.handle_message
 async def echo(message: MessageEvent):
 
-    page.get_user_profile_sync(message.sender.id)
+    # page.get_user_profile_sync(message.sender.id)
     # page.send(message.sender.id, "thank you! your message is '%s'" % message.text)
-    buttons = [
-        URLButton(title="Open Webview", url=(endpoint_url / "sampleMessagerSDK").url, messenger_extensions=True),
-        PostbackButton(title="trigger Postback", payload="DEVELOPED_DEFINED_PAYLOAD"),
-        CallButton(title="Call Phone Number", payload="+66992866936")
-    ]
+    # buttons = [
+    #     URLButton(title="Open Webview", url=(endpoint_url / "sampleMessagerSDK").url, messenger_extensions=True),
+    #     PostbackButton(title="trigger Postback", payload="DEVELOPED_DEFINED_PAYLOAD"),
+    #     CallButton(title="Call Phone Number", payload="+66992866936")
+    # ]
     print(message.sender.id)
-    tan = Sender(id="3144004072361851")
-    # content = ContentButton(
-    #     text=f"replied to {message.text}",
-    #     buttons=buttons,
-    #     # quick_replies=[QuickReply(title='hi', payload='test')]
-    # )
-    # page.send(message.sender, content)
-    # typing_fn = partial(page.typing_on, message.sender)
-    # stop_typing_fn = partial(page.typing_off, message.sender)
-    # await humanTyping.act_typing_simple(message.text, typing_fn, stop_typing_fn)
-    await page.reply(message, content)
-    # page.send(message.sender, content)
+    # tan = Sender(id="3144004072361851")
+    content = ContentButton(
+        text=f"replied to {message.text}",
+        buttons=None,
+        quick_replies=None
+    )
+    # # page.send(message.sender, content)
+    # # typing_fn = partial(page.typing_on, message.sender)
+    # # stop_typing_fn = partial(page.typing_off, message.sender)
+    # # await humanTyping.act_typing_simple(message.text, typing_fn, stop_typing_fn)
+    # await page.reply(message, content)
+    page.send(message.sender, content)
     # page._send(
     #
 
@@ -157,7 +163,7 @@ async def log3(event):
     logger.info("log3")
 
 if __name__ == "__main__":
-    tan = Sender(id="3144004072361851")
+    tan = Sender(id="2945944152161824")
     buttons1 = [
         URLButton(
             title="Open Webview",

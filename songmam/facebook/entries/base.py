@@ -8,9 +8,7 @@ class BaseMessaging(BaseModel):
     recipient: ThingWithId
 
 
-class MessagingWithTimestamp(BaseModel):
-    sender: ThingWithId
-    recipient: ThingWithId
+class MessagingWithTimestamp(BaseMessaging):
     timestamp: int
 
 

@@ -52,32 +52,16 @@ class PostBackEvent(Event):
         self.payload = self.entry.theMessaging.postback.payload
         # self.referal = self.entry.postback.referral
 
-# ----------------------------- #
 
 
-class Event2:
-    entry: BaseMessaging
-
-    def __init__(self, entry):
-        self.entry = entry
-        self.sender = self.entry.sender
-        self.recipient = self.entry.recipient
-
-    def __str__(self):
-        # TODO: some infomative
-        return json.dumps(self.__class__.__name__)
-
-
-# ----------------------------- #
-
-class DeliveriesEvent(Event2):
+class DeliveriesEvent(Event):
     entry: DeliveriesEntry
 
     def __init__(self, entry: DeliveriesEntry):
         super(DeliveriesEvent, self).__init__(entry)
 
-        self.mids = self.entry.delivery.mids
-        self.watermark = self.entry.delivery.watermark
+        self.mids = self.entry.theMessaging.delivery.mids
+        self.watermark = self.entry.theMessaging.delivery.watermark
 
 
 class EchoEvent(Event):

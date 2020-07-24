@@ -314,7 +314,7 @@ class Page:
                 recipient=sender,
                 message=message.message
             ),
-            callback=callback
+            callback_sync=callback
         )
 
     def reply(self, message_to_reply_to: MessageEvent, message: ContentButton, *, quick_replies=None, metadata=None,
