@@ -46,7 +46,7 @@ async def handle_entry(webhook: Webhook):
 
 @page.handle_message
 def echo(message: MessageEvent):
-    page.send(message.sender.id, "thank you! your message is '%s'" % message.text)
+    page.send_sync(message.sender.id, "thank you! your message is '%s'" % message.text)
 
 if __name__ == "__main__":
     import uvicorn
@@ -64,24 +64,24 @@ how to send a message from facebook page to user
 ##### Image
 jpg, png, gif support
 ```python
-page.send(recipient_id, Attachment.Image(image_url))
+page.send_sync(recipient_id, Attachment.Image(image_url))
 ```
 
 
 ##### Audio
 ```python
-page.send(recipient_id, Attachment.Audio(audio_url))
+page.send_sync(recipient_id, Attachment.Audio(audio_url))
 ```
 
 ##### Video
 ```python
-page.send(recipient_id, Attachment.Video(video_url))
+page.send_sync(recipient_id, Attachment.Video(video_url))
 ```
 
 
 ##### File
 ```python
-page.send(recipient_id, Attachment.File(file_url))
+page.send_sync(recipient_id, Attachment.File(file_url))
 ```
 
 
@@ -99,7 +99,7 @@ quick_replies = [
 #                {'title': 'Comedy', 'payload': 'PICK_COMEDY'}]
 
 
-page.send(recipient_id, 
+page.send_sync(recipient_id, 
           "What's your favorite movie genre?",
           quick_replies=quick_replies,
           metadata="DEVELOPER_DEFINED_METADATA")
@@ -123,8 +123,8 @@ if you want to handle only quick_reply callback without button postback
 
 ##### typing on/off
 ```python
-page.typing_on(recipient_id)
-page.typing_off(recipient_id)
+page.typing_on_sync(recipient_id)
+page.typing_off_sync(recipient_id)
 ```
 
 
@@ -145,7 +145,7 @@ buttons = [
 #          {'type': 'postback', 'title': 'trigger Postback', 'value': 'DEVELOPED_DEFINED_PAYLOAD'},
 #          {'type': 'phone_number', 'title': 'Call Phone Number', 'value': '+16505551234'}]
 
-page.send(recipient_id, Template.Buttons("hello", buttons))
+page.send_sync(recipient_id, Template.Button("hello", buttons))
 ```
 
 ##### button callback
@@ -167,7 +167,7 @@ if you want to handle only button's postback without quick_reply callback
 
 ##### Template : Generic
 ```python
-page.send(recipient_id, Template.Generic([
+page.send_sync(recipient_id, Template.Generic([
   Template.GenericElement("rift",
                           subtitle="Next-generation virtual reality",
                           item_url="https://www.oculus.com/en-us/rift/",
@@ -214,7 +214,7 @@ page.send(recipient_id, Template.Generic([
 
     adjustment = Template.ReceiptAdjustment(name="New Customer Discount", amount=-50)
 
-    page.send(recipient_id, Template.Receipt(recipient_name='Peter Chang',
+    page.send_sync(recipient_id, Template.Receipt(recipient_name='Peter Chang',
                                             order_number='1234',
                                             currency='USD',
                                             payment_method='Visa 1234',

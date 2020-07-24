@@ -2,30 +2,37 @@ from typing import Optional, List, Union
 
 from pydantic import BaseModel, validator
 
-from songmam.facebook.entries.echo import EchoEntry
-from songmam.facebook.entries.handovers import HandoversEntry
-
 from songmam.facebook.entries.message.attachment import Attachment
-from songmam.facebook.entries.base import ThingWithID, MessagingWithTimestamp
+from songmam.facebook.entries.base import MessagingWithTimestamp
+from songmam.facebook import ThingWithId
 
 
-class Sender(ThingWithID):
+class Sender(ThingWithId):
     user_ref: Optional[str]
+
 
 class QuickReply(BaseModel):
     """A quick_reply payload is only provided with a text message when the user tap on a Quick Replies button."""
     payload: str
 
+
 class ReplyTo(BaseModel):
     """"""
-    mid: str # Reference to the message ID that this message is replying to
+    mid: str  # Reference to the message ID that this message is replying to
+
 
 class Message(BaseModel):
     mid: str  # Message ID
-    text: Optional[str]  # Text of message
-    quick_reply: Optional[QuickReply]
-    reply_to: Optional[ReplyTo]
-    attachments: Optional[List[Attachment]]
+    text: Optional[str] = None  # Text of message
+    quick_reply: Optional[QuickReply] = None
+    reply_to: Optional[ReplyTo] = None
+    attachments: Optional[List[Attachment]] = None
+
+
+class Postback(BaseModel):
+    title: str
+    payload: str
+
 
 class Messaging(MessagingWithTimestamp):
     sender: Sender

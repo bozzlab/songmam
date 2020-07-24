@@ -1,15 +1,16 @@
 from pydantic import BaseModel
 
-class ThingWithID(BaseModel):
-    id: str
+from songmam.facebook import ThingWithId
+
 
 class Messaging(BaseModel):
-    sender: ThingWithID
-    recipient: ThingWithID
+    sender: ThingWithId
+    recipient: ThingWithId
+
 
 class MessagingWithTimestamp(BaseModel):
-    sender: ThingWithID
-    recipient: ThingWithID
+    sender: ThingWithId
+    recipient: ThingWithId
     timestamp: int
 
 

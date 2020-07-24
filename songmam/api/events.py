@@ -1,7 +1,8 @@
 import json
 
 from songmam.facebook.entries.messages import MessageEntry
-from songmam.facebook.entries.postbacks import PostbacksEntry
+from songmam.facebook.entries.postback import PostbackEntry
+from songmam.facebook.entries.referral import ReferralEntry
 
 
 class Event:
@@ -20,6 +21,13 @@ class Event:
 class MessageEvent(Event):
     entry: MessageEntry
 
+    @property
+    def is_quick_reply(self):
+        if self.entry.theMessaging.message.quick_reply:
+            return True
+        else:
+            return False
+
     def __init__(self, entry):
         super(MessageEvent, self).__init__(entry)
 
@@ -33,13 +41,14 @@ class MessageEvent(Event):
 
 
 class PostBackEvent(Event):
-    entry: PostbacksEntry
+    entry: PostbackEntry
 
-    def __init__(self, entry: PostbacksEntry):
+    def __init__(self, entry: PostbackEntry):
         super(PostBackEvent, self).__init__(entry)
-        self.title = self.entry.postback.title
-        self.payload = self.entry.postback.payload
-        self.referal = self.entry.postback.referral
+
+        self.title = self.entry.theMessaging.postback.title
+        self.payload = self.entry.theMessaging.postback.payload
+        # self.referal = self.entry.postback.referral
 
 
 class DeliveriesEvent(Event):
@@ -247,27 +256,27 @@ class PolicyEnforcementEvent(Event):
 
 
 class ReferralEvent(Event):
-    def __init__(self, referral, **kwargs):
-        super(ReferralEvent, self).__init__(**kwargs)
+    entry: ReferralEntry
 
-        self.name = 'referral'
-        self.referral = referral
+    def __init__(self, entry):
+        super(ReferralEvent, self).__init__(entry)
+        self.referral = self.entry.referral
 
-    @property
-    def source(self):
-        return self.referral.get('source')
-
-    @property
-    def type(self):
-        return self.referral.get('type')
-
-    @property
-    def ref(self):
-        return self.referral.get('ref')
-
-    @property
-    def referer_uri(self):
-        return self.referral.get('referer_uri')
+    # @property
+    # def source(self):
+    #     return self.referral.get('source')
+    #
+    # @property
+    # def type(self):
+    #     return self.referral.get('type')
+    #
+    # @property
+    # def ref(self):
+    #     return self.referral.get('ref')
+    #
+    # @property
+    # def referer_uri(self):
+    #     return self.referral.get('referer_uri')
 
 
 class CheckOutUpdateEvent(Event):  # beta

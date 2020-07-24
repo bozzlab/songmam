@@ -1,4 +1,3 @@
-# https://developers.facebook.com/docs/messenger-platform/send-messages/quick-replies
 from enum import auto
 
 from songmam.utils import AutoNameLower

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Some HTML in here</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.0/css/bulma.min.css"
+          integrity="sha256-aPeK/N8IHpHsvPBCf49iVKMdusfobKo2oxF8lRruWJg=" crossorigin="anonymous">
+</head>
+<body>
+<script src="/static/facebook.js"></script>
+<section class="section">
+    <div class="container">
+        <h1 class="title">
+            Hello World
+        </h1>
+        <p class="subtitle">
+            My first website with <strong>Bulma</strong>!
+        </p>
+    </div>
+</section>
+<form action="/sendResponse" method="post">
+    <input type="hidden" name="psid" id="psid">
+    <h3>Pillows</h3>
+    <input type="radio" name="pillows" value="soft" checked>Soft<br>
+    <input type="radio" name="pillows" value="hard">Hard<br>
+    <h3>Bed</h3>
+    <input type="radio" name="bed" value="single" checked>Single<br>
+    <input type="radio" name="bed" value="double">Double<br>
+    <input type="radio" name="bed" value="twin">Twin<br>
+    <h3>View</h3>
+    <input type="radio" name="view" value="sea" checked>Sea<br>
+    <input type="radio" name="view" value="street">Street<br>
+    <input type="submit" value="Submit" id="submitButton">
+</form>
+<button class="button" onclick="MessengerExtensions.requestCloseBrowser()">Button</button>
+<script>
+    window.extAsyncInit = function () {
+        // the Messenger Extensions JS SDK is done loading
+    };
+</script>
+</body>
+</html>

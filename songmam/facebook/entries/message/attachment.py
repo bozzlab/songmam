@@ -12,11 +12,9 @@ class PayloadOfAttachment(BaseModel):
     sticker_id: Optional[int]
     coordinates: Optional[Coordinates]
 
-# alias
-Payload = PayloadOfAttachment
-
-
+# class
+#     v
 
 class Attachment(BaseModel):
-    type: Literal['audio', 'file', 'image', 'location', 'video', 'fallback']
-    payload: Payload
+    type: Literal['audio', 'file', 'image', 'location', 'video', 'fallback', "template"]
+    payload: PayloadOfAttachment

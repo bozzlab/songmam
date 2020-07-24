@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Some HTML in here</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.0/css/bulma.min.css"
+          integrity="sha256-aPeK/N8IHpHsvPBCf49iVKMdusfobKo2oxF8lRruWJg=" crossorigin="anonymous">
+    <script defer src="https://use.fontawesome.com/releases/v5.3.1/js/all.js"></script>
+</head>
+<body>
+<script src="/static/facebook.js"></script>
+<section class="section">
+    <div class="container">
+        <h1 class="title">
+            Songmum Samples!
+        </h1>
+        <p class="subtitle">
+            Show what does it look like to have messenger ext. sdk.
+        </p>
+    </div>
+    <div class="tabs is-centered">
+        <ul>
+            <li class="is-active">
+                <a>
+                    <span class="icon is-small"><i class="fas fa-image" aria-hidden="true"></i></span>
+                    <span>Pictures</span>
+                </a>
+            </li>
+            <li>
+                <a>
+                    <span class="icon is-small"><i class="fas fa-music" aria-hidden="true"></i></span>
+                    <span>Music</span>
+                </a>
+            </li>
+            <li>
+                <a>
+                    <span class="icon is-small"><i class="fas fa-film" aria-hidden="true"></i></span>
+                    <span>Videos</span>
+                </a>
+            </li>
+            <li>
+                <a>
+                    <span class="icon is-small"><i class="far fa-file-alt" aria-hidden="true"></i></span>
+                    <span>Documents</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+</section>
+
+<div class="container is-fluid">
+    <div class="field">
+        <label class="label">Name</label>
+        <div class="control">
+            <input class="input" type="text" placeholder="Text input">
+        </div>
+    </div>
+    <div class="field">
+        <label class="label">Username</label>
+        <div class="control has-icons-left has-icons-right">
+            <input class="input is-success" type="text" placeholder="Text input" value="bulma">
+            <span class="icon is-small is-left">
+      <i class="fas fa-user"></i>
+    </span>
+            <span class="icon is-small is-right">
+      <i class="fas fa-check"></i>
+    </span>
+        </div>
+        <p class="help is-success">This username is available</p>
+    </div>
+
+    <div class="field">
+        <label class="label">Email</label>
+        <div class="control has-icons-left has-icons-right">
+            <input class="input is-danger" type="email" placeholder="Email input" value="hello@">
+            <span class="icon is-small is-left">
+      <i class="fas fa-envelope"></i>
+    </span>
+            <span class="icon is-small is-right">
+      <i class="fas fa-exclamation-triangle"></i>
+    </span>
+        </div>
+        <p class="help is-danger">This email is invalid</p>
+    </div>
+
+    <div class="field">
+        <label class="label">Subject</label>
+        <div class="control">
+            <div class="select">
+                <select>
+                    <option>Select dropdown</option>
+                    <option>With options</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="field">
+        <label class="label">Message</label>
+        <div class="control">
+            <textarea class="textarea" placeholder="Textarea"></textarea>
+        </div>
+    </div>
+
+    <div class="field">
+        <div class="control">
+            <label class="checkbox">
+                <input type="checkbox">
+                I agree to the <a href="#">terms and conditions</a>
+            </label>
+        </div>
+    </div>
+
+    <div class="field">
+        <div class="control">
+            <label class="radio">
+                <input type="radio" name="question">
+                Yes
+            </label>
+            <label class="radio">
+                <input type="radio" name="question">
+                No
+            </label>
+        </div>
+    </div>
+
+    <div class="field is-grouped">
+        <div class="control">
+            <button class="button is-link">Submit</button>
+        </div>
+        <div class="control">
+            <button class="button is-link is-light">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    window.extAsyncInit = function () {
+        // the Messenger Extensions JS SDK is done loading
+    };
+</script>
+</body>
+</html>

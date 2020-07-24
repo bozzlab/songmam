@@ -71,7 +71,7 @@ class PageApiVerTest(unittest.TestCase):
         for v in SUPPORTED_API_VERS:
             with MessengerAPIMock(subpath="messages", utest=self, api_ver=v)\
                     as m:
-                Page('TOKEN', api_ver=v).send(12345, "hello world")
+                Page('TOKEN', api_ver=v).send_sync(12345, "hello world")
 
     def test_unsupported_version(self):
         with self.assertRaises(ValueError):
@@ -81,51 +81,51 @@ class PageApiVerTest(unittest.TestCase):
 class PageTest(unittest.TestCase):
     def setUp(self):
         self.page = Page('TOKEN')
-        self.page._send = mock.MagicMock()
+        self.page._send_sync = mock.MagicMock()
         self.page._fetch_page_info = mock.MagicMock()
 
     def test_send(self):
-        self.page.send(12345, "hello world", quick_replies=[{'title': 'Yes', 'payload': 'YES'}], callback=1)
-        self.page._send.assert_called_once_with('{"message": {"attachment": null, "metadata": null, '
+        self.page.send_sync(12345, "hello world", quick_replies=[{'title': 'Yes', 'payload': 'YES'}], callback=1)
+        self.page._send_sync.assert_called_once_with('{"message": {"attachment": null, "metadata": null, '
                                                 '"quick_replies": '
                                                 '[{"content_type": "text", "payload": "YES", "title": "Yes"}], '
                                                 '"text": "hello world"},'
                                                 ' "notification_type": null, '
                                                 '"recipient": {"id": 12345}, '
                                                 '"sender_action": null, '
-                                                '"tag": null}', callback=1)
+                                                '"tag": null}', callback_sync=1)
 
     def test_typingon(self):
-        self.page.typing_on(1004)
-        self.page._send.assert_called_once_with('{"message": null, "notification_type": null, '
+        self.page.typing_on_sync(1004)
+        self.page._send_sync.assert_called_once_with('{"message": null, "notification_type": null, '
                                                 '"recipient": {"id": 1004}, '
                                                 '"sender_action": "typing_on", '
                                                 '"tag": null}')
 
     def test_typingoff(self):
-        self.page.typing_off(1004)
-        self.page._send.assert_called_once_with('{"message": null, "notification_type": null, '
+        self.page.typing_off_sync(1004)
+        self.page._send_sync.assert_called_once_with('{"message": null, "notification_type": null, '
                                                 '"recipient": {"id": 1004}, '
                                                 '"sender_action": "typing_off", '
                                                 '"tag": null}')
 
     def test_markseen(self):
-        self.page.mark_seen(1004)
-        self.page._send.assert_called_once_with('{"message": null, "notification_type": null, '
+        self.page.mark_seen_sync(1004)
+        self.page._send_sync.assert_called_once_with('{"message": null, "notification_type": null, '
                                                 '"recipient": {"id": 1004}, '
                                                 '"sender_action": "mark_seen", '
                                                 '"tag": null}')
 
     def test_tag(self):
-        self.page.send(12345, "hello world", quick_replies=[{'title': 'Yes', 'payload': 'YES'}], tag="PAIRING_UPDATE", callback=1)
-        self.page._send.assert_called_once_with('{"message": {"attachment": null, "metadata": null, '
+        self.page.send_sync(12345, "hello world", quick_replies=[{'title': 'Yes', 'payload': 'YES'}], tag="PAIRING_UPDATE", callback=1)
+        self.page._send_sync.assert_called_once_with('{"message": {"attachment": null, "metadata": null, '
                                                 '"quick_replies": '
                                                 '[{"content_type": "text", "payload": "YES", "title": "Yes"}], '
                                                 '"text": "hello world"},'
                                                 ' "notification_type": null, '
                                                 '"recipient": {"id": 12345}, '
                                                 '"sender_action": null, '
-                                                '"tag": "PAIRING_UPDATE"}', callback=1)
+                                                '"tag": "PAIRING_UPDATE"}', callback_sync=1)
 
     def test_handle_webhook_errors(self):
         payload = """

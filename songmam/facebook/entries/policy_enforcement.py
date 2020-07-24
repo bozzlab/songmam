@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-from songmam.facebook.entries.base import ThingWithID
+from songmam.facebook import ThingWithId
 
 
 class PolicyEnforcement(BaseModel):
@@ -8,7 +8,7 @@ class PolicyEnforcement(BaseModel):
     reason: str
 
 class PolicyEnforcementEntry(BaseModel):
-    recipitent: ThingWithID
+    recipitent: ThingWithId
     timestamp: int
     policy_enforcement: PolicyEnforcement = Field(None, alias="policy-enforcement")
 

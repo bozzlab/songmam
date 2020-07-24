@@ -1,222 +1,68 @@
 import json
-import sys
 import re
 import hmac
 import hashlib
+from typing import Union, Optional, Literal, Set, List, Type
+
+import httpx
 import requests
+from cacheout import Cache
 from decouple import config, UndefinedValueError
 from fastapi import FastAPI, Request
 from furl import furl
 from loguru import logger
+from pydantic import HttpUrl
 
-from .api.events import MessageEvent, PostBackEvent
-from .facebook.entries.messages import Messaging, MessageEntry
-from .facebook.entries.postbacks import Postbacks, PostbacksEntry
+from .api.content import ContentButton, ContentGeneric, ContentMedia, ContentReceipt
+from .api.events import MessageEvent, PostBackEvent, ReferralEvent
+from .facebook import ThingWithId
+from .facebook.entries.echo import EchoEntry
+from .facebook.entries.messages import MessageEntry, Sender
+from .facebook.entries.postback import PostbackEntry
+from .facebook.entries.referral import ReferralEntry
+from .facebook.messaging.message_tags import MessageTag
+from .facebook.messaging.payload import BasePayload, SenderActionPayload
+from songmam.facebook.messenger_profile.persistent_menu import UserPersistentMenu, MenuPerLocale
+from .facebook.messaging.sender_action import SenderAction
+from .facebook.messenger_profile import MessengerProfileProperty, MessengerProfile, GreetingPerLocale
 from .facebook.page import Me
-from .facebook.send import MessageTag, SendResponse
+from .facebook.send import SendResponse, SendRecipient
 from .facebook.user_profile import UserProfile
 from songmam.facebook.webhook import Webhook
-from .payload import *
-from .template import *
 
 # See https://developers.facebook.com/docs/graph-api/changelog
-SUPPORTED_API_VERS=[
-    "v7.0" # May 5, 2020
+SUPPORTED_API_VERS = Literal[
+    "v7.0"  # May 5, 2020
 ]
-
-# See https://developers.facebook.com/docs/messenger-platform/messenger-profile/supported-locales
-SUPPORTED_LOCALES=[
-    "default",
-    "en_US",
-    "ca_ES",
-    "cs_CZ",
-    "cx_PH",
-    "cy_GB",
-    "da_DK",
-    "de_DE",
-    "eu_ES",
-    "en_UD",
-    "es_LA",
-    "es_ES",
-    "gn_PY",
-    "fi_FI",
-    "fr_FR",
-    "gl_ES",
-    "hu_HU",
-    "it_IT",
-    "ja_JP",
-    "ko_KR",
-    "nb_NO",
-    "nn_NO",
-    "nl_NL",
-    "fy_NL",
-    "pl_PL",
-    "pt_BR",
-    "pt_PT",
-    "ro_RO",
-    "ru_RU",
-    "sk_SK",
-    "sl_SI",
-    "sv_SE",
-    "th_TH",
-    "tr_TR",
-    "ku_TR",
-    "zh_CN",
-    "zh_HK",
-    "zh_TW",
-    "af_ZA",
-    "sq_AL",
-    "hy_AM",
-    "az_AZ",
-    "be_BY",
-    "bn_IN",
-    "bs_BA",
-    "bg_BG",
-    "hr_HR",
-    "nl_BE",
-    "en_GB",
-    "et_EE",
-    "fo_FO",
-    "fr_CA",
-    "ka_GE",
-    "el_GR",
-    "gu_IN",
-    "hi_IN",
-    "is_IS",
-    "id_ID",
-    "ga_IE",
-    "jv_ID",
-    "kn_IN",
-    "kk_KZ",
-    "lv_LV",
-    "lt_LT",
-    "mk_MK",
-    "mg_MG",
-    "ms_MY",
-    "mt_MT",
-    "mr_IN",
-    "mn_MN",
-    "ne_NP",
-    "pa_IN",
-    "sr_RS",
-    "so_SO",
-    "sw_KE",
-    "tl_PH",
-    "ta_IN",
-    "te_IN",
-    "ml_IN",
-    "uk_UA",
-    "uz_UZ",
-    "vi_VN",
-    "km_KH",
-    "tg_TJ",
-    "ar_AR",
-    "he_IL",
-    "ur_PK",
-    "fa_IR",
-    "ps_AF",
-    "my_MM",
-    "qz_MM",
-    "or_IN",
-    "si_LK",
-    "rw_RW",
-    "cb_IQ",
-    "ha_NG",
-    "ja_KS",
-    "br_FR",
-    "tz_MA",
-    "co_FR",
-    "as_IN",
-    "ff_NG",
-    "sc_IT",
-    "sz_PL",
-]
-
-
-class LocalizedObj:
-    def __init__(self, locale, obj):
-        if locale not in SUPPORTED_LOCALES:
-            raise ValueError("Unsupported locale: {}".format(locale))
-        if not obj:
-            raise ValueError("Object is mandatory")
-        self.locale = locale
-        self.obj = obj
-
-
-
-
-
-class SenderAction:
-    TYPING_ON = 'typing_on'
-    TYPING_OFF = 'typing_off'
-    MARK_SEEN = 'mark_seen'
-
-
-# def event_parser(messaging=None):
-#     if messaging is None:
-#         messaging = dict()
-#
-#     if 'message' in messaging:
-#         is_echo = messaging.get('message', {}).get('is_echo')
-#         if is_echo:
-#             event_type = EchoEvent
-#         else:
-#             event_type = MessageEvent
-#     elif 'delivery' in messaging:
-#         event_type = DeliveriesEvent
-#     elif 'read' in messaging:
-#         event_type = ReadEvent.new_from_json_dict(messaging)
-#     elif 'account_linking' in messaging:
-#         event_type = AccountLinkingEvent
-#     elif 'checkout_update' in messaging:
-#         event_type = CheckOutUpdateEvent
-#     elif 'game_play' in messaging:
-#         event_type = GamePlayEvent.new_from_json_dict(messaging)
-#     elif 'pass_thread_control' in messaging:
-#         event_type = PassThreadEvent
-#     elif 'take_thread_control' in messaging:
-#         event_type = TakeThreadEvent
-#     elif 'request_thread_control' in messaging:
-#         event_type = RequestThreadEvent
-#     elif 'app_roles' in messaging:
-#         event_type = AppRoleEvent
-#     elif 'optin' in messaging:
-#         event_type = OptinEvent
-#     elif 'payment' in messaging:
-#         event_type = PaymentEvent
-#     elif 'policy-enforcement' in messaging:
-#         # key name must be changed for properly use to class instance.
-#         messaging['policy_enforcement'] = messaging['policy-enforcement']
-#         del messaging['policy-enforcement']
-#         event_type = PolicyEnforcementEvent
-#     elif 'postback' in messaging:
-#         event_type = PostBackEvent
-#     elif 'referral' in messaging:
-#         event_type = ReferralEvent
-#     elif 'standby' in messaging:
-#         event_type = StandByEvent
-#     else:
-#         print("Webhook received unknown messaging")
-#         return
-#     event = event_type.new_from_json_dict(messaging)
-#
-#     return event
-
 
 
 class Page:
     access_token: str
     verify_token: Optional[str] = None
     app_secret: Optional[str] = None
-    api_version: str = 'v7.0'
+    api_version: SUPPORTED_API_VERS = 'v7.0'
 
     page: Optional[Me] = None
 
     def __init__(self, *,
+                 auto_mark_as_seen: bool = True,
                  access_token: Optional[str] = None,
                  verify_token: Optional[str] = None,
-                 app_secret: Optional[str] = None
+                 app_secret: Optional[str] = None,
+                 persistent_menu: Optional[List[MenuPerLocale]] = None,
+                 greeting: Optional[List[GreetingPerLocale]] = None,
+                 whitelisted_domains: Optional[List[HttpUrl]] = None,
+                 skip_quick_reply: bool = True,
+                 prevent_repeated_reply: bool = True,
                  ):
+        # Non-Dynamic Change
+        self.prevent_repeated_reply = prevent_repeated_reply
+        if prevent_repeated_reply:
+            self.reply_cache = Cache(maxsize=10000, ttl=60 * 15, default=None)
+
+        self.skip_quick_reply = skip_quick_reply
+        self.auto_mark_as_seen = auto_mark_as_seen
+
         if access_token:
             self.access_token = access_token
         else:
@@ -240,16 +86,27 @@ class Page:
                 # value is None by default
                 pass
 
+        if persistent_menu or greeting:
+            profile = MessengerProfile()
+
+            if persistent_menu:
+                profile.persistent_menu = persistent_menu
+            if greeting:
+                profile.greeting = greeting
+            if whitelisted_domains:
+                profile.whitelisted_domains = whitelisted_domains
+
+            self._set_profile_property_sync(profile)
 
         # self._after_send = options.pop('after_send', None)
         # self._api_ver = options.pop('api_ver', 'v7.0')
         # if self._api_ver not in SUPPORTED_API_VERS:
         #     raise ValueError('Unsupported API Version : ' + self._api_ver)
 
-
     _entryCaster = {
         MessageEntry: MessageEvent,
-        PostbacksEntry: PostBackEvent
+        PostbackEntry: PostBackEvent,
+        ReferralEntry: ReferralEvent
     }
 
     # these are set by decorators or the 'set_webhook_handler' method
@@ -269,10 +126,6 @@ class Page:
         furl_url = furl("https://graph.facebook.com/") / self.api_version
         # furl_url.args['access_token'] = self.access_token
         return furl_url
-
-    def _api_uri(self, sub):
-        return "https://graph.facebook.com/" + self.api_version + "/" + sub
-
 
     def add_verification_middleware(self, app: FastAPI):
         from songmam import VerificationMiddleware
@@ -304,12 +157,29 @@ class Page:
             if expected_signature != header_signature:
                 raise AssertionError('SIGNATURE VERIFICATION FAIL')
 
-
         for entry in webhook.entry:
-            handler = self._webhook_handlers.get(type(entry))
-            EntryConstructor = self._entryCaster.get(type(entry))
+            entry_type = type(entry)
+            handler = self._webhook_handlers.get(entry_type)
+            eventConstructor = self._entryCaster.get(entry_type)
             if handler:
-                await handler(EntryConstructor(entry))
+                event = eventConstructor(entry)
+
+                if entry_type is MessageEntry:
+                    if self.auto_mark_as_seen:
+                        self.mark_seen_sync(event.sender)
+
+                    if event.is_quick_reply:
+                        matched_callbacks = self.get_quick_reply_callbacks(event)
+                        for callback in matched_callbacks:
+                            await callback(event)
+                elif entry_type is PostbackEntry:
+                    matched_callbacks = self.get_postback_callbacks(event)
+                    for callback in matched_callbacks:
+                        await callback(event)
+                elif entry_type is ReferralEvent:
+                    pass
+
+                await handler(event)
             else:
                 logger.warning("there's no {} handler", type(entry.theMessaging))
 
@@ -338,7 +208,7 @@ class Page:
 
         self.page = Me.parse_raw(r.text)
 
-    def get_user_profile(self, fb_user_id) -> UserProfile:
+    def get_user_profile_sync(self, fb_user_id) -> UserProfile:
         r = requests.get(self.base_api_furl / fb_user_id,
                          params={"access_token": self.access_token},
                          headers={'Content-type': 'application/json'})
@@ -349,9 +219,24 @@ class Page:
         user_profile = UserProfile.parse_raw(r.text)
         return user_profile
 
+
+    async def get_user_profile(self, user: Type[ThingWithId]) -> UserProfile:
+        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
+                                     params={"access_token": self.access_token}) as client:
+            response = await client.get(
+                f"/{user.id}"
+            )
+
+        if response.status_code != 200:
+            raise Exception(response.text)
+
+        user_profile = UserProfile.parse_raw(response.text)
+        return user_profile
+
+
     def get_messenger_code(self, ref=None, image_size=1000):
         d = {}
-        d['type']='standard'
+        d['type'] = 'standard'
         d['image_size'] = image_size
         if ref:
             d['data'] = {'ref': ref}
@@ -371,184 +256,239 @@ class Page:
 
         return data['uri']
 
-    def _send(self, payload, callback=None) -> SendResponse:
-        response = requests.post(self._api_uri("me/messages"),
-                          params={"access_token": self.access_token},
-                          data=payload.to_json(),
-                          headers={'Content-type': 'application/json'})
+    def _send_sync(self, payload: Union[BasePayload], callback_sync=None) -> SendResponse:
+        f_url = self.base_api_furl / "me/messages"
+        data = payload.json(exclude_none=True)
+        response = requests.post(f_url.url,
+                                 params={"access_token": self.access_token},
+                                 data=data,
+                                 headers={'Content-type': 'application/json'})
 
         if response.status_code != requests.codes.ok:
             print(response.text)
 
-        if callback is not None:
-            callback(payload, response)
+        if callback_sync is not None:
+            callback_sync(payload, response)
 
         if self._after_send is not None:
             self._after_send(payload, response)
 
         return SendResponse.parse_raw(response.text)
 
-    def send(self, recipient_id, message, *, quick_replies=None, metadata=None,
-             notification_type=None, tag:Optional[MessageTag]=None, callback: Optional[callable]=None):
+    async def _send(self, payload: Union[BasePayload], callback=None) -> SendResponse:
 
-        text = message if isinstance(message, str) else None
-        
+        data = payload.json(exclude_none=True)
 
-        attachment = message if not text else None
+        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
+                                     params={"access_token": self.access_token}) as client:
+            response = await client.post(
+                "/me/messages",
+                data=data,
+            )
 
-        payload = Payload(recipient=Recipient(id=recipient_id),
-                          message=Message(text=text,
-                                          attachment=attachment,
-                                          quick_replies=quick_replies,
-                                          metadata=metadata),
-                          notification_type=notification_type,
-                          tag=tag)
+        if response.status_code != 200:
+            raise Exception(response.text)
 
-        return self._send(payload, callback=callback)
+        if callback is not None:
+            await callback(payload, response)
 
-    def send_json(self, json_payload, callback=None):
-        return self._send(Payload(**json.loads(json_payload)), callback)
+        if self._after_send is not None:
+            self._after_send(payload, response)
 
-    def send_dict(self, dict_payload, callback=None):
-        return self._send(Payload(**dict_payload), callback)
+        return SendResponse.parse_raw(response.text)
 
-    def typing_on(self, recipient_id):
-        payload = Payload(recipient=Recipient(id=recipient_id),
-                          sender_action=SenderAction.TYPING_ON)
+    def send(self, sender: Sender, message: Union[ContentButton, ContentGeneric, ContentMedia, ContentReceipt], *, quick_replies=None, metadata=None,
+             notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
 
-        self._send(payload)
+        return self._send_sync(
+            BasePayload(
+                recipient=sender,
+                message=message.message
+            ),
+            callback=callback
+        )
 
-    def typing_off(self, recipient_id):
-        payload = Payload(recipient=Recipient(id=recipient_id),
-                          sender_action=SenderAction.TYPING_OFF)
+    def reply(self, message_to_reply_to: MessageEvent, message: ContentButton, *, quick_replies=None, metadata=None,
+              notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
 
-        self._send(payload)
+        if self.prevent_repeated_reply:
+            message_id = message_to_reply_to.entry.theMessaging.message.mid
+            if message_id not in self.reply_cache:
+                # good to go
+                self.reply_cache.set(message_id, True)
+            else:
+                logger.warning("Songmum prevented a message from being reply to the same event multiple times.")
+                logger.warning(message_to_reply_to)
+                return
 
-    def mark_seen(self, recipient_id):
-        payload = Payload(recipient=Recipient(id=recipient_id),
-                          sender_action=SenderAction.MARK_SEEN)
+        return self._send_sync(
+            BasePayload(
+                recipient=message_to_reply_to.sender,
+                message=message.message
+            ), callback_sync=callback)
 
-        self._send(payload)
+    async def reply(self, message_to_reply_to: MessageEvent, message, *, quick_replies=None, metadata=None,
+                    notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
+
+        if self.prevent_repeated_reply:
+            message_id = message_to_reply_to.entry.theMessaging.message.mid
+            if message_id not in self.reply_cache:
+                # good to go
+                self.reply_cache.set(message_id, True)
+            else:
+                logger.warning("Songmum prevented a message from being reply to the same event multiple times.")
+                logger.warning(message_to_reply_to)
+                return
+
+        return await self._send(
+            BasePayload(
+                recipient=message_to_reply_to.sender,
+                message=message.message
+            ),
+            callback=callback
+        )
+
+    def typing_on_sync(self, recipient: Type[ThingWithId]):
+        payload = SenderActionPayload(recipient=recipient,
+                                      sender_action=SenderAction.TYPING_ON)
+
+        self._send_sync(payload)
+
+    async def typing_on(self, recipient: Type[ThingWithId]):
+        payload = SenderActionPayload(recipient=recipient,
+                                      sender_action=SenderAction.TYPING_ON)
+
+        return await self._send(payload)
+
+    def typing_off_sync(self, recipient: Type[ThingWithId]):
+        payload = SenderActionPayload(recipient=recipient,
+                                      sender_action=SenderAction.TYPING_OFF)
+
+        self._send_sync(payload)
+
+    async def typing_off(self, recipient: Type[ThingWithId]):
+        payload = SenderActionPayload(recipient=recipient,
+                                      sender_action=SenderAction.TYPING_OFF)
+
+        return await self._send(payload)
+
+    def mark_seen_sync(self, recipient: Type[ThingWithId]):
+        payload = SenderActionPayload(recipient=recipient,
+                                      sender_action=SenderAction.MARK_SEEN)
+
+        self._send_sync(payload)
+
+    async def mark_seen(self, recipient: Type[ThingWithId]):
+        payload = SenderActionPayload(recipient=recipient,
+                                      sender_action=SenderAction.MARK_SEEN)
+
+        return await self._send(payload)
 
     """
     messenger profile (see https://developers.facebook.com/docs/messenger-platform/reference/messenger-profile-api)
     """
 
-    def _set_profile_property(self, pname, pval):
-        r = requests.post(self._api_uri("me/messenger_profile"),
+    def _set_profile_property_sync(self, data: MessengerProfile):
+
+        f_url = self.base_api_furl / "me" / "messenger_profile"
+        r = requests.post(f_url.url,
                           params={"access_token": self.access_token},
-                          data=json.dumps({
-                              pname: pval
-                          }),
+                          data=data.json(exclude_none=True),
                           headers={'Content-type': 'application/json'})
 
         if r.status_code != requests.codes.ok:
-            print(r.text)
+            raise Exception(r.text)
 
-    def _del_profile_property(self, pname):
-        r = requests.delete(self._api_uri("me/messenger_profile"),
+    def _del_profile_property_sync(self, properties: Set[MessengerProfileProperty]):
+        f_url = self.base_api_furl / "me" / "messenger_profile"
+        r = requests.delete(f_url.url,
                             params={"access_token": self.access_token},
                             data=json.dumps({
-                                'fields': [pname,]
+                                'fields': [p.value for p in properties]
                             }),
                             headers={'Content-type': 'application/json'})
 
         if r.status_code != requests.codes.ok:
-            print(r.text)
+            logger.error("Facebook Server replied" + r.text)
+            raise Exception(r.text)
 
-    def greeting(self, text):
-        self.localized_greeting([LocalizedObj(locale="default", obj=text)])
+    """
+    Custom User Settings
+    """
 
-    def localized_greeting(self, locale_list):
-        if not locale_list:
-            raise ValueError("List of locales is mandatory")
-        pval = []
-        for l in locale_list:
-            if not isinstance(l, LocalizedObj):
-                raise ValueError("greeting type error")
-            if not isinstance(l.obj, str):
-                raise ValueError("greeting text error")
-            pval.append({
-                "locale": l.locale,
-                "text": l.obj
-            })
-        self._set_profile_property(pname="greeting", pval=pval)
+    def get_user_settings(self, user_id: str):
+        f_url = self.base_api_furl / 'me' / 'custom_user_settings'
+        params = {
+            "access_token": self.access_token,
+            "psid": user_id
+        }
+        r = requests.get(f_url.url,
+                         params=params)
 
-    def hide_greeting(self):
-        self._del_profile_property(pname="greeting")
+        if r.status_code != requests.codes.ok:
+            raise Exception(r.text)
 
-    def show_starting_button(self, payload):
-        if not payload or not isinstance(payload, str):
-            raise ValueError("show_starting_button payload error")
-        self._set_profile_property(pname="get_started",
-                                   pval={"payload": payload})
+        # TODO: create object for this GET Request https://developers.facebook.com/docs/messenger-platform/send-messages/persistent-menu
+        return r.json()
 
-    def hide_starting_button(self):
-        self._del_profile_property(pname="get_started")
+    def set_user_menu(self, sender: Type[ThingWithId], menus: List[MenuPerLocale]):
+        f_url = self.base_api_furl / 'me' / 'custom_user_settings'
+        r = requests.post(f_url.url,
+                          params={"access_token": self.access_token},
+                          data=UserPersistentMenu(
+                              psid=sender.id,
+                              persistent_menu=menus
+                          ).json(),
+                          headers={'Content-type': 'application/json'})
 
-    def show_persistent_menu(self, buttons: Buttons) -> None:
-        self.show_localized_persistent_menu([LocalizedObj(locale="default",
-                                                          obj=buttons)])
-    def hide_persistent_menu(self):
-        self._del_profile_property(pname="persistent_menu")
+        if r.status_code != requests.codes.ok:
+            raise Exception(r.text)
 
-    def show_localized_persistent_menu(self, locale_list):
-        if not locale_list:
-            raise ValueError("List of locales is mandatory")
-        pval = []
-        for l in locale_list:
-            if not isinstance(l, LocalizedObj):
-                raise ValueError("persistent_menu error")
-            if not isinstance(l.obj, list):
-                raise ValueError("menu call_to_actions error")
+    def _set_user_menu(self, payload: UserPersistentMenu):
+        f_url = self.base_api_furl / 'me' / 'custom_user_settings'
+        r = requests.post(f_url.url,
+                          params={"access_token": self.access_token},
+                          data=payload.json(),
+                          headers={'Content-type': 'application/json'})
 
-            buttons = Buttons.convert_shortcut_buttons(l.obj)
+        if r.status_code != requests.codes.ok:
+            raise Exception(r.text)
 
-            buttons_dict = []
-            for button in buttons:
-                if isinstance(button, ButtonWeb):
-                    buttons_dict.append({
-                        "type": "web_url",
-                        "title": button.title,
-                        "url": button.url
-                    })
-                elif isinstance(button, ButtonPostBack):
-                    buttons_dict.append({
-                        "type": "postback",
-                        "title": button.title,
-                        "payload": button.payload
-                    })
-                else:
-                    raise ValueError('show_persistent_menu button type must be "url" or "postback"')
+    def delete_user_menu(self, user_id: str):
+        f_url = self.base_api_furl / 'me' / 'custom_user_settings'
 
-            pval.append({
-                "locale": l.locale,
-                "call_to_actions": buttons_dict
-            })
-        self._set_profile_property(pname="persistent_menu", pval=pval)
+        params = {
+            "access_token": self.access_token,
+            "psid": user_id,
+            "params": "[%22persistent_menu%22]"
+        }
+        r = requests.delete(f_url.url,
+                            params=params)
 
-
+        if r.status_code != requests.codes.ok:
+            raise Exception(r.text)
 
     """
     handlers and decorations
     """
-    def set_webhook_handler(self, scope, callback):
-        """
-        Allows adding a webhook_handler as an alternative to the decorators
-        """
-        scope = scope.lower()
 
-        if scope == 'after_send':
-            self._after_send = callback
-            return
+    # def set_webhook_handler(self, scope, callback):
+    #     """
+    #     Allows adding a webhook_handler as an alternative to the decorators
+    #     """
+    #     scope = scope.lower()
+    #
+    #     if scope == 'after_send':
+    #         self._after_send = callback
+    #         return
+    #
+    #     if scope not in Page.WEBHOOK_ENDPOINTS:
+    #         raise ValueError("The 'scope' argument must be one of {}.".format(Page.WEBHOOK_ENDPOINTS))
+    #
+    #     self._webhook_handlers[scope] = callback
 
-        if scope not in Page.WEBHOOK_ENDPOINTS:
-            raise ValueError("The 'scope' argument must be one of {}.".format(Page.WEBHOOK_ENDPOINTS))
-
-        self._webhook_handlers[scope] = callback
-
-    def handle_optin(self, func):
-        self._webhook_handlers['optin'] = func
+    # def handle_optin(self, func):
+    #     self._webhook_handlers['optin'] = func
 
     def handle_message_sync(self, func: callable):
         self._webhook_handlers_sync[MessageEntry] = func
@@ -556,97 +496,91 @@ class Page:
     def handle_message(self, func: callable):
         self._webhook_handlers[MessageEntry] = func
 
-    def handle_echo(self, func):
-        self._webhook_handlers['echo'] = func
+    def handle_echo_sync(self, func: callable):
+        self._webhook_handlers_sync[EchoEntry] = func
 
-    def handle_delivery(self, func):
-        self._webhook_handlers['delivery'] = func
+    def handle_echo(self, func: callable):
+        self._webhook_handlers[EchoEntry] = func
+
+    # def handle_delivery(self, func):
+    #     self._webhook_handlers[DeliveryEntry] = func
 
     def handle_postback_sync(self, func):
-        self._webhook_handlers_sync[PostbacksEntry] = func
+        self._webhook_handlers_sync[PostbackEntry] = func
 
     def handle_postback(self, func):
-        self._webhook_handlers[PostbacksEntry] = func
+        self._webhook_handlers[PostbackEntry] = func
 
-    def handle_read(self, func):
-        self._webhook_handlers['read'] = func
+    # def handle_read(self, func):
+    #     self._webhook_handlers['read'] = func
+    #
+    # def handle_account_linking(self, func):
+    #     self._webhook_handlers['account_linking'] = func
 
-    def handle_account_linking(self, func):
-        self._webhook_handlers['account_linking'] = func
+    # def handle_referral_sync(self, func):
+    #     self._webhook_handlers_sync['referral'] = func
 
     def handle_referral(self, func):
-        self._webhook_handlers['referral'] = func
-
-    def handle_game_play(self, func):
-        self._webhook_handlers['game_play'] = func
-
-    def handle_pass_thread_control(self, func):
-        self._webhook_handlers['pass_thread_control'] = func
-
-    def handle_take_thread_control(self, func):
-        self._webhook_handlers['take_thread_control'] = func
-
-    def handle_request_thread_control(self, func):
-        self._webhook_handlers['request_thread_control'] = func
-
-    def handle_app_roles(self, func):
-        self._webhook_handlers['app_roles'] = func
-
-    def handle_policy_enforcement(self, func):
-        self._webhook_handlers['policy_enforcement'] = func
-
-    def handle_checkout_update(self, func):
-        self._webhook_handlers['checkout_update'] = func
-
-    def handle_payment(self, func):
-        self._webhook_handlers['payment'] = func
-
-    def handle_standby(self, func):
-        self._webhook_handlers['standby'] = func
-
-
+        self._webhook_handlers[ReferralEntry] = func
+    #
+    # def handle_game_play(self, func):
+    #     self._webhook_handlers['game_play'] = func
+    #
+    # def handle_pass_thread_control(self, func):
+    #     self._webhook_handlers['pass_thread_control'] = func
+    #
+    # def handle_take_thread_control(self, func):
+    #     self._webhook_handlers['take_thread_control'] = func
+    #
+    # def handle_request_thread_control(self, func):
+    #     self._webhook_handlers['request_thread_control'] = func
+    #
+    # def handle_app_roles(self, func):
+    #     self._webhook_handlers['app_roles'] = func
+    #
+    # def handle_policy_enforcement(self, func):
+    #     self._webhook_handlers['policy_enforcement'] = func
+    #
+    # def handle_checkout_update(self, func):
+    #     self._webhook_handlers['checkout_update'] = func
+    #
+    # def handle_payment(self, func):
+    #     self._webhook_handlers['payment'] = func
+    #
+    # def handle_standby(self, func):
+    #     self._webhook_handlers['standby'] = func
+    #
     def after_send(self, func):
         self._after_send = func
 
-    _callback_default_types = ['QUICK_REPLY', 'POSTBACK']
-
-    def callback(self, payloads=None, types=None):
-        if types is None:
-            types = self._callback_default_types
-
-        if not isinstance(types, list):
-            raise ValueError('callback types must be list')
-
-        for type in types:
-            if type not in self._callback_default_types:
-                raise ValueError('callback types must be "QUICK_REPLY" or "POSTBACK"')
+    def callback(self, payloads=None, quick_reply=True, button=True):
 
         def wrapper(func):
             if payloads is None:
                 return func
 
             for payload in payloads:
-                if 'QUICK_REPLY' in types:
+                if quick_reply:
                     self._quick_reply_callbacks[payload] = func
-                if 'POSTBACK' in types:
+                if button:
                     self._button_callbacks[payload] = func
 
             return func
 
         return wrapper
 
-    def get_quick_reply_callbacks(self, event):
+    def get_quick_reply_callbacks(self, event: MessageEvent):
         callbacks = []
         for key in self._quick_reply_callbacks.keys():
             if key not in self._quick_reply_callbacks_key_regex:
                 self._quick_reply_callbacks_key_regex[key] = re.compile(key + '$')
 
-            if self._quick_reply_callbacks_key_regex[key].match(event.quick_reply_payload):
+            if self._quick_reply_callbacks_key_regex[key].match(event.quick_reply.payload):
                 callbacks.append(self._quick_reply_callbacks[key])
 
         return callbacks
 
-    def get_postback_callbacks(self, event):
+    def get_postback_callbacks(self, event: PostBackEvent):
         callbacks = []
         for key in self._button_callbacks.keys():
             if key not in self._button_callbacks_key_regex:
