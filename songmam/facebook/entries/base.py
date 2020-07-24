@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from songmam.facebook import ThingWithId
 
 
-class Messaging(BaseModel):
+class BaseMessaging(BaseModel):
     sender: ThingWithId
     recipient: ThingWithId
 
