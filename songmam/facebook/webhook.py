@@ -3,9 +3,10 @@ from typing import List, Union, Optional
 from loguru import logger
 from pydantic import BaseModel, validator
 
+from songmam.facebook.entries.deliveries import DeliveriesEntry
 from songmam.facebook.entries.echo import EchoEntry
-from songmam.facebook.entries.messages import MessageEntry, Messaging
-from songmam.facebook.entries.postback import PostbackEntry, Postback
+from songmam.facebook.entries.messages import MessageEntry
+from songmam.facebook.entries.postback import PostbackEntry
 
 
 class Webhook(BaseModel):
@@ -13,8 +14,7 @@ class Webhook(BaseModel):
     https://developers.facebook.com/docs/messenger-platform/reference/webhook-events/#payload
     """
     object: str
-    entry: List[Union[PostbackEntry, MessageEntry, EchoEntry]]
-
+    entry: List[Union[DeliveriesEntry, PostbackEntry, MessageEntry, EchoEntry]]
 
     @validator('object')
     def object_equal_page(cls, v):
