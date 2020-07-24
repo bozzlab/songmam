@@ -14,7 +14,7 @@ from loguru import logger
 from pydantic import HttpUrl
 
 from .api.content import ContentButton, ContentGeneric, ContentMedia, ContentReceipt
-from .api.events import MessageEvent, PostBackEvent
+from .api.events import MessageEvent, PostBackEvent, ReferralEvent
 from .facebook import ThingWithId
 from .facebook.entries.echo import EchoEntry
 from .facebook.entries.messages import MessageEntry, Sender
@@ -172,7 +172,7 @@ class Page:
                         matched_callbacks = self.get_quick_reply_callbacks(event)
                         for callback in matched_callbacks:
                             await callback(event)
-                elif entry_type is PostBackEvent:
+                elif entry_type is PostbackEntry:
                     matched_callbacks = self.get_postback_callbacks(event)
                     for callback in matched_callbacks:
                         await callback(event)
@@ -327,7 +327,7 @@ class Page:
                 message=message.message
             ), callback_sync=callback)
 
-    async def reply(self, message_to_reply_to: MessageEvent, message: Content, *, quick_replies=None, metadata=None,
+    async def reply(self, message_to_reply_to: MessageEvent, message, *, quick_replies=None, metadata=None,
                     notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
 
         if self.prevent_repeated_reply:
