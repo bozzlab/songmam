@@ -317,15 +317,26 @@ class Page:
 
         return SendResponse.parse_raw(response.text)
 
-    def send(self, sender: Sender, message: Union[ContentButton, ContentGeneric, ContentMedia, ContentReceipt], *, quick_replies=None, metadata=None,
-             notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
+    def send_sync(self, sender: Sender, message: Union[ContentButton, ContentGeneric, ContentMedia, ContentReceipt], *, quick_replies=None, metadata=None,
+                  notification_type=None, tag: Optional[MessageTag] = None, callback_sync: Optional[callable] = None):
 
         return self._send_sync(
             BasePayload(
                 recipient=sender,
                 message=message.message
             ),
-            callback_sync=callback
+            callback_sync=callback_sync
+        )
+
+    async def send(self, sender: Sender, message: Union[ContentButton, ContentGeneric, ContentMedia, ContentReceipt], *, quick_replies=None, metadata=None,
+                  notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
+
+        return await self._send(
+            BasePayload(
+                recipient=sender,
+                message=message.message
+            ),
+            callback=callback
         )
 
     def reply(self, message_to_reply_to: MessageEvent, message: ContentButton, *, quick_replies=None, metadata=None,

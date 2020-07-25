@@ -141,7 +141,7 @@ async def echo(message: MessageEvent):
     # # stop_typing_fn = partial(page.typing_off, message.sender)
     # # await humanTyping.act_typing_simple(message.text, typing_fn, stop_typing_fn)
     # await page.reply(message, content)
-    page.send(message.sender, content)
+    page.send_sync(message.sender, content)
     # page._send(
     #
 
@@ -322,7 +322,7 @@ if __name__ == "__main__":
         quick_replies=None,
     )
     # ------------------------------------------------------------------- #
-    page.send(tan, content_button_template)
+    page.send_sync(tan, content_button_template)
     # page.send(tan, content_generic_template)
     # page.send(tan, content_media_image_template)
     # page.send(tan, content_media_video_template)
