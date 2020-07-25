@@ -8,6 +8,9 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 # from songmam import Page, Webhook, MessageEvent, BasePayload
+from pydantic import ValidationError
+
+from songmam.api import content
 from songmam.facebook.entries.messages import Sender
 from songmam.facebook.messaging.templates import ReceiptElements, Address, Summary, Adjustments
 from songmam.facebook.messaging.templates.generic import GenericElements, DefaultAction
@@ -20,7 +23,7 @@ from jinja2 import Environment, PackageLoader, select_autoescape, FileSystemLoad
 from loguru import logger
 
 from songmam import Webhook
-from songmam.api.events import MessageEvent, PostBackEvent, EchoEvent
+from songmam.api.events import MessageEvent, PostBackEvent, EchoEvent, DeliveriesEvent
 from songmam.api.content import ContentButton, ContentGeneric, ContentMedia, ContentReceipt
 from songmam.facebook.messaging.locale import Locale
 from songmam.facebook.messaging.quick_replies import QuickReply
@@ -32,28 +35,30 @@ from songmam.page import Page
 
 endpoint_url = furl("https://170f43db701d.ngrok.io/")
 
-default_menu = MenuPerLocale(
-    call_to_actions=[
-        PostbackButton(title='change who i talk to', payload='menu/1'),
-        PostbackButton(title='change my menu', payload='menu/2'),
-        URLButton(title='send example replies', url=(endpoint_url / "sampleMessagerSDK").url)
-    ]
-)
-th_menu = MenuPerLocale(
-    locale=Locale.th_TH,
-    call_to_actions=[
-        PostbackButton(title='เมนู 1', payload='menu/1'),
-        PostbackButton(title='เมนู 2', payload='menu/1')
-    ]
-)
-
-default_greeting = GreetingPerLocale(text="Hi {{user_first_name}}, This is Songmum Bot." )
-th_greeting = GreetingPerLocale(locale=Locale.th_TH, text="สวัสดีครัช {{user_first_name}}, เรียกผมว่า ส่งแหม่!" )
+# default_menu = MenuPerLocale(
+#     call_to_actions=[
+#         PostbackButton(title='change who i talk to', payload='menu/1'),
+#         PostbackButton(title='change my menu', payload='menu/2'),
+#         URLButton(title='send example replies', url=(endpoint_url / "sampleMessagerSDK").url)
+#     ]
+# )
+# th_menu = MenuPerLocale(
+#     locale=Locale.th_TH,
+#     call_to_actions=[
+#         PostbackButton(title='เมนู 1', payload='menu/1'),
+#         PostbackButton(title='เมนู 2', payload='menu/1')
+#     ]
+# )
+#
+# default_greeting = GreetingPerLocale(text="Hi {{user_first_name}}, This is Songmum Bot." )
+# th_greeting = GreetingPerLocale(locale=Locale.th_TH, text="สวัสดีครัช {{user_first_name}}, เรียกผมว่า ส่งแหม่!" )
 
 
 page = Page(
-    persistent_menu=[default_menu, th_menu],
-    greeting=[default_greeting, th_greeting],
+    # persistent_menu=[default_menu, th_menu],
+    # greeting=[default_greeting, th_greeting],
+    persistent_menu=None,
+    greeting=None,
     whitelisted_domains=[endpoint_url.url],
     auto_mark_as_seen=True,
 )
@@ -103,36 +108,40 @@ async def sendResponse():
 @app.post("/webhook")
 async def handle_entry(webhook: Dict[str, Any], request: Request):
     body = await request.body()
-    webhook = Webhook.parse_raw(body)
+    try:
+        webhook = Webhook.parse_raw(body)
+    except ValidationError:
+        return
+        pass
     # print(body)
     print(webhook)
     await page.handle_webhook(webhook)
     return "ok"
 
+
 @page.handle_message
 async def echo(message: MessageEvent):
 
-    page.get_user_profile_sync(message.sender.id)
+    # page.get_user_profile_sync(message.sender.id)
     # page.send(message.sender.id, "thank you! your message is '%s'" % message.text)
-    buttons = [
-        # URLButton(title="Open Web URL", url="https://www.oculus.com/en-us/rift/"),
-        URLButton(title="Open Webview", url=(endpoint_url / "sampleMessagerSDK").url, messenger_extensions=True),
-        PostbackButton(title="trigger Postback", payload="DEVELOPED_DEFINED_PAYLOAD"),
-        CallButton(title="Call Phone Number", payload="+66992866936")
-    ]
+    # buttons = [
+    #     URLButton(title="Open Webview", url=(endpoint_url / "sampleMessagerSDK").url, messenger_extensions=True),
+    #     PostbackButton(title="trigger Postback", payload="DEVELOPED_DEFINED_PAYLOAD"),
+    #     CallButton(title="Call Phone Number", payload="+66992866936")
+    # ]
     print(message.sender.id)
-    tan = Sender(id="3144004072361851")
-    # content = ContentButton(
-    #     text=f"replied to {message.text}",
-    #     buttons=buttons,
-    #     # quick_replies=[QuickReply(title='hi', payload='test')]
-    # )
-    # page.send(message.sender, content)
-    # typing_fn = partial(page.typing_on, message.sender)
-    # stop_typing_fn = partial(page.typing_off, message.sender)
-    # await humanTyping.act_typing_simple(message.text, typing_fn, stop_typing_fn)
-    await page.reply(message, content)
-    # page.send(message.sender, content)
+    # tan = Sender(id="3144004072361851")
+    content = ContentButton(
+        text=f"replied to {message.text}",
+        buttons=None,
+        quick_replies=None
+    )
+    # # page.send(message.sender, content)
+    # # typing_fn = partial(page.typing_on, message.sender)
+    # # stop_typing_fn = partial(page.typing_off, message.sender)
+    # # await humanTyping.act_typing_simple(message.text, typing_fn, stop_typing_fn)
+    # await page.reply(message, content)
+    page.send(message.sender, content)
     # page._send(
     #
 
@@ -144,12 +153,17 @@ async def log(event: PostBackEvent):
     logger.info(f"{event.entry} ")
 
 
+@page.handle_delivery
+async def delivery(event: DeliveriesEvent):
+    logger.info(f"{event.entry} ")
+
+
 @page.callback(payloads=["test"], quick_reply=True, button=False)
 async def log3(event):
     logger.info("log3")
 
 if __name__ == "__main__":
-    tan = Sender(id="3144004072361851")
+    tan = Sender(id="2945944152161824")
     buttons1 = [
         URLButton(
             title="Open Webview",
@@ -309,15 +323,15 @@ if __name__ == "__main__":
     )
     # ------------------------------------------------------------------- #
     page.send(tan, content_button_template)
-    page.send(tan, content_generic_template)
-    page.send(tan, content_media_image_template)
-    page.send(tan, content_media_video_template)
-    page.send(tan, content_receipt_template)
+    # page.send(tan, content_generic_template)
+    # page.send(tan, content_media_image_template)
+    # page.send(tan, content_media_video_template)
+    # page.send(tan, content_receipt_template)
     # page.send(message.sender, content)
     # typing_fn = partial(page.typing_on, message.sender)
     # stop_typing_fn = partial(page.typing_off, message.sender)
     # await humanTyping.act_typing_simple(message.text, typing_fn, stop_typing_fn)
     # page.reply(message, content)
-    # import uvicorn
-    # uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True, log_level='debug')
+    import uvicorn
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True, log_level='debug')
 

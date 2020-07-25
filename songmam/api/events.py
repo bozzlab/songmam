@@ -1,5 +1,7 @@
 import json
 
+from songmam.facebook.entries.base import BaseMessaging
+from songmam.facebook.entries.deliveries import DeliveriesEntry
 from songmam.facebook.entries.messages import MessageEntry
 from songmam.facebook.entries.postback import PostbackEntry
 from songmam.facebook.entries.referral import ReferralEntry
@@ -51,24 +53,15 @@ class PostBackEvent(Event):
         # self.referal = self.entry.postback.referral
 
 
+
 class DeliveriesEvent(Event):
-    def __init__(self, delivery, **kwargs):
-        super(DeliveriesEvent, self).__init__(**kwargs)
+    entry: DeliveriesEntry
 
-        self.name = 'delivery'
-        self.delivery = delivery
+    def __init__(self, entry: DeliveriesEntry):
+        super(DeliveriesEvent, self).__init__(entry)
 
-    @property
-    def mids(self):
-        return self.delivery.get('mids')
-
-    @property
-    def watermark(self):
-        return self.delivery.get('watermark')
-
-    @property
-    def seq(self):
-        return self.delivery.get('seq')
+        self.mids = self.entry.theMessaging.delivery.mids
+        self.watermark = self.entry.theMessaging.delivery.watermark
 
 
 class EchoEvent(Event):

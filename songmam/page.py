@@ -14,8 +14,9 @@ from loguru import logger
 from pydantic import HttpUrl
 
 from .api.content import ContentButton, ContentGeneric, ContentMedia, ContentReceipt
-from .api.events import MessageEvent, PostBackEvent, ReferralEvent
+from .api.events import MessageEvent, PostBackEvent, ReferralEvent, DeliveriesEvent
 from .facebook import ThingWithId
+from .facebook.entries.deliveries import DeliveriesEntry
 from .facebook.entries.echo import EchoEntry
 from .facebook.entries.messages import MessageEntry, Sender
 from .facebook.entries.postback import PostbackEntry
@@ -106,7 +107,8 @@ class Page:
     _entryCaster = {
         MessageEntry: MessageEvent,
         PostbackEntry: PostBackEvent,
-        ReferralEntry: ReferralEvent
+        ReferralEntry: ReferralEvent,
+        DeliveriesEntry: DeliveriesEvent
     }
 
     # these are set by decorators or the 'set_webhook_handler' method
@@ -115,9 +117,11 @@ class Page:
 
     _quick_reply_callbacks = {}
     _button_callbacks = {}
+    _delivered_callbacks = {}
 
     _quick_reply_callbacks_key_regex = {}
     _button_callbacks_key_regex = {}
+    _delivered_callbacks_key_regex = {}
 
     _after_send = None
 
@@ -172,11 +176,15 @@ class Page:
                         matched_callbacks = self.get_quick_reply_callbacks(event)
                         for callback in matched_callbacks:
                             await callback(event)
+
                 elif entry_type is PostbackEntry:
                     matched_callbacks = self.get_postback_callbacks(event)
                     for callback in matched_callbacks:
                         await callback(event)
                 elif entry_type is ReferralEntry:
+                    pass
+
+                elif entry_type is DeliveriesEntry:
                     pass
 
                 await handler(event)
@@ -317,7 +325,7 @@ class Page:
                 recipient=sender,
                 message=message.message
             ),
-            callback=callback
+            callback_sync=callback
         )
 
     def reply(self, message_to_reply_to: MessageEvent, message: ContentButton, *, quick_replies=None, metadata=None,
@@ -502,8 +510,8 @@ class Page:
     #
     #     self._webhook_handlers[scope] = callback
 
-    # def handle_optin(self, func):
-    #     self._webhook_handlers['optin'] = func
+    def handle_optin(self, func):
+        self._webhook_handlers['optin'] = func
 
     def handle_message_sync(self, func: callable):
         self._webhook_handlers_sync[MessageEntry] = func
@@ -517,8 +525,8 @@ class Page:
     def handle_echo(self, func: callable):
         self._webhook_handlers[EchoEntry] = func
 
-    # def handle_delivery(self, func):
-    #     self._webhook_handlers[DeliveryEntry] = func
+    def handle_delivery(self, func):
+        self._webhook_handlers[DeliveriesEntry] = func
 
     def handle_postback_sync(self, func):
         self._webhook_handlers_sync[PostbackEntry] = func
@@ -564,7 +572,7 @@ class Page:
     #
     # def handle_standby(self, func):
     #     self._webhook_handlers['standby'] = func
-    #
+
     def after_send(self, func):
         self._after_send = func
 

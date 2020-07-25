@@ -1,6 +1,6 @@
 from typing import Optional, List, Union
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, validator, conlist
 
 from songmam.facebook.entries.message.attachment import Attachment
 from songmam.facebook.entries.base import MessagingWithTimestamp
@@ -42,13 +42,8 @@ class Messaging(MessagingWithTimestamp):
 class MessageEntry(BaseModel):
     id: str
     time: int
-    messaging: List[Messaging]
+    messaging: conlist(Messaging, min_items=1, max_items=1)
 
     @property
     def theMessaging(self):
         return self.messaging[0]
-
-    @validator('messaging')
-    def messaging_must_has_one_and_only_one_element(cls, v):
-        assert len(v) == 1
-        return v
