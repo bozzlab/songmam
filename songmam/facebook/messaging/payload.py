@@ -4,7 +4,7 @@ Payload is final data  form ready to use with request api
 from enum import auto
 from typing import List, Union, Optional, Any
 
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, validator, conlist
 
 from songmam.facebook import ThingWithId
 from songmam.facebook.entries.messages import Sender
@@ -18,12 +18,14 @@ from songmam.facebook.send import SendRecipient
 
 
 class BasePayload(BaseModel):
-    template_type: Optional[str] = None
     recipient: Union[SendRecipient, Sender, ThingWithId]
+    template_type: Optional[str] = None
     message: Optional[Message]
     messaging_type: Optional[MessagingType] = MessagingType.RESPONSE
     tag: Optional[MessageTag]
     notification_type: Optional[NotificationType] = NotificationType.REGULAR
+
+    persona_id: Optional[str] = None
 
 
 class SenderActionPayload(BasePayload):
@@ -34,16 +36,7 @@ class SendingQuickRepliesEntry(BasePayload):
     https://developers.facebook.com/docs/messenger-platform/reference/buttons/quick-replies
     """
     message: Any
-    buttons: List[AllButtonTypes]  # Set of 1-3 buttons that appear as call-to-actions.
-
-    @validator('buttons')
-    def buttons_limit_to_3_buttons(cls, v):
-        if len(v) > 3:
-            raise ValueError('Maximum 3 buttons for Button Template.')
-        elif len(v) == 0:
-            raise ValueError('Set at least 1 button for Button Template.')
-        return v
-
+    buttons: conlist(AllButtonTypes, max_items=3, min_items=1)  # Set of 1-3 buttons that appear as call-to-actions.
 
 
 
