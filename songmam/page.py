@@ -27,6 +27,7 @@ from songmam.facebook.messenger_profile.persistent_menu import UserPersistentMen
 from .facebook.messaging.sender_action import SenderAction
 from .facebook.messenger_profile import MessengerProfileProperty, MessengerProfile, GreetingPerLocale
 from .facebook.page import Me
+from .facebook.persona import Persona, PersonaWithId, PersonaResponse, AllPerosnasResponse, PersonaDeleteResponse
 from .facebook.send import SendResponse, SendRecipient
 from .facebook.user_profile import UserProfile
 from songmam.facebook.webhook import Webhook
@@ -501,6 +502,65 @@ class Page:
 
         if r.status_code != requests.codes.ok:
             raise Exception(r.text)
+
+    async def create_persona(self, persona:Persona)-> PersonaResponse:
+        data = persona.json()
+
+        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
+                                     params={"access_token": self.access_token}) as client:
+            response = await client.post(
+                "/me/personas",
+                data=data,
+            )
+
+        if response.status_code != 200:
+            raise Exception(response.text)
+
+        return PersonaResponse.parse_raw(response.text)
+
+    async def get_persona(self, id):
+
+        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
+                                     params={"access_token": self.access_token}) as client:
+            response = await client.get(
+                f"/{id}",
+            )
+
+        if response.status_code != 200:
+            raise Exception(response.text)
+
+        return PersonaWithId.parse_raw(response.text)
+
+    async def get_all_personas(self)-> List[PersonaWithId]:
+
+        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
+                                     params={"access_token": self.access_token}) as client:
+            response = await client.get(
+                f"/me/personas",
+            )
+
+        if response.status_code != 200:
+            raise Exception(response.text)
+
+        response = AllPerosnasResponse.parse_raw(response.text)
+
+        # There might be a need to implement paging in future
+        # Note: https://developers.facebook.com/docs/graph-api/using-graph-api/#cursors
+
+        return response.data
+
+    async def delete_persona(self, id):
+
+        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
+                                     params={"access_token": self.access_token}) as client:
+            response = await client.delete(
+                f"/{id}",
+            )
+
+        if response.status_code != 200:
+            raise Exception(response.text)
+
+        return PersonaDeleteResponse.parse_raw(response.text)
 
     """
     handlers and decorations
