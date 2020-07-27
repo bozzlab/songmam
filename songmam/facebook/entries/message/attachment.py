@@ -2,9 +2,11 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, HttpUrl
 
+
 class Coordinates(BaseModel):
     lat: float
     long: float
+
 
 class PayloadOfAttachment(BaseModel):
     url: HttpUrl
@@ -12,8 +14,6 @@ class PayloadOfAttachment(BaseModel):
     sticker_id: Optional[int]
     coordinates: Optional[Coordinates]
 
-# class
-#     v
 
 class Attachment(BaseModel):
     type: Literal['audio', 'file', 'image', 'location', 'video', 'fallback', "template"]

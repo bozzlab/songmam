@@ -16,7 +16,7 @@ class TemplateAttachment(Attachment_):
     https://developers.facebook.com/docs/messenger-platform/reference/templates/airline-flight-update#attachment
     """
     type: Literal['audio', 'file', 'image', 'location', 'video', 'fallback', "template"] = "template"
-    payload: Union[PayloadReceipt, PayloadButtonTemplate, PayloadGeneric, PayloadMedia, ]
+    payload: Union[PayloadReceipt, PayloadGeneric, PayloadMedia, PayloadButtonTemplate]
 
 
 class Message(BaseModel):

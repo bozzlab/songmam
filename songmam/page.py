@@ -14,8 +14,9 @@ from loguru import logger
 from pydantic import HttpUrl
 
 from .api.content import ContentButton, ContentGeneric, ContentMedia, ContentReceipt
-from .api.events import MessageEvent, PostBackEvent, ReferralEvent
+from .api.events import MessageEvent, PostBackEvent, ReferralEvent, DeliveriesEvent
 from .facebook import ThingWithId
+from .facebook.entries.deliveries import DeliveriesEntry
 from .facebook.entries.echo import EchoEntry
 from .facebook.entries.messages import MessageEntry, Sender
 from .facebook.entries.postback import PostbackEntry
@@ -26,6 +27,7 @@ from songmam.facebook.messenger_profile.persistent_menu import UserPersistentMen
 from .facebook.messaging.sender_action import SenderAction
 from .facebook.messenger_profile import MessengerProfileProperty, MessengerProfile, GreetingPerLocale
 from .facebook.page import Me
+from .facebook.persona import Persona, PersonaWithId, PersonaResponse, AllPerosnasResponse, PersonaDeleteResponse
 from .facebook.send import SendResponse, SendRecipient
 from .facebook.user_profile import UserProfile
 from songmam.facebook.webhook import Webhook
@@ -106,7 +108,8 @@ class Page:
     _entryCaster = {
         MessageEntry: MessageEvent,
         PostbackEntry: PostBackEvent,
-        ReferralEntry: ReferralEvent
+        ReferralEntry: ReferralEvent,
+        DeliveriesEntry: DeliveriesEvent
     }
 
     # these are set by decorators or the 'set_webhook_handler' method
@@ -115,9 +118,11 @@ class Page:
 
     _quick_reply_callbacks = {}
     _button_callbacks = {}
+    _delivered_callbacks = {}
 
     _quick_reply_callbacks_key_regex = {}
     _button_callbacks_key_regex = {}
+    _delivered_callbacks_key_regex = {}
 
     _after_send = None
 
@@ -172,11 +177,15 @@ class Page:
                         matched_callbacks = self.get_quick_reply_callbacks(event)
                         for callback in matched_callbacks:
                             await callback(event)
+
                 elif entry_type is PostbackEntry:
                     matched_callbacks = self.get_postback_callbacks(event)
                     for callback in matched_callbacks:
                         await callback(event)
-                elif entry_type is ReferralEvent:
+                elif entry_type is ReferralEntry:
+                    pass
+
+                elif entry_type is DeliveriesEntry:
                     pass
 
                 await handler(event)
@@ -186,18 +195,18 @@ class Page:
     @property
     def id(self):
         if self.page is None:
-            self._fetch_page_info()
+            self._fetch_page_info_sync()
 
         return self.page.id
 
     @property
     def name(self):
         if self.page is None:
-            self._fetch_page_info()
+            self._fetch_page_info_sync()
 
         return self.page.name
 
-    def _fetch_page_info(self):
+    def _fetch_page_info_sync(self):
         r = requests.get(self.base_api_furl / "me",
                          params={"access_token": self.access_token},
                          headers={'Content-type': 'application/json'})
@@ -207,6 +216,18 @@ class Page:
             return
 
         self.page = Me.parse_raw(r.text)
+
+    async def _fetch_page_info(self):
+        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
+                                     params={"access_token": self.access_token}) as client:
+            response = await client.get(
+                f"/me"
+            )
+
+        if response.status_code != 200:
+            raise Exception(response.text)
+
+        self.page = Me.parse_raw(response.text)
 
     def get_user_profile_sync(self, fb_user_id) -> UserProfile:
         r = requests.get(self.base_api_furl / fb_user_id,
@@ -297,10 +318,21 @@ class Page:
 
         return SendResponse.parse_raw(response.text)
 
-    def send(self, sender: Sender, message: Union[ContentButton, ContentGeneric, ContentMedia, ContentReceipt], *, quick_replies=None, metadata=None,
-             notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
+    def send_sync(self, sender: Sender, message: Union[ContentButton, ContentGeneric, ContentMedia, ContentReceipt], *, quick_replies=None, metadata=None,
+                  notification_type=None, tag: Optional[MessageTag] = None, callback_sync: Optional[callable] = None):
 
         return self._send_sync(
+            BasePayload(
+                recipient=sender,
+                message=message.message
+            ),
+            callback_sync=callback_sync
+        )
+
+    async def send(self, sender: Sender, message: Union[ContentButton, ContentGeneric, ContentMedia, ContentReceipt], *, quick_replies=None, metadata=None,
+                  notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
+
+        return await self._send(
             BasePayload(
                 recipient=sender,
                 message=message.message
@@ -432,6 +464,9 @@ class Page:
         return r.json()
 
     def set_user_menu(self, sender: Type[ThingWithId], menus: List[MenuPerLocale]):
+        if isinstance(menus, MenuPerLocale):
+            menus = [menus]
+
         f_url = self.base_api_furl / 'me' / 'custom_user_settings'
         r = requests.post(f_url.url,
                           params={"access_token": self.access_token},
@@ -468,6 +503,65 @@ class Page:
         if r.status_code != requests.codes.ok:
             raise Exception(r.text)
 
+    async def create_persona(self, persona:Persona)-> PersonaResponse:
+        data = persona.json()
+
+        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
+                                     params={"access_token": self.access_token}) as client:
+            response = await client.post(
+                "/me/personas",
+                data=data,
+            )
+
+        if response.status_code != 200:
+            raise Exception(response.text)
+
+        return PersonaResponse.parse_raw(response.text)
+
+    async def get_persona(self, id):
+
+        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
+                                     params={"access_token": self.access_token}) as client:
+            response = await client.get(
+                f"/{id}",
+            )
+
+        if response.status_code != 200:
+            raise Exception(response.text)
+
+        return PersonaWithId.parse_raw(response.text)
+
+    async def get_all_personas(self)-> List[PersonaWithId]:
+
+        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
+                                     params={"access_token": self.access_token}) as client:
+            response = await client.get(
+                f"/me/personas",
+            )
+
+        if response.status_code != 200:
+            raise Exception(response.text)
+
+        response = AllPerosnasResponse.parse_raw(response.text)
+
+        # There might be a need to implement paging in future
+        # Note: https://developers.facebook.com/docs/graph-api/using-graph-api/#cursors
+
+        return response.data
+
+    async def delete_persona(self, id):
+
+        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
+                                     params={"access_token": self.access_token}) as client:
+            response = await client.delete(
+                f"/{id}",
+            )
+
+        if response.status_code != 200:
+            raise Exception(response.text)
+
+        return PersonaDeleteResponse.parse_raw(response.text)
+
     """
     handlers and decorations
     """
@@ -487,8 +581,8 @@ class Page:
     #
     #     self._webhook_handlers[scope] = callback
 
-    # def handle_optin(self, func):
-    #     self._webhook_handlers['optin'] = func
+    def handle_optin(self, func):
+        self._webhook_handlers['optin'] = func
 
     def handle_message_sync(self, func: callable):
         self._webhook_handlers_sync[MessageEntry] = func
@@ -502,8 +596,8 @@ class Page:
     def handle_echo(self, func: callable):
         self._webhook_handlers[EchoEntry] = func
 
-    # def handle_delivery(self, func):
-    #     self._webhook_handlers[DeliveryEntry] = func
+    def handle_delivery(self, func):
+        self._webhook_handlers[DeliveriesEntry] = func
 
     def handle_postback_sync(self, func):
         self._webhook_handlers_sync[PostbackEntry] = func
@@ -549,7 +643,7 @@ class Page:
     #
     # def handle_standby(self, func):
     #     self._webhook_handlers['standby'] = func
-    #
+
     def after_send(self, func):
         self._after_send = func
 
