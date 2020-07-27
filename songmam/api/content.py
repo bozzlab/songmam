@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional, List, Literal
 
-from pydantic import conlist, HttpUrl
+from pydantic import conlist, HttpUrl, BaseModel
 
 from songmam.facebook.messaging.quick_replies import QuickReply
 from songmam.facebook.messaging.templates import TemplateAttachment, Message
@@ -11,8 +11,8 @@ from songmam.facebook.messaging.templates.media import MediaElements, PayloadMed
 from songmam.facebook.messaging.templates.receipt import ReceiptElements, Address, Summary, Adjustments, PayloadReceipt
 
 
-@dataclass
-class ContentButton:
+
+class ContentButton(BaseModel):
     text: str
     buttons: Optional[conlist(AllButtonTypes, min_items=1, max_items=3)]
     quick_replies: Optional[List[QuickReply]]
