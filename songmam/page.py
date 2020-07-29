@@ -1,8 +1,9 @@
+import asyncio
 import json
 import re
 import hmac
 import hashlib
-from typing import Union, Optional, Literal, Set, List, Type
+from typing import Union, Optional, Literal, Set, List, Type, Awaitable
 
 import httpx
 import requests
@@ -94,7 +95,7 @@ class Page:
                 # value is None by default
                 pass
 
-        if persistent_menu or greeting:
+        if persistent_menu or greeting or whitelisted_domains:
             profile = MessengerProfile()
 
             if persistent_menu:
@@ -315,28 +316,25 @@ class Page:
             raise Exception(response.text)
 
         if callback is not None:
-            await callback(payload, response)
+            callback_output = callback(payload, response)
+            if callback_output is Awaitable:
+                await callback
 
         if self._after_send is not None:
             self._after_send(payload, response)
 
         return SendResponse.parse_raw(response.text)
 
-    def send_sync(self, sender: Sender, message: Union[ContentButton, ContentGeneric, ContentMedia, ContentReceipt], *,
-                  quick_replies=None, metadata=None,
-                  notification_type=None, tag: Optional[MessageTag] = None, callback_sync: Optional[callable] = None):
+    def send_sync(self, *args, **kwargs):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        result = loop.run_until_complete(self.send(*args, **kwargs))
 
-        return self.send_native_sync(
-            CompletePayload(
-                recipient=sender,
-                message=message.message
-            ),
-            callback_sync=callback_sync
-        )
+        return result
 
     async def send(self,
                    recipient: Union[Sender, str],
-                   message: Union[str, ContentButton, ContentGeneric, ContentMedia, ContentReceipt],
+                   message: Optional[str] = None,
                    *,
                    buttons: Optional[List[AllButtonTypes]] = None,
                    quick_replies: Optional[List[QuickReply]] = None,

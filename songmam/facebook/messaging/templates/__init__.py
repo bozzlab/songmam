@@ -29,14 +29,16 @@ class Message(BaseModel):
     quick_replies: Optional[List[QuickReply]]
     metadata: Optional[str]
 
-    @root_validator
-    def text_or_attachment_must_be_set(cls, values):
-        text, attachment = values.get('text'), values.get('attachment')
-        counter = 0
-        if text:
-            counter += 1
-        if attachment:
-            counter += 1
-        if counter == 0:
-            raise ValueError("text or attachment must be set.")
-        return values
+    # TODO: Fix this validator
+    # @root_validator
+    # def text_or_attachment_must_be_set(cls, values):
+    #     text, attachment = values.get('text'), values.get('attachment')
+    #     counter = 0
+    #     if text:
+    #         counter += 1
+    #     if attachment:
+    #         counter += 1
+    # TODO: Fix this validator : This line will caused the incomplete initialiazation to throw error. m=Message(), m.text="cat"
+    #     if counter == 0:
+    #         raise ValueError("text or attachment must be set.")
+    #     return values

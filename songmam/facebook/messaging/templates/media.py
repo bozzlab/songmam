@@ -19,6 +19,6 @@ class PayloadMedia(BaseModel):
     """
     https://developers.facebook.com/docs/messenger-platform/reference/templates/media#payload
     """
-    template_type: Literal["media"]
+    template_type: Literal["media"] = 'media'
     elements: conlist(MediaElement, min_items=1, max_items=1)
     sharable: Optional[bool]
