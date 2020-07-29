@@ -27,7 +27,7 @@ class PostbackEntry(MessageEntry):
     # postback: Optional[Postback]
 
 # {
-#   "sender":{
+#   "recipient":{
 #     "id":"<PSID>"
 #   },
 #   "recipient":{
@@ -46,5 +46,5 @@ class PostbackEntry(MessageEntry):
 # }
 
 """
-{"object":"page","entry":[{"id":"103157244728633","time":1595061969020,"messaging":[{"sender":{"id":"2892682217518683"},"recipient":{"id":"103157244728633"},"timestamp":1595061968847,"postback":{"title":"menu 2","payload":"menu 2"}}]}]}
+{"object":"page","entry":[{"id":"103157244728633","time":1595061969020,"messaging":[{"recipient":{"id":"2892682217518683"},"recipient":{"id":"103157244728633"},"timestamp":1595061968847,"postback":{"title":"menu 2","payload":"menu 2"}}]}]}
 """

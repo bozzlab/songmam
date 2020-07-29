@@ -5,7 +5,7 @@ from pydantic import BaseModel, validator, conlist
 from songmam.facebook.messaging.templates.button import AllButtonTypes
 
 
-class MediaElements(BaseModel):
+class MediaElement(BaseModel):
     """
     https://developers.facebook.com/docs/messenger-platform/reference/templates/media#elements
     """
@@ -20,5 +20,5 @@ class PayloadMedia(BaseModel):
     https://developers.facebook.com/docs/messenger-platform/reference/templates/media#payload
     """
     template_type: Literal["media"]
-    elements: conlist(MediaElements, max_items=1)
+    elements: conlist(MediaElement, min_items=1, max_items=1)
     sharable: Optional[bool]

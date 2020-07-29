@@ -1,91 +1,9 @@
 from dataclasses import dataclass
-from typing import Optional, List, Literal
-
-from pydantic import conlist, HttpUrl, BaseModel
+from typing import Optional, List
 
 from songmam.facebook.messaging.quick_replies import QuickReply
 from songmam.facebook.messaging.templates import TemplateAttachment, Message
-from songmam.facebook.messaging.templates.button import AllButtonTypes, PayloadButtonTemplate
-from songmam.facebook.messaging.templates.generic import GenericElements, PayloadGeneric
-from songmam.facebook.messaging.templates.media import MediaElements, PayloadMedia
 from songmam.facebook.messaging.templates.receipt import ReceiptElements, Address, Summary, Adjustments, PayloadReceipt
-
-
-
-class ContentButton(BaseModel):
-    text: str
-    buttons: Optional[conlist(AllButtonTypes, min_items=1, max_items=3)]
-    quick_replies: Optional[List[QuickReply]]
-
-    @property
-    def message(self):
-        message = Message()
-
-        if self.buttons:
-            payload = PayloadButtonTemplate(
-                template_type='button',
-                text=self.text,
-                buttons=self.buttons
-            )
-            message.attachment = TemplateAttachment(
-                payload=payload
-            )
-        else:
-            message.text = self.text
-        if self.quick_replies:
-            message.quick_replies = self.quick_replies
-
-        return message
-
-
-@dataclass
-class ContentGeneric:
-    quick_replies: Optional[List[QuickReply]]
-    elements: List[GenericElements]
-    image_aspect_ratio: Optional[Literal["horizontal", "square"]]
-
-    @property
-    def message(self):
-        message = Message()
-
-        if self.elements:
-            payload = PayloadGeneric(
-                template_type="generic",
-                elements=self.elements
-            )
-            payload.image_aspect_ratio = self.image_aspect_ratio
-            message.attachment = TemplateAttachment(
-                payload=payload
-            )
-        if self.quick_replies:
-            message.quick_replies = self.quick_replies
-
-        return message
-
-
-@dataclass
-class ContentMedia:
-    quick_replies: Optional[List[QuickReply]]
-    elements: List[MediaElements]
-    sharable: Optional[bool]
-
-    @property
-    def message(self):
-        message = Message()
-
-        if self.elements:
-            payload = PayloadMedia(
-                template_type="media",
-                elements=self.elements,
-                sharable=self.sharable
-            )
-            message.attachment = TemplateAttachment(
-                payload=payload
-            )
-        if self.quick_replies:
-            message.quick_replies = self.quick_replies
-
-        return message
 
 
 @dataclass

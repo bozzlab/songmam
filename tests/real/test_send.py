@@ -4,8 +4,8 @@ from songmam.api.content import ContentButton, ContentGeneric, ContentMedia, Con
 from songmam.facebook.entries.messages import Sender
 from songmam.facebook.messaging.templates import Address, Summary, Adjustments, ReceiptElements
 from songmam.facebook.messaging.templates.button import URLButton, PostbackButton, CallButton, LogInButton, LogOutButton
-from songmam.facebook.messaging.templates.generic import DefaultAction, GenericElements
-from songmam.facebook.messaging.templates.media import MediaElements
+from songmam.facebook.messaging.templates.generic import DefaultAction, GenericElement
+from songmam.facebook.messaging.templates.media import MediaElement
 from songmam.page import Page
 
 
@@ -54,7 +54,7 @@ async def test_send(test_user):
         )
     ]
     gallery = [
-        GenericElements(
+        GenericElement(
             title="Welcome to Generic (/w DA)",
             subtitle="subtitle is here!",
             image_url="https://www.biospectrumasia.com/uploads/articles/is-japan-changing-its-attitude-towards"
@@ -62,7 +62,7 @@ async def test_send(test_user):
             default_action=default_act,
             buttons=None
         ),
-        GenericElements(
+        GenericElement(
             title="Button Test",
             subtitle="Log I/O sub-",
             image_url="https://www.biospectrumasia.com/uploads/articles/is-japan-changing-its-attitude-towards"
@@ -97,14 +97,14 @@ async def test_send(test_user):
         )
     ]
     media1 = [
-        MediaElements(
+        MediaElement(
             media_type="image",
             url="https://www.facebook.com/sirote.klampaiboon/photos/a.373530246050409/4230721946997867/",
             buttons=buttons3
         )
     ]
     media2 = [
-        MediaElements(
+        MediaElement(
             media_type="video",
             url="https://www.facebook.com/1588173658083515/videos/301934891007397/",
             buttons=buttons4

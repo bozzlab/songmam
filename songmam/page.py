@@ -12,6 +12,8 @@ from fastapi import FastAPI, Request
 from furl import furl
 from loguru import logger
 from pydantic import HttpUrl
+from songmam.facebook.messaging.quick_replies import QuickReply
+from songmam.facebook.messaging.templates import Message, AllButtonTypes, TemplateAttachment, PayloadButtonTemplate
 
 from .api.content import ContentButton, ContentGeneric, ContentMedia, ContentReceipt
 from .api.events import MessageEvent, PostBackEvent, ReferralEvent, DeliveriesEvent
@@ -22,9 +24,13 @@ from .facebook.entries.messages import MessageEntry, Sender
 from .facebook.entries.postback import PostbackEntry
 from .facebook.entries.referral import ReferralEntry
 from .facebook.messaging.message_tags import MessageTag
-from .facebook.messaging.payload import BasePayload, SenderActionPayload
+from .facebook.messaging.messaging_type import MessagingType
+from .facebook.messaging.notification_type import NotificationType
+from .facebook.messaging.payload import CompletePayload, SenderActionPayload
 from songmam.facebook.messenger_profile.persistent_menu import UserPersistentMenu, MenuPerLocale
 from .facebook.messaging.sender_action import SenderAction
+from .facebook.messaging.templates.generic import GenericElement, PayloadGeneric
+from .facebook.messaging.templates.media import MediaElement, PayloadMedia
 from .facebook.messenger_profile import MessengerProfileProperty, MessengerProfile, GreetingPerLocale
 from .facebook.page import Me
 from .facebook.persona import Persona, PersonaWithId, PersonaResponse, AllPerosnasResponse, PersonaDeleteResponse
@@ -240,7 +246,6 @@ class Page:
         user_profile = UserProfile.parse_raw(r.text)
         return user_profile
 
-
     async def get_user_profile(self, user: Type[ThingWithId]) -> UserProfile:
         async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
                                      params={"access_token": self.access_token}) as client:
@@ -253,7 +258,6 @@ class Page:
 
         user_profile = UserProfile.parse_raw(response.text)
         return user_profile
-
 
     def get_messenger_code(self, ref=None, image_size=1000):
         d = {}
@@ -277,7 +281,7 @@ class Page:
 
         return data['uri']
 
-    def _send_sync(self, payload: Union[BasePayload], callback_sync=None) -> SendResponse:
+    def send_native_sync(self, payload: Union[CompletePayload], callback_sync=None) -> SendResponse:
         f_url = self.base_api_furl / "me/messages"
         data = payload.json(exclude_none=True)
         response = requests.post(f_url.url,
@@ -296,7 +300,7 @@ class Page:
 
         return SendResponse.parse_raw(response.text)
 
-    async def _send(self, payload: Union[BasePayload], callback=None) -> SendResponse:
+    async def send_native(self, payload: Union[CompletePayload], callback=None) -> SendResponse:
 
         data = payload.json(exclude_none=True)
 
@@ -318,103 +322,177 @@ class Page:
 
         return SendResponse.parse_raw(response.text)
 
-    def send_sync(self, sender: Sender, message: Union[ContentButton, ContentGeneric, ContentMedia, ContentReceipt], *, quick_replies=None, metadata=None,
+    def send_sync(self, sender: Sender, message: Union[ContentButton, ContentGeneric, ContentMedia, ContentReceipt], *,
+                  quick_replies=None, metadata=None,
                   notification_type=None, tag: Optional[MessageTag] = None, callback_sync: Optional[callable] = None):
 
-        return self._send_sync(
-            BasePayload(
+        return self.send_native_sync(
+            CompletePayload(
                 recipient=sender,
                 message=message.message
             ),
             callback_sync=callback_sync
         )
 
-    async def send(self, sender: Sender, message: Union[ContentButton, ContentGeneric, ContentMedia, ContentReceipt], *, quick_replies=None, metadata=None,
-                  notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
+    async def send(self,
+                   recipient: Union[Sender, str],
+                   message: Union[str, ContentButton, ContentGeneric, ContentMedia, ContentReceipt],
+                   *,
+                   buttons: Optional[List[AllButtonTypes]] = None,
+                   quick_replies: Optional[List[QuickReply]] = None,
+                   generic_elements: Optional[List[GenericElement]] = None,
+                   image_aspect_ratio: Optional[Literal["horizontal", "square"]] = None,
+                   media_element: Optional[MediaElement] = None,
+                   media_sharable: Optional[bool] = None,
+                   messaging_type: Optional[MessagingType] = MessagingType.RESPONSE,
+                   tag: Optional[MessageTag] = None,
+                   notification_type: Optional[NotificationType] = NotificationType.REGULAR,
+                   callback: Optional[callable] = None
+                   ):
+        # auto cast
+        if isinstance(recipient, str):
+            recipient = Sender(id=recipient)
 
-        return await self._send(
-            BasePayload(
-                recipient=sender,
-                message=message.message
-            ),
-            callback=callback
-        )
+        # auto cast 2
+        if buttons:
+            payload = CompletePayload(
+                recipient=recipient,
+                message=Message(
+                    attachment=TemplateAttachment(
+                        payload=PayloadButtonTemplate(
+                            template_type='button',
+                            text=message,
+                            buttons=buttons
+                        )
+                    ),
+                    quick_replies=quick_replies
+                ),
+                messaging_type=messaging_type,
+                tag=tag,
+                notification_type=notification_type,
+            )
+        elif generic_elements:
+            payload = CompletePayload(
+                recipient=recipient,
+                message=Message(
+                    attachment=TemplateAttachment(
+                        payload=PayloadGeneric(
+                            elements=generic_elements,
+                            image_aspect_ratio=image_aspect_ratio
+                        )
+                    ),
+                    quick_replies=quick_replies
+                ),
+                messaging_type=messaging_type,
+                tag=tag,
+                notification_type=notification_type,
+            )
+        elif media_element:
+            payload = CompletePayload(
+                recipient=recipient,
+                message=Message(
+                    attachment=TemplateAttachment(
+                        payload=PayloadMedia(
+                            elements=[media_element],
+                            sharable=media_sharable,
+                        )
+                    ),
+                    quick_replies=quick_replies
+                ),
+                messaging_type=messaging_type,
+                tag=tag,
+                notification_type=notification_type,
+            )
+        else:
+            payload = CompletePayload(
+                recipient=recipient,
+                message=Message(
+                    text=message,
+                    quick_replies=quick_replies
+                ),
+                messaging_type=messaging_type,
+                tag=tag,
+                notification_type=notification_type,
+            )
 
-    def reply(self, message_to_reply_to: MessageEvent, message: ContentButton, *, quick_replies=None, metadata=None,
-              notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
+        return await self.send_native(payload, callback=callback)
 
-        if self.prevent_repeated_reply:
-            message_id = message_to_reply_to.entry.theMessaging.message.mid
-            if message_id not in self.reply_cache:
-                # good to go
-                self.reply_cache.set(message_id, True)
-            else:
-                logger.warning("Songmum prevented a message from being reply to the same event multiple times.")
-                logger.warning(message_to_reply_to)
-                return
-
-        return self._send_sync(
-            BasePayload(
-                recipient=message_to_reply_to.sender,
-                message=message.message
-            ), callback_sync=callback)
-
-    async def reply(self, message_to_reply_to: MessageEvent, message, *, quick_replies=None, metadata=None,
-                    notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
-
-        if self.prevent_repeated_reply:
-            message_id = message_to_reply_to.entry.theMessaging.message.mid
-            if message_id not in self.reply_cache:
-                # good to go
-                self.reply_cache.set(message_id, True)
-            else:
-                logger.warning("Songmum prevented a message from being reply to the same event multiple times.")
-                logger.warning(message_to_reply_to)
-                return
-
-        return await self._send(
-            BasePayload(
-                recipient=message_to_reply_to.sender,
-                message=message.message
-            ),
-            callback=callback
-        )
+    # def reply_sync(self, message_to_reply_to: MessageEvent, message: ContentButton, *, quick_replies=None,
+    #                metadata=None,
+    #                notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
+    #
+    #     if self.prevent_repeated_reply:
+    #         message_id = message_to_reply_to.entry.theMessaging.message.mid
+    #         if message_id not in self.reply_cache:
+    #             # good to go
+    #             self.reply_cache.set(message_id, True)
+    #         else:
+    #             logger.warning("Songmum prevented a message from being reply to the same event multiple times.")
+    #             logger.warning(message_to_reply_to)
+    #             return
+    #
+    #     return self.send_native_sync(
+    #         CompletePayload(
+    #             recipient=message_to_reply_to.sender,
+    #             message=message.message
+    #         ), callback_sync=callback)
+    #
+    # async def reply(self, message_to_reply_to: MessageEvent, message, *, quick_replies=None, metadata=None,
+    #                 notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
+    #
+    #     if self.prevent_repeated_reply:
+    #         message_id = message_to_reply_to.entry.theMessaging.message.mid
+    #         if message_id not in self.reply_cache:
+    #             # good to go
+    #             self.reply_cache.set(message_id, True)
+    #         else:
+    #             logger.warning("Songmum prevented a message from being reply to the same event multiple times.")
+    #             logger.warning(message_to_reply_to)
+    #             return
+    #
+    #     return await self.send_native(
+    #         CompletePayload(
+    #             recipient=message_to_reply_to.sender,
+    #             message=message.message
+    #         ),
+    #         callback=callback
+    #     )
 
     def typing_on_sync(self, recipient: Type[ThingWithId]):
         payload = SenderActionPayload(recipient=recipient,
                                       sender_action=SenderAction.TYPING_ON)
 
-        self._send_sync(payload)
+        self.send_native_sync(payload)
 
     async def typing_on(self, recipient: Type[ThingWithId]):
         payload = SenderActionPayload(recipient=recipient,
                                       sender_action=SenderAction.TYPING_ON)
 
-        return await self._send(payload)
+        return await self.send_native(payload)
 
     def typing_off_sync(self, recipient: Type[ThingWithId]):
         payload = SenderActionPayload(recipient=recipient,
                                       sender_action=SenderAction.TYPING_OFF)
 
-        self._send_sync(payload)
+        self.send_native_sync(payload)
 
     async def typing_off(self, recipient: Type[ThingWithId]):
         payload = SenderActionPayload(recipient=recipient,
                                       sender_action=SenderAction.TYPING_OFF)
 
-        return await self._send(payload)
+        return await self.send_native(payload)
 
     def mark_seen_sync(self, recipient: Type[ThingWithId]):
         payload = SenderActionPayload(recipient=recipient,
                                       sender_action=SenderAction.MARK_SEEN)
 
-        self._send_sync(payload)
+        self.send_native_sync(payload)
 
     async def mark_seen(self, recipient: Type[ThingWithId]):
         payload = SenderActionPayload(recipient=recipient,
                                       sender_action=SenderAction.MARK_SEEN)
 
-        return await self._send(payload)
+        return await self.send_native(payload)
 
     """
     messenger profile (see https://developers.facebook.com/docs/messenger-platform/reference/messenger-profile-api)
@@ -503,7 +581,7 @@ class Page:
         if r.status_code != requests.codes.ok:
             raise Exception(r.text)
 
-    async def create_persona(self, persona:Persona)-> PersonaResponse:
+    async def create_persona(self, persona: Persona) -> PersonaResponse:
         data = persona.json()
 
         async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
@@ -531,7 +609,7 @@ class Page:
 
         return PersonaWithId.parse_raw(response.text)
 
-    async def get_all_personas(self)-> List[PersonaWithId]:
+    async def get_all_personas(self) -> List[PersonaWithId]:
 
         async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
                                      params={"access_token": self.access_token}) as client:
@@ -616,6 +694,7 @@ class Page:
 
     def handle_referral(self, func):
         self._webhook_handlers[ReferralEntry] = func
+
     #
     # def handle_game_play(self, func):
     #     self._webhook_handlers['game_play'] = func

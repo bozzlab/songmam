@@ -10,7 +10,7 @@ class OptinEntry(MessagingWithTimestamp):
     optin: Optin
 
 # {
-#   "sender": {
+#   "recipient": {
 #     "id": "<PSID>"
 #   },
 #   "recipient": {

@@ -68,7 +68,7 @@ class TemplateTest(unittest.TestCase):
                                               buttons=[
                                                   {'type': 'web_url', 'title': 'title', 'value': 'https://test.com'}])])
         self.assertEquals(
-            '{"payload": {"elements": [{"buttons": [{"title": "title", "type": "web_url", "url": "https://test.com"}],'
+            '{"payload": {"generic_elements": [{"buttons": [{"title": "title", "type": "web_url", "url": "https://test.com"}],'
             ' "image_url": "https://test.com/img", "item_url": "https://test.com", "subtitle": "subtitle",'
             ' "title": "generic"}], "image_aspect_ratio": "horizontal", "template_type": "generic"}, "type": "template"}', utils.to_json(generic))
 
@@ -80,7 +80,7 @@ class TemplateTest(unittest.TestCase):
                                                   {'type': 'web_url', 'title': 'title', 'value': 'https://test.com'}])],
             square_image=True)
         self.assertEquals(
-            '{"payload": {"elements": [{"buttons": [{"title": "title", "type": "web_url", "url": "https://test.com"}],'
+            '{"payload": {"generic_elements": [{"buttons": [{"title": "title", "type": "web_url", "url": "https://test.com"}],'
             ' "image_url": "https://test.com/img", "item_url": "https://test.com", "subtitle": "subtitle",'
             ' "title": "generic"}], "image_aspect_ratio": "square", "template_type": "generic"}, "type": "template"}', utils.to_json(generic))
 
@@ -100,7 +100,7 @@ class TemplateTest(unittest.TestCase):
 
         self.assertEquals(
             '{"payload": {"buttons": [{"payload": "payload", "title": "View More", "type": "postback"}], '
-            '"elements": [{"buttons": [{"title": "title", "type": "web_url", "url": "https://test1.com"}], '
+            '"generic_elements": [{"buttons": [{"title": "title", "type": "web_url", "url": "https://test1.com"}], '
             '"image_url": "https://test.com1/img", "item_url": "https://test1.com", "subtitle": "subtitle1", "title": "generic1"}, '
             '{"buttons": [{"title": "title", "type": "web_url", "url": "https://test2.com"}], '
             '"image_url": "https://test.com2/img", "item_url": "https://test2.com", "subtitle": "subtitle2", "title": "generic2"}], '
@@ -166,7 +166,7 @@ class TemplateTest(unittest.TestCase):
         self.assertEquals('{"payload": {"address": {"city": "Menlo Park", "country": "US", '
                           '"postal_code": "94025", "state": "CA", "street_1": "1 Hacker Way", "street_2": ""}, '
                           '"adjustments": [{"amount": -50, "name": "New Customer Discount"}], "currency": "USD", '
-                          '"elements": [{"currency": "USD", "image_url": "/assets/riftsq.png", "price": 599.0, '
+                          '"generic_elements": [{"currency": "USD", "image_url": "/assets/riftsq.png", "price": 599.0, '
                           '"quantity": 1, "subtitle": "Includes: headset, sensor, remote", "title": "Oculus Rift"}], '
                           '"order_number": "order1357", "payment_method": "Visa 1234", "recipient_name": '
                           '"Peter Chang", "summary": {"shipping_cost": 20.0, "subtotal": 698.99, "total_cost": 626.66, '

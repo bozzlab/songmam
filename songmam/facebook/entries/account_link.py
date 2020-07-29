@@ -13,7 +13,7 @@ class AccountLinkEntry(MessagingWithTimestamp):
     account_linking: AccountLink
 
 # {
-#   "sender":{
+#   "recipient":{
 #     "id":"USER_ID"
 #   },
 #   "recipient":{

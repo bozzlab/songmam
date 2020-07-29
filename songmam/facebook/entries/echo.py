@@ -15,7 +15,7 @@ class EchoEntry(MessageEntry):
     message: Message
 
 # {
-#   "sender":{
+#   "recipient":{
 #     "id":"<PSID>"
 #   },
 #   "recipient":{

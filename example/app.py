@@ -7,14 +7,14 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
-# from songmam import Page, Webhook, MessageEvent, BasePayload
+# from songmam import Page, Webhook, MessageEvent, CompletePayload
 from pydantic import ValidationError
 
 from songmam.api import content
 from songmam.facebook.entries.messages import Sender
 from songmam.facebook.messaging.templates import ReceiptElements, Address, Summary, Adjustments
-from songmam.facebook.messaging.templates.generic import GenericElements, DefaultAction
-from songmam.facebook.messaging.templates.media import MediaElements
+from songmam.facebook.messaging.templates.generic import GenericElement, DefaultAction
+from songmam.facebook.messaging.templates.media import MediaElement
 
 # os.environ['PAGE_ACCESS_TOKEN'] = "MY Access token"
 # os.environ['PAGE_VERIFY_TOKEN'] = "MY Verify token"
@@ -30,7 +30,6 @@ from songmam.facebook.messaging.quick_replies import QuickReply
 from songmam.facebook.messaging.templates.button import URLButton, PostbackButton, CallButton, LogInButton, \
     LogOutButton, GamePlayButton
 from songmam.facebook.messenger_profile import MenuPerLocale, GreetingPerLocale
-from songmam.humanTyping import HumanTyping
 from songmam.page import Page
 
 endpoint_url = furl("https://170f43db701d.ngrok.io/")
@@ -67,7 +66,6 @@ app = FastAPI(
     description="This is a very fancy project.",
     version="3.0.0",
 )
-humanTyping = HumanTyping()
 
 
 env = Environment(
@@ -122,8 +120,8 @@ async def handle_entry(webhook: Dict[str, Any], request: Request):
 @page.handle_message
 async def echo(message: MessageEvent):
 
-    # page.get_user_profile_sync(message.sender.id)
-    # page.send(message.sender.id, "thank you! your message is '%s'" % message.text)
+    # page.get_user_profile_sync(message.recipient.id)
+    # page.send(message.recipient.id, "thank you! your message is '%s'" % message.text)
     # buttons = [
     #     URLButton(title="Open Webview", url=(endpoint_url / "sampleMessagerSDK").url, messenger_extensions=True),
     #     PostbackButton(title="trigger Postback", payload="DEVELOPED_DEFINED_PAYLOAD"),
@@ -136,9 +134,9 @@ async def echo(message: MessageEvent):
         buttons=None,
         quick_replies=None
     )
-    # # page.send(message.sender, content)
-    # # typing_fn = partial(page.typing_on, message.sender)
-    # # stop_typing_fn = partial(page.typing_off, message.sender)
+    # # page.send(message.recipient, content)
+    # # typing_fn = partial(page.typing_on, message.recipient)
+    # # stop_typing_fn = partial(page.typing_off, message.recipient)
     # # await humanTyping.act_typing_simple(message.text, typing_fn, stop_typing_fn)
     # await page.reply(message, content)
     await page.send(message.sender, content)
@@ -164,8 +162,8 @@ async def log3(event):
 
 if __name__ == "__main__":
 
-    # typing_fn = partial(page.typing_on, message.sender)
-    # stop_typing_fn = partial(page.typing_off, message.sender)
+    # typing_fn = partial(page.typing_on, message.recipient)
+    # stop_typing_fn = partial(page.typing_off, message.recipient)
     # await humanTyping.act_typing_simple(message.text, typing_fn, stop_typing_fn)
     # page.reply(message, content)
     import uvicorn

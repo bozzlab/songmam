@@ -17,7 +17,7 @@ from songmam.facebook.messaging.templates import Message
 from songmam.facebook.send import SendRecipient
 
 
-class BasePayload(BaseModel):
+class CompletePayload(BaseModel):
     recipient: Union[SendRecipient, Sender, ThingWithId]
     template_type: Optional[str] = None
     message: Optional[Message]
@@ -28,10 +28,10 @@ class BasePayload(BaseModel):
     persona_id: Optional[str] = None
 
 
-class SenderActionPayload(BasePayload):
+class SenderActionPayload(CompletePayload):
     sender_action: SenderAction
 
-class SendingQuickRepliesEntry(BasePayload):
+class SendingQuickRepliesEntry(CompletePayload):
     """
     https://developers.facebook.com/docs/messenger-platform/reference/buttons/quick-replies
     """

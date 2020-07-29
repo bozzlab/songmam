@@ -37,6 +37,6 @@ class Message(BaseModel):
             counter += 1
         if attachment:
             counter += 1
-        if counter > 0:
+        if counter == 0:
             raise ValueError("text or attachment must be set.")
         return values

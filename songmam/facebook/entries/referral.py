@@ -16,7 +16,7 @@ class ReferralEntry(MessagingWithTimestamp):
     referral: Referral
 
 # {
-#     "sender": {
+#     "recipient": {
 #         "id": "<PSID>"
 #     },
 #     "recipient": {

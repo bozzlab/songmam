@@ -15,7 +15,7 @@ class GamePlayEntries(MessagingWithTimestamp):
     game_play: GamePlay
 
 # {
-#   "sender": {
+#   "recipient": {
 #     "id": "<PSID>"
 #   },
 #   "recipient": {

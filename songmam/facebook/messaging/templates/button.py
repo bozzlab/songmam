@@ -1,7 +1,7 @@
 from enum import auto
 from typing import Literal, Optional, List, Type, Union
 
-from pydantic import BaseModel, validator, HttpUrl, root_validator, conlist
+from pydantic import BaseModel, validator, HttpUrl, root_validator, conlist, constr
 
 # from songmam.facebook.messaging.templates import CompletePayload as Payload_
 from songmam.utils import AutoName
@@ -11,13 +11,7 @@ class BaseButton(BaseModel):
     type: str
 
     # make optional for default action
-    title: Optional[str]
-
-    @validator('title')
-    def title_limit_to_20_characters(cls, v):
-        if len(v) > 20:
-            raise ValueError('Button title. 20 character limit.')
-        return v
+    title: Optional[constr(max_length=20)] = None
 
     def get_default_action(self):
         self.title = None
@@ -35,7 +29,6 @@ class URLButton(BaseButton):
     Updated: 04/07/2020
     """
     type: str = 'web_url'
-    title: str
     url: HttpUrl
     webview_height_ratio: Literal['compact', 'tall', 'full'] = 'full'
     messenger_extensions: bool = False

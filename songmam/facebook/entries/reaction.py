@@ -17,7 +17,7 @@ class ReactionEntry(MessagingWithTimestamp):
 
 
 # {
-#    "sender":{
+#    "recipient":{
 #       "id":"<PSID>"
 #    },
 #    "recipient":{

@@ -18,7 +18,7 @@ class StandbyObject(Webhook):
 #       "time":1458692752478,
 #       "standby":[
 #         {
-#           "sender":{
+#           "recipient":{
 #             "id":"<USER_ID>"
 #           },
 #           "recipient":{

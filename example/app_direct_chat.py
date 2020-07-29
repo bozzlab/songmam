@@ -41,8 +41,8 @@ async def handle_entry(webhook: Dict[str, Any], request: Request):
 
 @page.handle_message
 async def echo(message: MessageEvent):
-    # page.get_user_profile(message.sender.id)
-    # page.send(message.sender.id, "thank you! your message is '%s'" % message.text)
+    # page.get_user_profile(message.recipient.id)
+    # page.send(message.recipient.id, "thank you! your message is '%s'" % message.text)
     # buttons = [
     #     ButtonWeb(title="Open Web URL", url="https://www.oculus.com/en-us/rift/"),
     #     ButtonPostBack(title="trigger Postback", payload="DEVELOPED_DEFINED_PAYLOAD"),
@@ -67,7 +67,7 @@ async def echo(message: MessageEvent):
     #          {'type': 'postback', 'title': 'trigger Postback', 'value': 'DEVELOPED_DEFINED_PAYLOAD'},
     #          {'type': 'phone_number', 'title': 'Call Phone Number', 'value': '+16505551234'}]
 
-    # page.send(message.sender.id, Buttons("hello", buttons))
+    # page.send(message.recipient.id, Buttons("hello", buttons))
 
 if __name__ == "__main__":
 

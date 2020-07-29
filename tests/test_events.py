@@ -4,7 +4,7 @@ import unittest
 class TestEvents(unittest.TestCase):
     def test_message_event(self):
         quick_reply_payload = {
-              "sender":{
+              "recipient":{
                 "id":"PSID"
               },
               "recipient":{
@@ -29,7 +29,7 @@ class TestEvents(unittest.TestCase):
         self.assertFalse(event.attachments)
 
         attachments_payload = {
-              "sender":{
+              "recipient":{
                 "id":"PSID"
               },
               "recipient":{
@@ -69,7 +69,7 @@ class TestEvents(unittest.TestCase):
 
     def test_account_linking_event(self):
         linked_payload = {
-              "sender":{
+              "recipient":{
                 "id":"USER_ID"
               },
               "recipient":{
@@ -90,7 +90,7 @@ class TestEvents(unittest.TestCase):
         self.assertEqual(event.authorization_code, "PASS_THROUGH_AUTHORIZATION_CODE")
 
         unlinked_payload = {
-              "sender":{
+              "recipient":{
                 "id":"USER_ID"
               },
               "recipient":{
@@ -110,7 +110,7 @@ class TestEvents(unittest.TestCase):
 
     def test_deliveries_event(self):
         payload = {
-              "sender":{
+              "recipient":{
                 "id":"<PSID>"
               },
               "recipient":{
@@ -131,7 +131,7 @@ class TestEvents(unittest.TestCase):
 
     def test_echo_event(self):
         payload = {
-            "sender": {
+            "recipient": {
                 "id": "USER_ID"
             },
             "recipient": {
@@ -163,7 +163,7 @@ class TestEvents(unittest.TestCase):
 
     def test_postback_event(self):
         payload = {
-            "sender": {
+            "recipient": {
                 "id": "<PSID>"
             },
             "recipient": {
@@ -190,7 +190,7 @@ class TestEvents(unittest.TestCase):
 
     def test_read_event(self):
         payload = {
-            "sender": {
+            "recipient": {
                 "id": "<PSID>"
             },
             "recipient": {

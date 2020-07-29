@@ -81,12 +81,12 @@ class PageApiVerTest(unittest.TestCase):
 class PageTest(unittest.TestCase):
     def setUp(self):
         self.page = Page('TOKEN')
-        self.page._send_sync = mock.MagicMock()
+        self.page.send_native_sync = mock.MagicMock()
         self.page._fetch_page_info_sync = mock.MagicMock()
 
     def test_send(self):
         self.page.send_sync(12345, "hello world", quick_replies=[{'title': 'Yes', 'payload': 'YES'}], callback=1)
-        self.page._send_sync.assert_called_once_with('{"message": {"attachment": null, "metadata": null, '
+        self.page.send_native_sync.assert_called_once_with('{"message": {"attachment": null, "metadata": null, '
                                                 '"quick_replies": '
                                                 '[{"content_type": "text", "payload": "YES", "title": "Yes"}], '
                                                 '"text": "hello world"},'
@@ -97,28 +97,28 @@ class PageTest(unittest.TestCase):
 
     def test_typingon(self):
         self.page.typing_on_sync(1004)
-        self.page._send_sync.assert_called_once_with('{"message": null, "notification_type": null, '
+        self.page.send_native_sync.assert_called_once_with('{"message": null, "notification_type": null, '
                                                 '"recipient": {"id": 1004}, '
                                                 '"sender_action": "typing_on", '
                                                 '"tag": null}')
 
     def test_typingoff(self):
         self.page.typing_off_sync(1004)
-        self.page._send_sync.assert_called_once_with('{"message": null, "notification_type": null, '
+        self.page.send_native_sync.assert_called_once_with('{"message": null, "notification_type": null, '
                                                 '"recipient": {"id": 1004}, '
                                                 '"sender_action": "typing_off", '
                                                 '"tag": null}')
 
     def test_markseen(self):
         self.page.mark_seen_sync(1004)
-        self.page._send_sync.assert_called_once_with('{"message": null, "notification_type": null, '
+        self.page.send_native_sync.assert_called_once_with('{"message": null, "notification_type": null, '
                                                 '"recipient": {"id": 1004}, '
                                                 '"sender_action": "mark_seen", '
                                                 '"tag": null}')
 
     def test_tag(self):
         self.page.send_sync(12345, "hello world", quick_replies=[{'title': 'Yes', 'payload': 'YES'}], tag="PAIRING_UPDATE", callback=1)
-        self.page._send_sync.assert_called_once_with('{"message": {"attachment": null, "metadata": null, '
+        self.page.send_native_sync.assert_called_once_with('{"message": {"attachment": null, "metadata": null, '
                                                 '"quick_replies": '
                                                 '[{"content_type": "text", "payload": "YES", "title": "Yes"}], '
                                                 '"text": "hello world"},'
@@ -134,7 +134,7 @@ class PageTest(unittest.TestCase):
             "entry":[
                 {"id":"1691462197845448","time":1472026867114,
                 "messaging":[
-                    {"sender":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472026867080,
+                    {"recipient":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472026867080,
                      "message":{"mid":"mid.1472026867074:cfb5e1d4bde07a2a55","seq":812,"text":"hello world"}}
                 ]}
             ]
@@ -148,7 +148,7 @@ class PageTest(unittest.TestCase):
             "entry":[
                 {"id":"1691462197845448","time":1472026867114,
                 "messaging":[
-                    {"sender":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472026867080,
+                    {"recipient":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472026867080,
                      "unknown":{"mid":"mid.1472026867074:cfb5e1d4bde07a2a55","seq":812,"text":"hello world"}}
                 ]}
             ]
@@ -195,7 +195,7 @@ class PageTest(unittest.TestCase):
             "entry":[
                 {"id":"1691462197845448","time":1472026867114,
                 "messaging":[
-                    {"sender":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472026867080,
+                    {"recipient":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472026867080,
                      "message":{"mid":"mid.1472026867074:cfb5e1d4bde07a2a55","seq":812,"text":"hello world"}}
                 ]}
             ]
@@ -231,7 +231,7 @@ class PageTest(unittest.TestCase):
         payload = """
         {"object":"page","entry":[{"id":"1691462197845448","time":1472026870339,
         "messaging":[{
-            "sender":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472026869186,
+            "recipient":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472026869186,
             "read":{"watermark":1472026868763,"seq":814}}]
         }]}
         """
@@ -263,7 +263,7 @@ class PageTest(unittest.TestCase):
         payload = """
         {"object":"page","entry":[{"id":"1691462197845448","time":1472026869143,
         "messaging":[{
-            "sender":{"id":"1691462197845448"},"recipient":{"id":"1134343043305865"},"timestamp":1472026868763,
+            "recipient":{"id":"1691462197845448"},"recipient":{"id":"1134343043305865"},"timestamp":1472026868763,
             "message":{"is_echo":true,"app_id":950864918368986,"mid":"mid.1472026868734:832ecbdfc1ffc30139","seq":813,
             "text":"hello"}}]
         }]}
@@ -296,7 +296,7 @@ class PageTest(unittest.TestCase):
     def test_handle_webhook_delivery(self):
         payload = """
         {"object":"page","entry":[{"id":"1691462197845448","time":1472028396029,
-            "messaging":[{"sender":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":0,
+            "messaging":[{"recipient":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":0,
             "delivery":{"mids":["mid.1472028395154:917e24ea99bc7d8f11"],"watermark":1472028395190,"seq":821}}
             ]}]}
         """
@@ -329,7 +329,7 @@ class PageTest(unittest.TestCase):
         payload = """
         {"object":"page","entry":[{"id":"1691462197845448","time":1472028542079,
         "messaging":[{
-            "sender":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028542079,
+            "recipient":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028542079,
             "account_linking":{"authorization_code":"1234567890","status":"linked"}}]}]}
         """
         counter = mock.MagicMock()
@@ -361,7 +361,7 @@ class PageTest(unittest.TestCase):
         payload = """
         {"object":"page","entry":[{"id":"1691462197845448","time":1472028542079,
         "messaging":[{
-            "sender":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028542079,
+            "recipient":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028542079,
             "referral":{"ref":"REFTEST","source":"SHORTLINK","type": "OPEN_THREAD"}}]}]}
         """
         counter = mock.MagicMock()
@@ -394,7 +394,7 @@ class PageTest(unittest.TestCase):
         payload = """
         {"object":"page","entry":[{"id":"1691462197845448","time":1472028006107,
         "messaging":[{
-            "sender":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028006107,
+            "recipient":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028006107,
             "postback":{"payload":"DEVELOPED_DEFINED_PAYLOAD"}}]
         }]}
         """
@@ -426,7 +426,7 @@ class PageTest(unittest.TestCase):
         payload = """
         {"object":"page","entry":[{"id":"1691462197845448","time":1472028006107,
         "messaging":[{
-            "sender":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028006107,
+            "recipient":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028006107,
             "postback":{"payload":"DEVELOPED_DEFINED_PAYLOAD",
                         "referral":{"ref":"REFTEST","source":"SHORTLINK","type": "OPEN_THREAD"}}}]
         }]}
@@ -458,7 +458,7 @@ class PageTest(unittest.TestCase):
     def test_handle_game_play(self):
         payload = """{"object":"page","entry":[{"id":"1691462197845448","time":1472028006107,
         "messaging":[{
-          "sender": {
+          "recipient": {
             "id": "<PSID>"
           },
           "recipient": {
@@ -507,7 +507,7 @@ class PageTest(unittest.TestCase):
         payload = """
                 {"object":"page","entry":[{"id":"1691462197845448","time":1472028006107,
                 "messaging":[{
-                      "sender":{
+                      "recipient":{
                         "id":"<PSID>"
                       },
                       "recipient":{
@@ -549,7 +549,7 @@ class PageTest(unittest.TestCase):
         payload = """
                 {"object":"page","entry":[{"id":"1691462197845448","time":1472028006107,
                     "messaging":[{
-                      "sender":{
+                      "recipient":{
                         "id":"<USER_ID>"
                       },
                       "recipient":{
@@ -591,7 +591,7 @@ class PageTest(unittest.TestCase):
         payload = """
                 {"object":"page","entry":[{"id":"1691462197845448","time":1472028006107,
                     "messaging":[{
-                      "sender":{
+                      "recipient":{
                         "id":"<USER_ID>"
                       },
                       "recipient":{
@@ -707,7 +707,7 @@ class PageTest(unittest.TestCase):
         payload = """
                 {"object":"page","entry":[{"id":"1691462197845448","time":1472028006107,
                     "messaging":[{
-                      "sender": {
+                      "recipient": {
                         "id": "<PSID>"
                       },
                       "recipient": {
@@ -772,7 +772,7 @@ class PageTest(unittest.TestCase):
                         "id": "PAGE_ID"
                       },
                       "timestamp": 1473208792799,
-                      "sender": {
+                      "recipient": {
                         "id": "USER_ID"
                       },
                       "payment": {
@@ -861,7 +861,7 @@ class PageTest(unittest.TestCase):
         payload = """
         {"object":"page","entry":[{"id":"1691462197845448","time":1472028006107,
         "messaging":[{
-            "sender":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028006107,
+            "recipient":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028006107,
             "postback":{"payload":"DEVELOPED_DEFINED_PAYLOAD"}}]
         }]}
         """
@@ -887,7 +887,7 @@ class PageTest(unittest.TestCase):
         payload = """
         {"object":"page","entry":[{"id":"1691462197845448","time":1472028006107,
         "messaging":[{
-            "sender":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028006107,
+            "recipient":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028006107,
             "postback":{"payload":"DEVELOPED_DEFINED_PAYLOAD2"}}]
         }]}
         """
@@ -899,7 +899,7 @@ class PageTest(unittest.TestCase):
         payload = """
         {"object":"page","entry":[{"id":"1691462197845448","time":1472028637866,
         "messaging":[{
-            "sender":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028637825,
+            "recipient":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028637825,
             "message":{"quick_reply":{"payload":"PICK_ACTION"},"mid":"mid.1472028637817:ae2763cc036a664b43","seq":834,"text":"Action"}}]}]}
         """
         counter1 = mock.MagicMock()
@@ -928,7 +928,7 @@ class PageTest(unittest.TestCase):
         payload = """
         {"object":"page","entry":[{"id":"1691462197845448","time":1472028637866,
         "messaging":[{
-            "sender":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028637825,
+            "recipient":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028637825,
             "message":{"quick_reply":{"payload":"PICK_COMEDY"},"mid":"mid.1472028637817:ae2763cc036a664b43","seq":834,"text":"Action"}}]}]}
         """
         self.page.handle_webhook(payload, postback=handler1)
@@ -939,7 +939,7 @@ class PageTest(unittest.TestCase):
         payload = """
         {"object":"page","entry":[{"id":"1691462197845448","time":1472028637866,
         "messaging":[{
-            "sender":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028637825,
+            "recipient":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028637825,
             "message":{"quick_reply":{"payload":"ACTION/1"},"mid":"mid.1472028637817:ae2763cc036a664b43","seq":834,"text":"Action"}}]}]}
         """
 
@@ -969,14 +969,14 @@ class PageTest(unittest.TestCase):
         quickreply_payload = """
         {"object":"page","entry":[{"id":"1691462197845448","time":1472028637866,
         "messaging":[{
-            "sender":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028637825,
+            "recipient":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028637825,
             "message":{"quick_reply":{"payload":"ACTION/1"},"mid":"mid.1472028637817:ae2763cc036a664b43","seq":834,"text":"Action"}}]}]}
         """
 
         button_payload = """
         {"object":"page","entry":[{"id":"1691462197845448","time":1472028006107,
         "messaging":[{
-            "sender":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028006107,
+            "recipient":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028006107,
             "postback":{"payload":"ACTION/100"}}]
         }]}
         """
@@ -1230,7 +1230,7 @@ class PageTest(unittest.TestCase):
                                 "id":"214236215771147"
                             },
                             "timestamp":1502997235746,
-                            "sender":{
+                            "recipient":{
                                 "id":"143792855957756q9"
                             },
                             "postback":{

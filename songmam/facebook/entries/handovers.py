@@ -13,7 +13,7 @@ class HandoversEntry(MessagingWithTimestamp):
 
 
 # {
-#   "sender":{
+#   "recipient":{
 #     "id":"<PSID>"
 #   },
 #   "recipient":{
