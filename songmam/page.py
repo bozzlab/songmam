@@ -149,7 +149,7 @@ class Page:
                 raise NotImplementedError("Dev: how to handle this?")
 
             body = await request.body()
-            expected_signature = hmac.new(self.app_secret, body, hashlib.sha1)
+            expected_signature = hmac.new(str.encode(self.app_secret), body, hashlib.sha1).hexdigest()
 
             if expected_signature != header_signature:
                 raise AssertionError('SIGNATURE VERIFICATION FAIL')
@@ -168,19 +168,19 @@ class Page:
                     if event.is_quick_reply:
                         matched_callbacks = self.get_quick_reply_callbacks(event)
                         for callback in matched_callbacks:
-                            await callback(event)
+                            await callback(event, request)
 
                 elif entry_type is PostbackEntry:
                     matched_callbacks = self.get_postback_callbacks(event)
                     for callback in matched_callbacks:
-                        await callback(event)
+                        await callback(event, request)
                 elif entry_type is ReferralEntry:
                     pass
 
                 elif entry_type is DeliveriesEntry:
                     pass
 
-                await handler(event)
+                await handler(event, request)
             else:
                 logger.warning("there's no {} handler", type(entry.theMessaging))
 

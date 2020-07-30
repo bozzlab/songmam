@@ -13,7 +13,7 @@ from pydantic import ValidationError
 from songmam.api import content
 from songmam.facebook.entries.messages import Sender
 from songmam.facebook.messaging.templates import ReceiptElements, Address, Summary, Adjustments
-from songmam.facebook.messaging.templates.generic import GenericElement, DefaultAction
+from songmam.facebook.messaging.templates.generic import GenericElement
 from songmam.facebook.messaging.templates.media import MediaElement
 
 # os.environ['PAGE_ACCESS_TOKEN'] = "MY Access token"
@@ -24,7 +24,6 @@ from loguru import logger
 
 from songmam import Webhook
 from songmam.api.events import MessageEvent, PostBackEvent, EchoEvent, DeliveriesEvent
-from songmam.api.content import ContentButton, ContentGeneric, ContentMedia, ContentReceipt
 from songmam.facebook.messaging.locale import Locale
 from songmam.facebook.messaging.quick_replies import QuickReply
 from songmam.facebook.messaging.templates.button import URLButton, PostbackButton, CallButton, LogInButton, \
