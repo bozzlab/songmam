@@ -8,7 +8,6 @@ from typing import Union, Optional, Literal, Set, List, Type, Awaitable
 import httpx
 import requests
 from cacheout import Cache
-from decouple import config, UndefinedValueError
 from fastapi import FastAPI, Request
 from furl import furl
 from loguru import logger
@@ -16,7 +15,6 @@ from pydantic import HttpUrl
 from songmam.facebook.messaging.quick_replies import QuickReply
 from songmam.facebook.messaging.templates import Message, AllButtonTypes, TemplateAttachment, PayloadButtonTemplate
 
-from .api.content import ContentButton, ContentGeneric, ContentMedia, ContentReceipt
 from .api.events import MessageEvent, PostBackEvent, ReferralEvent, DeliveriesEvent
 from .facebook import ThingWithId
 from .facebook.entries.deliveries import DeliveriesEntry
@@ -75,25 +73,12 @@ class Page:
         if access_token:
             self.access_token = access_token
         else:
-            self.access_token = config("PAGE_ACCESS_TOKEN")
+            logger.error("access_token is required.")
+            raise Exception("access_token is required.")
 
-        if verify_token:
-            self.verify_token = verify_token
-        else:
-            try:
-                self.verify_token = config("PAGE_VERIFY_TOKEN")
-            except UndefinedValueError:
-                # value is None by default
-                pass
+        self.verify_token = verify_token
+        self.app_secret = app_secret
 
-        if app_secret:
-            self.app_secret = app_secret
-        else:
-            try:
-                self.app_secret = config("APP_SECRET")
-            except UndefinedValueError:
-                # value is None by default
-                pass
 
         if persistent_menu or greeting or whitelisted_domains:
             profile = MessengerProfile()
@@ -151,12 +136,12 @@ class Page:
             else:
                 logger.warning("there's no {} handler", type(entry.theMessaging))
 
-    async def handle_webhook(self, webhook: Webhook, *, request: Optional[Request] = None):
+    async def handle_webhook(self, webhook: Webhook, request: Request):
 
         # TODO: Convert this to middleware
         # Do the Webhook validation
         # https://developers.facebook.com/docs/messenger-platform/webhook#security
-        if self.app_secret and request:
+        if self.app_secret:
             header_signature = request.headers['X-Hub-Signature']
             if len(header_signature) == 45 and header_signature.startswith('sha1='):
                 header_signature = header_signature[5:]

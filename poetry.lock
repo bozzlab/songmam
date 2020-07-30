@@ -405,7 +405,7 @@ version = "2.8.1"
 six = ">=1.5"
 
 [[package]]
-category = "main"
+category = "dev"
 description = "Strict separation of settings from code."
 name = "python-decouple"
 optional = false
@@ -572,7 +572,7 @@ version = "1.0.1"
 dev = ["pytest (>=4.6.2)", "black (>=19.3b0)"]
 
 [metadata]
-content-hash = "566721f4eb352a888a95800921c03bef0a45e226791cd22727d8a8f1395b4ecf"
+content-hash = "239c95afa9462731ffde62d8c5cd6092575bdd965f0286d59d57c2b81e5863ff"
 python-versions = "^3.8"
 
 [metadata.files]

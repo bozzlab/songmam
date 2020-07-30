@@ -1,0 +1,1 @@
+poetry publish --build -u <user> -p <pass>
