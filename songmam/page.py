@@ -395,14 +395,15 @@ class Page:
         if isinstance(recipient, str):
             recipient = Sender(id=recipient)
 
-        if not isinstance(buttons, list):
-            buttons = [buttons]
 
-        if not isinstance(generic_elements, list):
-            generic_elements = [generic_elements]
+
+
 
         # auto cast 2
         if buttons:
+            if not isinstance(buttons, list):
+                buttons = [buttons]
+
             payload = CompletePayload(
                 recipient=recipient,
                 message=Message(
@@ -421,6 +422,9 @@ class Page:
                 notification_type=notification_type,
             )
         elif generic_elements:
+            if not isinstance(generic_elements, list):
+                generic_elements = [generic_elements]
+
             payload = CompletePayload(
                 recipient=recipient,
                 message=Message(
