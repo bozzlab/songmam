@@ -182,7 +182,7 @@ class Page:
 
                 await handler(event, request)
             else:
-                logger.warning("there's no {} handler", type(entry.theMessaging))
+                logger.warning("there's no handler for entry type", entry_type)
 
     @property
     def id(self):
@@ -309,6 +309,64 @@ class Page:
             self._after_send(payload, response)
 
         return SendResponse.parse_raw(response.text)
+
+    async def send_receipt(self):
+        from dataclasses import dataclass
+        from typing import Optional, List
+
+        from songmam.facebook.messaging.quick_replies import QuickReply
+        from songmam.facebook.messaging.templates import TemplateAttachment, Message
+        from songmam.facebook.messaging.templates.receipt import ReceiptElements, Address, Summary, Adjustments, \
+            PayloadReceipt
+
+        @dataclass
+        class ContentReceipt:
+            quick_replies: Optional[List[QuickReply]]
+            sharable: Optional[bool]
+            recipient_name: str
+            merchant_name: Optional[str]
+            order_number: str
+            currency: str
+            payment_method: str  # This can be a custom string, such as, "Visa 1234".
+            timestamp: Optional[str]
+            elements: Optional[List[ReceiptElements]]
+            address: Optional[Address]
+            summary: Summary
+            adjustments: Optional[List[Adjustments]]
+
+            @property
+            def message(self):
+                message = Message()
+
+                if self.elements:
+                    payload = PayloadReceipt(
+                        template_type="receipt",
+                        recipient_name=self.recipient_name,
+                        order_number=self.order_number,
+                        currency=self.currency,
+                        payment_method=self.payment_method,  # This can be a custom string, such as, "Visa 1234".
+                        summary=self.summary,
+                    )
+                    payload.sharable = self.sharable
+                    payload.merchant_name = self.merchant_name
+                    payload.timestamp = self.timestamp
+                    payload.elements = self.elements
+                    payload.address = self.address
+                    payload.adjustments = self.adjustments
+                    message.attachment = TemplateAttachment(
+                        payload=payload
+                    )
+                if self.quick_replies:
+                    message.quick_replies = self.quick_replies
+
+                return message
+        raise NotImplementedError
+
+    async def send_media(self):
+        raise NotImplementedError
+
+    async def send_generic(self):
+        raise NotImplementedError
 
     def send_sync(self, *args, **kwargs):
         loop = asyncio.new_event_loop()
@@ -524,7 +582,10 @@ class Page:
         # TODO: create object for this GET Request https://developers.facebook.com/docs/messenger-platform/send-messages/persistent-menu
         return r.json()
 
-    def set_user_menu(self, sender: Type[ThingWithId], menus: List[MenuPerLocale]):
+    def set_user_menu(self, user: Union[str,Type[ThingWithId]], menus: List[MenuPerLocale]):
+        if isinstance(user, str):
+            user = ThingWithId(id=user)
+
         if isinstance(menus, MenuPerLocale):
             menus = [menus]
 
@@ -532,7 +593,7 @@ class Page:
         r = requests.post(f_url.url,
                           params={"access_token": self.access_token},
                           data=UserPersistentMenu(
-                              psid=sender.id,
+                              psid=user.id,
                               persistent_menu=menus
                           ).json(),
                           headers={'Content-type': 'application/json'})
@@ -627,20 +688,17 @@ class Page:
     handlers and decorations
     """
 
-    # def set_webhook_handler(self, scope, callback):
-    #     """
-    #     Allows adding a webhook_handler as an alternative to the decorators
-    #     """
-    #     scope = scope.lower()
-    #
-    #     if scope == 'after_send':
-    #         self._after_send = callback
-    #         return
-    #
-    #     if scope not in Page.WEBHOOK_ENDPOINTS:
-    #         raise ValueError("The 'scope' argument must be one of {}.".format(Page.WEBHOOK_ENDPOINTS))
-    #
-    #     self._webhook_handlers[scope] = callback
+    def set_webhook_handler(self, entry_type, callback):
+        """
+        Allows adding a webhook_handler as an alternative to the decorators
+        """
+        # scope = scope.lower()
+        #
+        # if scope == 'after_send':
+        #     self._after_send = callback
+        #     return
+
+        self._webhook_handlers[entry_type] = callback
 
     def handle_optin(self, func):
         self._webhook_handlers['optin'] = func

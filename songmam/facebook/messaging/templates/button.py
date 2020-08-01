@@ -1,3 +1,4 @@
+from copy import deepcopy
 from enum import auto
 from typing import Literal, Optional, List, Type, Union
 
@@ -14,8 +15,9 @@ class BaseButton(BaseModel):
     title: Optional[constr(max_length=20)] = None
 
     def get_default_action(self):
-        self.title = None
-        return self
+        default_action = deepcopy(self)
+        default_action.title = None
+        return default_action
 
     @classmethod
     def create_default_action(cls, *args, **kargs):
