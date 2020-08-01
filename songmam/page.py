@@ -385,6 +385,7 @@ class Page:
                    image_aspect_ratio: Optional[Literal["horizontal", "square"]] = None,
                    media_element: Optional[MediaElement] = None,
                    media_sharable: Optional[bool] = None,
+                   persona_id: Optional[str] = None,
                    messaging_type: Optional[MessagingType] = MessagingType.RESPONSE,
                    tag: Optional[MessageTag] = None,
                    notification_type: Optional[NotificationType] = NotificationType.REGULAR,
@@ -408,6 +409,7 @@ class Page:
                     ),
                     quick_replies=quick_replies
                 ),
+                persona_id=persona_id,
                 messaging_type=messaging_type,
                 tag=tag,
                 notification_type=notification_type,
@@ -424,6 +426,7 @@ class Page:
                     ),
                     quick_replies=quick_replies
                 ),
+                persona_id=persona_id,
                 messaging_type=messaging_type,
                 tag=tag,
                 notification_type=notification_type,
@@ -440,6 +443,7 @@ class Page:
                     ),
                     quick_replies=quick_replies
                 ),
+                persona_id=persona_id,
                 messaging_type=messaging_type,
                 tag=tag,
                 notification_type=notification_type,
@@ -451,6 +455,7 @@ class Page:
                     text=message,
                     quick_replies=quick_replies
                 ),
+                persona_id=persona_id,
                 messaging_type=messaging_type,
                 tag=tag,
                 notification_type=notification_type,
