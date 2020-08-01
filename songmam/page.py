@@ -379,9 +379,9 @@ class Page:
                    recipient: Union[Sender, str],
                    message: Optional[str] = None,
                    *,
-                   buttons: Optional[List[AllButtonTypes]] = None,
+                   buttons: Optional[Union[AllButtonTypes, List[AllButtonTypes]]] = None,
                    quick_replies: Optional[List[QuickReply]] = None,
-                   generic_elements: Optional[List[GenericElement]] = None,
+                   generic_elements: Optional[Union[GenericElement, List[GenericElement]]] = None,
                    image_aspect_ratio: Optional[Literal["horizontal", "square"]] = None,
                    media_element: Optional[MediaElement] = None,
                    media_sharable: Optional[bool] = None,
@@ -394,6 +394,12 @@ class Page:
         # auto cast
         if isinstance(recipient, str):
             recipient = Sender(id=recipient)
+
+        if not isinstance(buttons, list):
+            buttons = [buttons]
+
+        if not isinstance(generic_elements, list):
+            generic_elements = [generic_elements]
 
         # auto cast 2
         if buttons:
