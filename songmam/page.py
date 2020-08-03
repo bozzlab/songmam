@@ -282,7 +282,9 @@ class Page:
             callback_sync(payload, response)
 
         if self._after_send is not None:
-            self._after_send(payload, response)
+            return_ = self._after_send(payload, response)
+            if return_ is Awaitable:
+                await return_
 
         return SendResponse.parse_raw(response.text)
 
@@ -306,7 +308,9 @@ class Page:
                 await callback
 
         if self._after_send is not None:
-            self._after_send(payload, response)
+            return_ = self._after_send(payload, response)
+            if return_ is Awaitable:
+                await return_
 
         return SendResponse.parse_raw(response.text)
 

@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "songmam"
-version = "0.7.1"
+version = "0.8.0"
 description = "a fork of FBMQ"
 authors = ["Nutchanon Ninyawee <me@nutchanon.org>"]
 license = "ISC"
