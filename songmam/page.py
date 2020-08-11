@@ -3,6 +3,7 @@ import json
 import re
 import hmac
 import hashlib
+from functools import partial
 from typing import Union, Optional, Literal, Set, List, Type, Awaitable
 
 import httpx
@@ -14,6 +15,7 @@ from loguru import logger
 from pydantic import HttpUrl
 from songmam.facebook.messaging.quick_replies import QuickReply
 from songmam.facebook.messaging.templates import Message, AllButtonTypes, TemplateAttachment, PayloadButtonTemplate
+from avajana.bubbling import Bubbling
 
 from .api.events import MessageEvent, PostBackEvent, ReferralEvent, DeliveriesEvent
 from .facebook import ThingWithId
@@ -30,7 +32,7 @@ from songmam.facebook.messenger_profile.persistent_menu import UserPersistentMen
 from .facebook.messaging.sender_action import SenderAction
 from .facebook.messaging.templates.generic import GenericElement, PayloadGeneric
 from .facebook.messaging.templates.media import MediaElement, PayloadMedia
-from .facebook.messenger_profile import MessengerProfileProperty, MessengerProfile, GreetingPerLocale
+from .facebook.messenger_profile import MessengerProfileProperty, MessengerProfile, GreetingPerLocale, GetStarted
 from .facebook.page import Me
 from .facebook.persona import Persona, PersonaWithId, PersonaResponse, AllPerosnasResponse, PersonaDeleteResponse
 from .facebook.send import SendResponse, SendRecipient
@@ -58,10 +60,14 @@ class Page:
                  app_secret: Optional[str] = None,
                  persistent_menu: Optional[List[MenuPerLocale]] = None,
                  greeting: Optional[List[GreetingPerLocale]] = None,
+                 get_started: Optional[GetStarted] = None,
                  whitelisted_domains: Optional[List[HttpUrl]] = None,
                  skip_quick_reply: bool = True,
                  prevent_repeated_reply: bool = True,
+                 emu_type: bool = False
                  ):
+        self.bubbling = Bubbling()
+
         # Non-Dynamic Change
         self.prevent_repeated_reply = prevent_repeated_reply
         if prevent_repeated_reply:
@@ -76,11 +82,11 @@ class Page:
             logger.error("access_token is required.")
             raise Exception("access_token is required.")
 
+        # TODO: add warning to those who not specify for good default security reason
         self.verify_token = verify_token
         self.app_secret = app_secret
 
-
-        if persistent_menu or greeting or whitelisted_domains:
+        if persistent_menu or greeting or whitelisted_domains or get_started:
             profile = MessengerProfile()
 
             if persistent_menu:
@@ -89,9 +95,12 @@ class Page:
                 profile.greeting = greeting
             if whitelisted_domains:
                 profile.whitelisted_domains = whitelisted_domains
+            if get_started:
+                profile.get_started = get_started
 
             self._set_profile_property_sync(profile)
 
+        self.emu_type = emu_type
         # self._after_send = options.pop('after_send', None)
         # self._api_ver = options.pop('api_ver', 'v7.0')
         # if self._api_ver not in SUPPORTED_API_VERS:
@@ -163,7 +172,7 @@ class Page:
 
                 if entry_type is MessageEntry:
                     if self.auto_mark_as_seen:
-                        self.mark_seen_sync(event.sender)
+                        await self.mark_seen(event.sender)
 
                     if event.is_quick_reply:
                         matched_callbacks = self.get_quick_reply_callbacks(event)
@@ -282,9 +291,7 @@ class Page:
             callback_sync(payload, response)
 
         if self._after_send is not None:
-            return_ = self._after_send(payload, response)
-            if return_ is Awaitable:
-                await return_
+            self._after_send(payload, response)
 
         return SendResponse.parse_raw(response.text)
 
@@ -364,6 +371,7 @@ class Page:
                     message.quick_replies = self.quick_replies
 
                 return message
+
         raise NotImplementedError
 
     async def send_media(self):
@@ -393,14 +401,21 @@ class Page:
                    messaging_type: Optional[MessagingType] = MessagingType.RESPONSE,
                    tag: Optional[MessageTag] = None,
                    notification_type: Optional[NotificationType] = NotificationType.REGULAR,
-                   callback: Optional[callable] = None
+                   callback: Optional[callable] = None,
+                   emu_type: bool = False
                    ):
         # auto cast
         if isinstance(recipient, str):
             recipient = Sender(id=recipient)
 
-
-
+        if message:
+            typing_fn = partial(self.typing_on, recipient)
+            stop_fn = partial(self.typing_off, recipient)
+            if emu_type:
+                await self.bubbling.act_typing(message, typing_fn, stop_fn)
+            else:
+                if self.emu_type:
+                    await self.bubbling.act_typing(message, typing_fn, stop_fn)
 
 
         # auto cast 2
@@ -518,35 +533,17 @@ class Page:
     #         callback=callback
     #     )
 
-    def typing_on_sync(self, recipient: Type[ThingWithId]):
-        payload = SenderActionPayload(recipient=recipient,
-                                      sender_action=SenderAction.TYPING_ON)
-
-        self.send_native_sync(payload)
-
     async def typing_on(self, recipient: Type[ThingWithId]):
         payload = SenderActionPayload(recipient=recipient,
                                       sender_action=SenderAction.TYPING_ON)
 
-        return await self.send_native(payload)
-
-    def typing_off_sync(self, recipient: Type[ThingWithId]):
-        payload = SenderActionPayload(recipient=recipient,
-                                      sender_action=SenderAction.TYPING_OFF)
-
-        self.send_native_sync(payload)
+        return await self.send(payload)
 
     async def typing_off(self, recipient: Type[ThingWithId]):
         payload = SenderActionPayload(recipient=recipient,
                                       sender_action=SenderAction.TYPING_OFF)
 
         return await self.send_native(payload)
-
-    def mark_seen_sync(self, recipient: Type[ThingWithId]):
-        payload = SenderActionPayload(recipient=recipient,
-                                      sender_action=SenderAction.MARK_SEEN)
-
-        self.send_native_sync(payload)
 
     async def mark_seen(self, recipient: Type[ThingWithId]):
         payload = SenderActionPayload(recipient=recipient,
@@ -601,7 +598,7 @@ class Page:
         # TODO: create object for this GET Request https://developers.facebook.com/docs/messenger-platform/send-messages/persistent-menu
         return r.json()
 
-    def set_user_menu(self, user: Union[str,Type[ThingWithId]], menus: List[MenuPerLocale]):
+    def set_user_menu(self, user: Union[str, Type[ThingWithId]], menus: List[MenuPerLocale]):
         if isinstance(user, str):
             user = ThingWithId(id=user)
 

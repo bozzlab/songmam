@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "songmam"
-version = "0.8.0"
+version = "0.12.0"
 description = "a fork of FBMQ"
 authors = ["Nutchanon Ninyawee <me@nutchanon.org>"]
 license = "ISC"
@@ -13,6 +13,7 @@ loguru = "^0.5.1"
 httpx = "^0.13.3"
 furl = "^2.1.0"
 cacheout = "^0.11.2"
+avajana = "^0.2.0"
 
 [tool.poetry.dev-dependencies]
 mock = "^4.0.2"

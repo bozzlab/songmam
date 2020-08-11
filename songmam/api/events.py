@@ -41,6 +41,9 @@ class MessageEvent(Event):
         self.reply_to = self.entry.theMessaging.message.reply_to
         self.attachments = self.entry.theMessaging.message.attachments
 
+        if self.quick_reply:
+            self.payload = self.quick_reply.payload
+
 
 class PostBackEvent(Event):
     entry: PostbackEntry
