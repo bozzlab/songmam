@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from songmam.facebook.webhook import Webhook
+from songmam.models.webhook import Webhook
 
 class StandbyEntry(BaseModel):
     id: str

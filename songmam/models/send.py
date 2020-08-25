@@ -2,8 +2,8 @@
 from pydantic import BaseModel
 from typing import Optional, Literal, List
 
-from songmam.facebook import ThingWithId
-from songmam.facebook.messaging.messaging_type import MessagingType
+from songmam.models import ThingWithId
+from songmam.models.messaging.messaging_type import MessagingType
 
 
 class SendResponse(BaseModel):

@@ -13,31 +13,31 @@ from fastapi import FastAPI, Request
 from furl import furl
 from loguru import logger
 from pydantic import HttpUrl
-from songmam.facebook.messaging.quick_replies import QuickReply
-from songmam.facebook.messaging.templates import Message, AllButtonTypes, TemplateAttachment, PayloadButtonTemplate
+from songmam.models.messaging.quick_replies import QuickReply
+from songmam.models.messaging.templates import Message, AllButtonTypes, TemplateAttachment, PayloadButtonTemplate
 from avajana.bubbling import Bubbling
 
 from .api.events import MessageEvent, PostBackEvent, ReferralEvent, DeliveriesEvent
-from .facebook import ThingWithId
-from .facebook.entries.deliveries import DeliveriesEntry
-from .facebook.entries.echo import EchoEntry
-from .facebook.entries.messages import MessageEntry, Sender
-from .facebook.entries.postback import PostbackEntry
-from .facebook.entries.referral import ReferralEntry
-from .facebook.messaging.message_tags import MessageTag
-from .facebook.messaging.messaging_type import MessagingType
-from .facebook.messaging.notification_type import NotificationType
-from .facebook.messaging.payload import CompletePayload, SenderActionPayload
-from songmam.facebook.messenger_profile.persistent_menu import UserPersistentMenu, MenuPerLocale
-from .facebook.messaging.sender_action import SenderAction
-from .facebook.messaging.templates.generic import GenericElement, PayloadGeneric
-from .facebook.messaging.templates.media import MediaElement, PayloadMedia
-from .facebook.messenger_profile import MessengerProfileProperty, MessengerProfile, GreetingPerLocale, GetStarted
-from .facebook.page import Me
-from .facebook.persona import Persona, PersonaWithId, PersonaResponse, AllPerosnasResponse, PersonaDeleteResponse
-from .facebook.send import SendResponse, SendRecipient
-from .facebook.user_profile import UserProfile
-from songmam.facebook.webhook import Webhook
+from .models import ThingWithId
+from .models.entries.deliveries import DeliveriesEntry
+from .models.entries.echo import EchoEntry
+from .models.entries.messages import MessageEntry, Sender
+from .models.entries.postback import PostbackEntry
+from .models.entries.referral import ReferralEntry
+from .models.messaging.message_tags import MessageTag
+from .models.messaging.messaging_type import MessagingType
+from .models.messaging.notification_type import NotificationType
+from .models.messaging.payload import CompletePayload, SenderActionPayload
+from songmam.models.messenger_profile.persistent_menu import UserPersistentMenu, MenuPerLocale
+from .models.messaging.sender_action import SenderAction
+from .models.messaging.templates.generic import GenericElement, PayloadGeneric
+from .models.messaging.templates.media import MediaElement, PayloadMedia
+from .models.messenger_profile import MessengerProfileProperty, MessengerProfile, GreetingPerLocale, GetStarted
+from .models.page import Me
+from .models.persona import Persona, PersonaWithId, PersonaResponse, AllPerosnasResponse, PersonaDeleteResponse
+from .models.send import SendResponse, SendRecipient
+from .models.user_profile import UserProfile
+from songmam.models.webhook import Webhook
 
 # See https://developers.facebook.com/docs/graph-api/changelog
 SUPPORTED_API_VERS = Literal[
@@ -326,9 +326,9 @@ class Page:
         from dataclasses import dataclass
         from typing import Optional, List
 
-        from songmam.facebook.messaging.quick_replies import QuickReply
-        from songmam.facebook.messaging.templates import TemplateAttachment, Message
-        from songmam.facebook.messaging.templates.receipt import ReceiptElements, Address, Summary, Adjustments, \
+        from songmam.models.messaging.quick_replies import QuickReply
+        from songmam.models.messaging.templates import TemplateAttachment, Message
+        from songmam.models.messaging.templates.receipt import ReceiptElements, Address, Summary, Adjustments, \
             PayloadReceipt
 
         @dataclass
@@ -721,11 +721,6 @@ class Page:
         """
         Allows adding a webhook_handler as an alternative to the decorators
         """
-        # scope = scope.lower()
-        #
-        # if scope == 'after_send':
-        #     self._after_send = callback
-        #     return
 
         self._webhook_handlers[entry_type] = callback
 

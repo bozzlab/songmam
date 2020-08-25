@@ -2,8 +2,8 @@
 
 # from .page import *
 from .middleware import VerificationMiddleware
-from songmam.facebook.webhook import Webhook
-from .facebook.entries.message import attachment as Attachment
+from songmam.models.webhook import Webhook
+from .models.entries.message import attachment as Attachment
 
 # from songmam.middleware import VerificationMiddleware
 # from songmam import VerificationMiddleware

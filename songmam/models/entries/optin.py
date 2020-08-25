@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from songmam.facebook.entries.base import MessagingWithTimestamp
+from songmam.models.entries.base import MessagingWithTimestamp
 
 class Optin(BaseModel):
     ref: str

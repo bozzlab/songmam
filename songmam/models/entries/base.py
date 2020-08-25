@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from songmam.facebook import ThingWithId
+from songmam.models import ThingWithId
 
 
 class BaseMessaging(BaseModel):

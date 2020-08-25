@@ -2,8 +2,8 @@ import pytest
 from faker import Faker
 
 from songmam.api.content import ContentButton
-from songmam.facebook.messaging.payload import CompletePayload
-from songmam.facebook.persona import Persona
+from songmam.models.messaging.payload import CompletePayload
+from songmam.models.persona import Persona
 from songmam.page import Page
 
 

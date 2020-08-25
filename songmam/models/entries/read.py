@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
-from songmam.facebook.entries.base import MessagingWithTimestamp
-from songmam.facebook import ThingWithId
+from songmam.models.entries.base import MessagingWithTimestamp
+from songmam.models import ThingWithId
 
 
 class Reading(BaseModel):

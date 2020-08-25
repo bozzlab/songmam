@@ -3,10 +3,10 @@ from typing import List, Union, Optional
 from loguru import logger
 from pydantic import BaseModel, validator
 
-from songmam.facebook.entries.deliveries import DeliveriesEntry
-from songmam.facebook.entries.echo import EchoEntry
-from songmam.facebook.entries.messages import MessageEntry
-from songmam.facebook.entries.postback import PostbackEntry
+from songmam.models.entries.deliveries import DeliveriesEntry
+from songmam.models.entries.echo import EchoEntry
+from songmam.models.entries.messages import MessageEntry
+from songmam.models.entries.postback import PostbackEntry
 
 
 class Webhook(BaseModel):

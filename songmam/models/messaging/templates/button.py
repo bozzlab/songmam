@@ -4,7 +4,7 @@ from typing import Literal, Optional, List, Type, Union
 
 from pydantic import BaseModel, validator, HttpUrl, root_validator, conlist, constr
 
-# from songmam.facebook.messaging.templates import CompletePayload as Payload_
+# from songmam.models.messaging.templates import CompletePayload as Payload_
 from autoname import AutoName
 
 

@@ -2,9 +2,9 @@ from typing import Optional, List, Union
 
 from pydantic import BaseModel, validator, conlist
 
-from songmam.facebook.entries.message.attachment import Attachment
-from songmam.facebook.entries.base import MessagingWithTimestamp
-from songmam.facebook import ThingWithId
+from songmam.models.entries.message.attachment import Attachment
+from songmam.models.entries.base import MessagingWithTimestamp
+from songmam.models import ThingWithId
 
 
 class Sender(ThingWithId):

@@ -2,7 +2,7 @@ from typing import Optional, Literal, List
 
 from pydantic import BaseModel, validator, conlist
 
-from songmam.facebook.messaging.templates.button import AllButtonTypes
+from songmam.models.messaging.templates.button import AllButtonTypes
 
 
 class MediaElement(BaseModel):

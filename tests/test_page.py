@@ -4,7 +4,7 @@ import mock
 import responses
 from songmam.page import Page, LocalizedObj, SUPPORTED_API_VERS
 from songmam import template as Template
-from songmam.facebook import entries as Event
+from songmam.models import entries as Event
 
 
 class MessengerAPIMock():

@@ -1,10 +1,10 @@
 import json
 
-from songmam.facebook.entries.base import BaseMessaging
-from songmam.facebook.entries.deliveries import DeliveriesEntry
-from songmam.facebook.entries.messages import MessageEntry
-from songmam.facebook.entries.postback import PostbackEntry
-from songmam.facebook.entries.referral import ReferralEntry
+from songmam.models.entries.base import BaseMessaging
+from songmam.models.entries.deliveries import DeliveriesEntry
+from songmam.models.entries.messages import MessageEntry
+from songmam.models.entries.postback import PostbackEntry
+from songmam.models.entries.referral import ReferralEntry
 
 
 class Event:

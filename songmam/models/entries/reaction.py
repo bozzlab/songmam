@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from songmam.facebook.entries.base import MessagingWithTimestamp
+from songmam.models.entries.base import MessagingWithTimestamp
 
 
 class Reaction(BaseModel):

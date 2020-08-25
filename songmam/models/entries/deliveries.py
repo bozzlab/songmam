@@ -2,8 +2,8 @@ from typing import List
 
 from pydantic import BaseModel, conlist
 
-from songmam.facebook.entries.base import MessagingWithTimestamp
-from songmam.facebook.entries.messages import MessageEntry
+from songmam.models.entries.base import MessagingWithTimestamp
+from songmam.models.entries.messages import MessageEntry
 
 
 class Delivery(BaseModel):

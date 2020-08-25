@@ -3,7 +3,7 @@ from typing import List
 
 from pydantic import validator
 
-from songmam.facebook.messaging.locale import ThingWithLocale
+from songmam.models.messaging.locale import ThingWithLocale
 
 
 class GreetingPerLocale(ThingWithLocale):

@@ -11,10 +11,10 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import ValidationError
 
 from songmam.api import content
-from songmam.facebook.entries.messages import Sender
-from songmam.facebook.messaging.templates import ReceiptElements, Address, Summary, Adjustments
-from songmam.facebook.messaging.templates.generic import GenericElement
-from songmam.facebook.messaging.templates.media import MediaElement
+from songmam.models.entries.messages import Sender
+from songmam.models.messaging.templates import ReceiptElements, Address, Summary, Adjustments
+from songmam.models.messaging.templates.generic import GenericElement
+from songmam.models.messaging.templates.media import MediaElement
 
 # os.environ['PAGE_ACCESS_TOKEN'] = "MY Access token"
 # os.environ['PAGE_VERIFY_TOKEN'] = "MY Verify token"
@@ -24,11 +24,11 @@ from loguru import logger
 
 from songmam import Webhook
 from songmam.api.events import MessageEvent, PostBackEvent, EchoEvent, DeliveriesEvent
-from songmam.facebook.messaging.locale import Locale
-from songmam.facebook.messaging.quick_replies import QuickReply
-from songmam.facebook.messaging.templates.button import URLButton, PostbackButton, CallButton, LogInButton, \
+from songmam.models.messaging.locale import Locale
+from songmam.models.messaging.quick_replies import QuickReply
+from songmam.models.messaging.templates.button import URLButton, PostbackButton, CallButton, LogInButton, \
     LogOutButton, GamePlayButton
-from songmam.facebook.messenger_profile import MenuPerLocale, GreetingPerLocale
+from songmam.models.messenger_profile import MenuPerLocale, GreetingPerLocale
 from songmam.page import Page
 
 endpoint_url = furl("https://170f43db701d.ngrok.io/")

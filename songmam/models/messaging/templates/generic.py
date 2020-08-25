@@ -2,7 +2,7 @@ from typing import Optional, List, Literal
 
 from pydantic import BaseModel, HttpUrl, conlist
 
-from songmam.facebook.messaging.templates.button import AllButtonTypes
+from songmam.models.messaging.templates.button import AllButtonTypes
 
 
 class GenericElement(BaseModel):

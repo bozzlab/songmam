@@ -2,9 +2,9 @@ from typing import Literal, Optional, List
 
 from pydantic import BaseModel
 
-from songmam.facebook.entries.base import MessagingWithTimestamp
-from songmam.facebook.entries.echo import Message
-from songmam.facebook.entries.messages import MessageEntry, Messaging
+from songmam.models.entries.base import MessagingWithTimestamp
+from songmam.models.entries.echo import Message
+from songmam.models.entries.messages import MessageEntry, Messaging
 
 
 class PostbackReferral(BaseModel):

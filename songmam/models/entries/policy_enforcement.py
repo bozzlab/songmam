@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 
-from songmam.facebook import ThingWithId
+from songmam.models import ThingWithId
 
 
 class PolicyEnforcement(BaseModel):

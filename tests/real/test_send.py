@@ -1,11 +1,11 @@
 import pytest
 
 from songmam.api.content import ContentButton, ContentGeneric, ContentMedia, ContentReceipt
-from songmam.facebook.entries.messages import Sender
-from songmam.facebook.messaging.templates import Address, Summary, Adjustments, ReceiptElements
-from songmam.facebook.messaging.templates.button import URLButton, PostbackButton, CallButton, LogInButton, LogOutButton
-from songmam.facebook.messaging.templates.generic import DefaultAction, GenericElement
-from songmam.facebook.messaging.templates.media import MediaElement
+from songmam.models.entries.messages import Sender
+from songmam.models.messaging.templates import Address, Summary, Adjustments, ReceiptElements
+from songmam.models.messaging.templates.button import URLButton, PostbackButton, CallButton, LogInButton, LogOutButton
+from songmam.models.messaging.templates.generic import DefaultAction, GenericElement
+from songmam.models.messaging.templates.media import MediaElement
 from songmam.page import Page
 
 

@@ -2,13 +2,13 @@ from typing import Literal, Union, List, Optional, Type, Any
 
 from pydantic import BaseModel, root_validator, conlist
 
-from songmam.facebook.entries.message.attachment import Attachment as Attachment_
-from songmam.facebook.messaging.quick_replies import QuickReply
-from songmam.facebook.messaging.templates.button import AllButtonTypes, PayloadButtonTemplate
-from songmam.facebook.messaging.templates.generic import PayloadGeneric
-from songmam.facebook.messaging.templates.media import PayloadMedia
-from songmam.facebook.messaging.templates.receipt import ReceiptElements, Address, Summary, Adjustments, PayloadReceipt
-from songmam.facebook.messaging.templates.button import AllButtonTypes
+from songmam.models.entries.message.attachment import Attachment as Attachment_
+from songmam.models.messaging.quick_replies import QuickReply
+from songmam.models.messaging.templates.button import AllButtonTypes, PayloadButtonTemplate
+from songmam.models.messaging.templates.generic import PayloadGeneric
+from songmam.models.messaging.templates.media import PayloadMedia
+from songmam.models.messaging.templates.receipt import ReceiptElements, Address, Summary, Adjustments, PayloadReceipt
+from songmam.models.messaging.templates.button import AllButtonTypes
 
 
 class TemplateAttachment(Attachment_):

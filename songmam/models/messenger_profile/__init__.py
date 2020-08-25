@@ -3,10 +3,10 @@ from typing import Optional, List
 
 from pydantic import BaseModel, HttpUrl
 
-from songmam.facebook.messenger_profile.get_started import GetStarted
-from songmam.facebook.messenger_profile.greeting import GreetingPerLocale
-from songmam.facebook.messenger_profile.ice_breakers import IceBreaker
-from songmam.facebook.messenger_profile.persistent_menu import MenuPerLocale
+from songmam.models.messenger_profile.get_started import GetStarted
+from songmam.models.messenger_profile.greeting import GreetingPerLocale
+from songmam.models.messenger_profile.ice_breakers import IceBreaker
+from songmam.models.messenger_profile.persistent_menu import MenuPerLocale
 from autoname import AutoName
 
 
