@@ -213,8 +213,7 @@ class Page:
                          headers={'Content-type': 'application/json'})
 
         if r.status_code != requests.codes.ok:
-            print(r.text)
-            return
+            raise Exception(r.text)
 
         self.page = Me.parse_raw(r.text)
 
@@ -266,8 +265,7 @@ class Page:
                           json=d,
                           headers={'Content-type': 'application/json'})
         if r.status_code != requests.codes.ok:
-            print(r.text)
-            return None
+            raise Exception(r.text)
 
         data = json.loads(r.text)
         if 'uri' not in data:
@@ -705,6 +703,18 @@ class Page:
     """
 
     def set_webhook_handler(self, entry_type, callback):
+        """
+        Allows adding a webhook_handler as an alternative to the decorators
+        """
+        # scope = scope.lower()
+        #
+        # if scope == 'after_send':
+        #     self._after_send = callback
+        #     return
+
+        self._webhook_handlers[entry_type] = callback
+
+    def add(self, callback, *, entry_type):
         """
         Allows adding a webhook_handler as an alternative to the decorators
         """
