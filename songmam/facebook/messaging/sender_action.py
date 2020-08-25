@@ -1,6 +1,6 @@
 from enum import auto
 
-from songmam.utils import AutoNameLower
+from autoname import AutoNameLower
 
 
 class SenderAction(AutoNameLower):

@@ -82,9 +82,12 @@ class Page:
             logger.error("access_token is required.")
             raise Exception("access_token is required.")
 
-        # TODO: add warning to those who not specify for good default security reason
         self.verify_token = verify_token
+        if self.app_secret:
+            logger.warning("Without verify token, It is possible for your bot server to be substituded by hackers' server.")
         self.app_secret = app_secret
+        if self.app_secret:
+            logger.warning("Without app secret, The server will not be able to identity the integrety of callback.")
 
         if persistent_menu or greeting or whitelisted_domains or get_started:
             profile = MessengerProfile()

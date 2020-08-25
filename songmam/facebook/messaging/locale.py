@@ -2,7 +2,7 @@ from enum import auto
 
 from pydantic import BaseModel
 
-from songmam.utils import AutoName
+from autoname import AutoName
 
 
 class Locale(AutoName):

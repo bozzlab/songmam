@@ -7,7 +7,7 @@ from songmam.facebook.messenger_profile.get_started import GetStarted
 from songmam.facebook.messenger_profile.greeting import GreetingPerLocale
 from songmam.facebook.messenger_profile.ice_breakers import IceBreaker
 from songmam.facebook.messenger_profile.persistent_menu import MenuPerLocale
-from songmam.utils import AutoName
+from autoname import AutoName
 
 
 class MessengerProfileProperty(AutoName):

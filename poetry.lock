@@ -31,6 +31,14 @@ tests = ["coverage", "hypothesis", "pympler", "pytest (>=4.3.0)", "six", "zope.i
 
 [[package]]
 category = "main"
+description = "an enum `AutoName` from python docs with multiple stringcase options"
+name = "autoname"
+optional = false
+python-versions = ">=3.6,<4.0"
+version = "0.1.2"
+
+[[package]]
+category = "main"
 description = "Avajana helps chatbot to express/emulate indirect expressions. Currently, it helps with chatbot bubbling. The bubble that happen to the other end of receipient when someone is typing."
 name = "avajana"
 optional = false
@@ -580,7 +588,7 @@ version = "1.0.1"
 dev = ["pytest (>=4.6.2)", "black (>=19.3b0)"]
 
 [metadata]
-content-hash = "8bf09ec9de21b57b02c8ca5c150884fc15db7b6679d522d00f98ed99e344af78"
+content-hash = "2f85d3ebd88bbb4a305ed3c9dc1f32551ac08a1983f7fdcc3589943a2ebcd2dc"
 python-versions = "^3.8"
 
 [metadata.files]
@@ -595,6 +603,10 @@ atomicwrites = [
 attrs = [
     {file = "attrs-19.3.0-py2.py3-none-any.whl", hash = "sha256:08a96c641c3a74e44eb59afb61a24f2cb9f4d7188748e76ba4bb5edfa3cb7d1c"},
     {file = "attrs-19.3.0.tar.gz", hash = "sha256:f7b7ce16570fe9965acd6d30101a28f62fb4a7f9e926b3bbc9b61f8b04247e72"},
+]
+autoname = [
+    {file = "autoname-0.1.2-py3-none-any.whl", hash = "sha256:84ad60dfb8eded7b661f56d9c46055b55233298bd7d48ade646ef1bb6bf99a4c"},
+    {file = "autoname-0.1.2.tar.gz", hash = "sha256:b874cfbbda2fc388b6de88fd335faba051deac639363739964138625a04913ca"},
 ]
 avajana = [
     {file = "avajana-0.2.0-py3-none-any.whl", hash = "sha256:49ba8022e19647903de1e3bade5266e162051bed4f04f4946966861ec78dca69"},

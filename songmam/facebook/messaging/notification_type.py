@@ -1,6 +1,6 @@
 from enum import auto
 
-from songmam.utils import AutoName
+from autoname import AutoName
 
 
 class NotificationType(AutoName):
