@@ -1,12 +1,12 @@
 from pydantic import BaseModel
 
-from songmam.models.entries.base import MessagingWithTimestamp
+from songmam.models.entries.base import WithTimestamp
 
 class Optin(BaseModel):
     ref: str
     user_ref: str
 
-class OptinEntry(MessagingWithTimestamp):
+class OptinEntry(WithTimestamp):
     optin: Optin
 
 # {

@@ -2,7 +2,7 @@ from typing import Literal, Optional, List
 
 from pydantic import BaseModel
 
-from songmam.models.entries.base import MessagingWithTimestamp
+from songmam.models.entries.base import WithTimestamp
 from songmam.models.entries.echo import Message
 from songmam.models.entries.messages import MessageEntry, Messaging
 

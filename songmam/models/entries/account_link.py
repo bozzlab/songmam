@@ -2,14 +2,14 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from songmam.models.entries.base import MessagingWithTimestamp
+from songmam.models.entries.base import WithTimestamp
 
 
 class AccountLink(BaseModel):
     status: Literal["linked", "unlinked"]
     authorization_code: str
 
-class AccountLinkEntry(MessagingWithTimestamp):
+class AccountLinkEntry(WithTimestamp):
     account_linking: AccountLink
 
 # {

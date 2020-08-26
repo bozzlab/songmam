@@ -2,7 +2,7 @@ from typing import Optional, Literal
 
 from pydantic import BaseModel
 
-from songmam.models.entries.base import MessagingWithTimestamp
+from songmam.models.entries.base import WithTimestamp
 
 class Referral(BaseModel):
     ref: str
@@ -12,8 +12,12 @@ class Referral(BaseModel):
     referer_uri: Optional[str]
 
 
-class ReferralEntry(MessagingWithTimestamp):
+class ReferralEntry(WithTimestamp):
     referral: Referral
+
+    def __getattr__(self, item):
+        return getattr(self.referral, item)
+
 
 # {
 #     "recipient": {

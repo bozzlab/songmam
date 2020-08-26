@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from songmam.models.entries.base import MessagingWithTimestamp
+from songmam.models.entries.base import WithTimestamp
 
 
 class PassThreadControl(BaseModel):
@@ -8,7 +8,7 @@ class PassThreadControl(BaseModel):
     metadata: str
 
 
-class HandoversEntry(MessagingWithTimestamp):
+class HandoversEntry(WithTimestamp):
     pass_thread_control: PassThreadControl
 
 

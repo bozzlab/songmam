@@ -2,7 +2,7 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from songmam.models.entries.base import MessagingWithTimestamp
+from songmam.models.entries.base import WithTimestamp
 
 
 class Reaction(BaseModel):
@@ -11,7 +11,7 @@ class Reaction(BaseModel):
     action: str
     mid: str
 
-class ReactionEntry(MessagingWithTimestamp):
+class ReactionEntry(WithTimestamp):
     reaction: Reaction
 
 
