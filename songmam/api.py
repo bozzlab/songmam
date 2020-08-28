@@ -1,10 +1,36 @@
+import asyncio
+import json
+from typing import Type, Union, Awaitable, Optional, List, Literal, Set
+
 import httpx
 from furl import furl
+
+from songmam.models import ThingWithId
+from songmam.models.webhook.events.messages import Sender
+from songmam.models.messaging.message_tags import MessageTag
+from songmam.models.messaging.messaging_type import MessagingType
+from songmam.models.messaging.notification_type import NotificationType
+from songmam.models.messaging.payload import CompletePayload, SenderActionPayload
+from songmam.models.messaging.quick_replies import QuickReply
+from songmam.models.messaging.sender_action import SenderAction
+from songmam.models.messaging.templates import AllButtonTypes, TemplateAttachment, Message, PayloadButtonTemplate, \
+    PayloadMedia
+from songmam.models.messaging.templates.generic import GenericElement, PayloadGeneric
+from songmam.models.messaging.templates.media import MediaElement
+from songmam.models.messenger_profile import MessengerProfile, MessengerProfileProperty, MenuPerLocale
+from songmam.models.messenger_profile.persistent_menu import UserPersistentMenu
+from songmam.models.page import Page
+from songmam.models.persona import Persona, PersonaResponse, PersonaWithId, AllPerosnasResponse, PersonaDeleteResponse
+from songmam.models.send import SendResponse
+from songmam.models.user_profile import UserProfile
 
 
 class MessengerApi:
     access_token: str
     api_version: str = 'v7.0'
+
+    def __init__(self, access_token: str):
+        self.access_token = access_token
 
     @property
     def base_api_furl(self) -> furl:
@@ -22,8 +48,7 @@ class MessengerApi:
         if response.status_code != 200:
             raise Exception(response.text)
 
-        self.page = Me.parse_raw(response.text)
-
+        self.page = Page.parse_raw(response.text)
 
     async def get_user_profile(self, user: Type[ThingWithId]) -> UserProfile:
         async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
@@ -38,27 +63,26 @@ class MessengerApi:
         user_profile = UserProfile.parse_raw(response.text)
         return user_profile
 
-    def get_messenger_code(self, ref=None, image_size=1000):
-        d = {}
-        d['type'] = 'standard'
-        d['image_size'] = image_size
-        if ref:
-            d['data'] = {'ref': ref}
-
-        r = requests.post(self._api_uri("me/messenger_codes"),
-                          params={"access_token": self.access_token},
-                          json=d,
-                          headers={'Content-type': 'application/json'})
-        if r.status_code != requests.codes.ok:
-            raise Exception(r.text)
-
-        data = json.loads(r.text)
-        if 'uri' not in data:
-            raise ValueError('Could not fetch messener code : GET /' +
-                             self.api_version + '/me')
-
-        return data['uri']
-
+    # def get_messenger_code(self, ref=None, image_size=1000):
+    #     d = {}
+    #     d['type'] = 'standard'
+    #     d['image_size'] = image_size
+    #     if ref:
+    #         d['data'] = {'ref': ref}
+    #
+    #     r = requests.post(self._api_uri("me/messenger_codes"),
+    #                       params={"access_token": self.access_token},
+    #                       json=d,
+    #                       headers={'Content-type': 'application/json'})
+    #     if r.status_code != requests.codes.ok:
+    #         raise Exception(r.text)
+    #
+    #     data = json.loads(r.text)
+    #     if 'uri' not in data:
+    #         raise ValueError('Could not fetch messener code : GET /' +
+    #                          self.api_version + '/me')
+    #
+    #     return data['uri']
 
     async def send_native(self, payload: Union[CompletePayload], callback=None) -> SendResponse:
 
@@ -79,14 +103,43 @@ class MessengerApi:
             if callback_output is Awaitable:
                 await callback
 
-        if self._after_send is not None:
-            return_ = self._after_send(payload, response)
-            if return_ is Awaitable:
-                await return_
+        # if self._after_send is not None:
+        #     return_ = self._after_send(payload, response)
+        #     if return_ is Awaitable:
+        #         await return_
 
         return SendResponse.parse_raw(response.text)
 
-    async def send_receipt(self):
+    def compose_text(self, text: str, buttons: Optional[Union[AllButtonTypes, List[AllButtonTypes]]] = None,
+                     quick_replies: Optional[List[QuickReply]] = None):
+        recipient = ThingWithId.create_none()
+        if buttons:
+            if not isinstance(buttons, list):
+                buttons = [buttons]
+            payload = CompletePayload(
+                recipient=recipient,
+                message=Message(
+                    attachment=TemplateAttachment(
+                        payload=PayloadButtonTemplate(
+                            template_type='button',
+                            text=text,
+                            buttons=buttons
+                        )
+                    ),
+                    quick_replies=quick_replies
+                )
+            )
+        else:
+            payload = CompletePayload(
+                recipient=recipient,
+                message=Message(
+                    text=text,
+                    quick_replies=quick_replies
+                )
+            )
+        return payload
+
+    def send_receipt(self):
         from dataclasses import dataclass
         from typing import Optional, List
 
@@ -139,15 +192,62 @@ class MessengerApi:
 
         raise NotImplementedError
 
-    async def send_media(self):
-        raise NotImplementedError
+    def compose_media(self, media_element: MediaElement, media_sharable: Optional[bool] = None,
+                      quick_replies: Optional[List[QuickReply]] = None):
+        recipient = ThingWithId.create_none()
+        payload = CompletePayload(
+            recipient=recipient,
+            message=Message(
+                attachment=TemplateAttachment(
+                    payload=PayloadMedia(
+                        elements=[media_element],
+                        sharable=media_sharable,
+                    )
+                ),
+                quick_replies=quick_replies
+            )
+        )
+        return payload
 
-    async def send_generic(self):
-        raise NotImplementedError
+    def compose_generic(self, generic_elements: Union[GenericElement, List[GenericElement]],
+                        image_aspect_ratio: Literal["horizontal", "square"] = "square",
+                        quick_replies: Optional[List[QuickReply]] = None):
+        recipient = ThingWithId.create_none()
+        if not isinstance(generic_elements, list):
+            generic_elements = [generic_elements]
+
+        payload = CompletePayload(
+            recipient=recipient,
+            message=Message(
+                attachment=TemplateAttachment(
+                    payload=PayloadGeneric(
+                        elements=generic_elements,
+                        image_aspect_ratio=image_aspect_ratio
+                    )
+                ),
+                quick_replies=quick_replies
+            ),
+        )
+        return payload
+
+    def rehydrate_payload(self, payload: CompletePayload, recipient: Union[Sender, str],
+                          persona_id: Optional[str] = None,
+                          messaging_type: Optional[MessagingType] = MessagingType.RESPONSE,
+                          tag: Optional[MessageTag] = None,
+                          notification_type: Optional[NotificationType] = NotificationType.REGULAR):
+        if isinstance(recipient, str):
+            recipient = Sender(id=recipient)
+
+        payload.recipient = recipient
+        payload.persona_id = persona_id
+        payload.messaging_type = messaging_type
+        payload.tag = tag
+        payload.notification_type = notification_type
+        return payload
 
     async def send(self,
                    recipient: Union[Sender, str],
-                   message: Optional[str] = None,
+                   text: Optional[str] = None,
                    *,
                    buttons: Optional[Union[AllButtonTypes, List[AllButtonTypes]]] = None,
                    quick_replies: Optional[List[QuickReply]] = None,
@@ -162,130 +262,51 @@ class MessengerApi:
                    callback: Optional[callable] = None,
                    emu_type: bool = False
                    ):
-        # auto cast
-        if isinstance(recipient, str):
-            recipient = Sender(id=recipient)
 
-        if message:
-            typing_fn = partial(self.typing_on, recipient)
-            stop_fn = partial(self.typing_off, recipient)
-            if emu_type:
-                await self.bubbling.act_typing(message, typing_fn, stop_fn)
-            else:
-                if self.emu_type:
-                    await self.bubbling.act_typing(message, typing_fn, stop_fn)
+        # if text:
+        #     typing_fn = partial(self.typing_on, recipient)
+        #     stop_fn = partial(self.typing_off, recipient)
+        #     if emu_type:
+        #         await self.bubbling.act_typing(text, typing_fn, stop_fn)
+        #     else:
+        #         if self.emu_type:
+        #             await self.bubbling.act_typing(text, typing_fn, stop_fn)
 
-        # auto cast 2
-        if buttons:
-            if not isinstance(buttons, list):
-                buttons = [buttons]
-
-            payload = CompletePayload(
-                recipient=recipient,
-                message=Message(
-                    attachment=TemplateAttachment(
-                        payload=PayloadButtonTemplate(
-                            template_type='button',
-                            text=message,
-                            buttons=buttons
-                        )
-                    ),
-                    quick_replies=quick_replies
-                ),
-                persona_id=persona_id,
-                messaging_type=messaging_type,
-                tag=tag,
-                notification_type=notification_type,
-            )
-        elif generic_elements:
-            if not isinstance(generic_elements, list):
-                generic_elements = [generic_elements]
-
-            payload = CompletePayload(
-                recipient=recipient,
-                message=Message(
-                    attachment=TemplateAttachment(
-                        payload=PayloadGeneric(
-                            elements=generic_elements,
-                            image_aspect_ratio=image_aspect_ratio
-                        )
-                    ),
-                    quick_replies=quick_replies
-                ),
-                persona_id=persona_id,
-                messaging_type=messaging_type,
-                tag=tag,
-                notification_type=notification_type,
-            )
+        if generic_elements:
+            payload = self.compose_generic(generic_elements=generic_elements, image_aspect_ratio=image_aspect_ratio,
+                                           quick_replies=quick_replies)
         elif media_element:
-            payload = CompletePayload(
-                recipient=recipient,
-                message=Message(
-                    attachment=TemplateAttachment(
-                        payload=PayloadMedia(
-                            elements=[media_element],
-                            sharable=media_sharable,
-                        )
-                    ),
-                    quick_replies=quick_replies
-                ),
-                persona_id=persona_id,
-                messaging_type=messaging_type,
-                tag=tag,
-                notification_type=notification_type,
-            )
+            payload = self.compose_media(media_element=media_element, media_sharable=media_sharable,
+                                         quick_replies=quick_replies)
         else:
-            payload = CompletePayload(
-                recipient=recipient,
-                message=Message(
-                    text=message,
-                    quick_replies=quick_replies
-                ),
-                persona_id=persona_id,
-                messaging_type=messaging_type,
-                tag=tag,
-                notification_type=notification_type,
-            )
+            payload = self.compose_text(text=text, buttons=buttons, quick_replies=quick_replies)
+
+        payload = self.rehydrate_payload(payload=payload,
+                                         recipient=recipient,
+                                         persona_id=persona_id,
+                                         messaging_type=messaging_type,
+                                         tag=tag,
+                                         notification_type=notification_type)
 
         return await self.send_native(payload, callback=callback)
 
-    # def reply_sync(self, message_to_reply_to: MessageEvent, message: ContentButton, *, quick_replies=None,
-    #                metadata=None,
-    #                notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
-    #
-    #     if self.prevent_repeated_reply:
-    #         message_id = message_to_reply_to.entry.theMessaging.message.mid
-    #         if message_id not in self.reply_cache:
-    #             # good to go
-    #             self.reply_cache.set(message_id, True)
-    #         else:
-    #             logger.warning("Songmum prevented a message from being reply to the same event multiple times.")
-    #             logger.warning(message_to_reply_to)
-    #             return
-    #
-    #     return self.send_native_sync(
-    #         CompletePayload(
-    #             recipient=message_to_reply_to.sender,
-    #             message=message.message
-    #         ), callback_sync=callback)
-    #
-    # async def reply(self, message_to_reply_to: MessageEvent, message, *, quick_replies=None, metadata=None,
+    # async def reply(self, message_to_reply_to: MessageEvent, text, *, quick_replies=None, metadata=None,
     #                 notification_type=None, tag: Optional[MessageTag] = None, callback: Optional[callable] = None):
     #
     #     if self.prevent_repeated_reply:
-    #         message_id = message_to_reply_to.entry.theMessaging.message.mid
+    #         message_id = message_to_reply_to.entry.theMessaging.text.mid
     #         if message_id not in self.reply_cache:
     #             # good to go
     #             self.reply_cache.set(message_id, True)
     #         else:
-    #             logger.warning("Songmum prevented a message from being reply to the same event multiple times.")
+    #             logger.warning("Songmum prevented a text from being reply to the same entry multiple times.")
     #             logger.warning(message_to_reply_to)
     #             return
     #
     #     return await self.send_native(
     #         CompletePayload(
     #             recipient=message_to_reply_to.sender,
-    #             message=message.message
+    #             text=text.text
     #         ),
     #         callback=callback
     #     )
@@ -294,7 +315,7 @@ class MessengerApi:
         payload = SenderActionPayload(recipient=recipient,
                                       sender_action=SenderAction.TYPING_ON)
 
-        return await self.send(payload)
+        return await self.send_native(payload)
 
     async def typing_off(self, recipient: Type[ThingWithId]):
         payload = SenderActionPayload(recipient=recipient,
@@ -308,95 +329,100 @@ class MessengerApi:
 
         return await self.send_native(payload)
 
+    async def typing_for(self, seconds: float, recipient: Type[ThingWithId]):
+        await self.typing_on(recipient)
+        await asyncio.sleep(seconds)
+        await self.typing_off(recipient)
+
     """
     messenger profile (see https://developers.facebook.com/docs/messenger-platform/reference/messenger-profile-api)
     """
 
-    def _set_profile_property_sync(self, data: MessengerProfile):
+    async def set_messenger_profile(self, data: MessengerProfile):
 
-        f_url = self.base_api_furl / "me" / "messenger_profile"
-        r = requests.post(f_url.url,
-                          params={"access_token": self.access_token},
-                          data=data.json(exclude_none=True),
-                          headers={'Content-type': 'application/json'})
+        data = data.json(exclude_none=True)
+        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
+                                     params={"access_token": self.access_token}) as client:
+            response = await client.post(
+                "/me/messenger_profile",
+                data=data,
+            )
+        # r = requests.post(f_url.url,
+        #                   params={"access_token": self.access_token},
+        #                   data=data.json(exclude_none=True),
+        #                   headers={'Content-type': 'application/json'})
 
-        if r.status_code != requests.codes.ok:
-            raise Exception(r.text)
+        if response.status_code != 200:
+            raise Exception(response.text)
 
-    def _del_profile_property_sync(self, properties: Set[MessengerProfileProperty]):
-        f_url = self.base_api_furl / "me" / "messenger_profile"
-        r = requests.delete(f_url.url,
-                            params={"access_token": self.access_token},
-                            data=json.dumps({
-                                'fields': [p.value for p in properties]
-                            }),
-                            headers={'Content-type': 'application/json'})
+    async def delete_messenger_profile(self, properties: Set[MessengerProfileProperty]):
+        data = json.dumps({'fields': [p.value for p in properties]})
+        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
+                                     params={"access_token": self.access_token}) as client:
+            response = await client.request(
+                "DELETE",
+                "/me/messenger_profile",
+                data=data,
+            )
 
-        if r.status_code != requests.codes.ok:
-            logger.error("Facebook Server replied" + r.text)
-            raise Exception(r.text)
+        if response.status_code != 200:
+            raise Exception(response.text)
 
     """
     Custom User Settings
     """
 
-    def get_user_settings(self, user_id: str):
-        f_url = self.base_api_furl / 'me' / 'custom_user_settings'
-        params = {
-            "access_token": self.access_token,
-            "psid": user_id
-        }
-        r = requests.get(f_url.url,
-                         params=params)
+    async def get_user_settings(self, user_id: str):
 
-        if r.status_code != requests.codes.ok:
-            raise Exception(r.text)
+        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
+                                     params={"access_token": self.access_token, "psid": user_id}) as client:
+            response = await client.get(
+                'me/custom_user_settings',
+            )
 
-        # TODO: create object for this GET Request https://developers.facebook.com/docs/messenger-platform/send-messages/persistent-menu
-        return r.json()
+        if response.status_code != 200:
+            raise Exception(response.text)
 
-    def set_user_menu(self, user: Union[str, Type[ThingWithId]], menus: List[MenuPerLocale]):
+        # TODO: create object for this GET Request
+        #  https://developers.facebook.com/docs/messenger-platform/send-messages/persistent-menu
+        return response.json()
+
+    async def set_user_menu(self, user: Union[str, Type[ThingWithId]], menus: List[MenuPerLocale]):
         if isinstance(user, str):
             user = ThingWithId(id=user)
 
         if isinstance(menus, MenuPerLocale):
             menus = [menus]
 
-        f_url = self.base_api_furl / 'me' / 'custom_user_settings'
-        r = requests.post(f_url.url,
-                          params={"access_token": self.access_token},
-                          data=UserPersistentMenu(
-                              psid=user.id,
-                              persistent_menu=menus
-                          ).json(),
-                          headers={'Content-type': 'application/json'})
+        data = UserPersistentMenu(psid=user.id, persistent_menu=menus).json()
 
-        if r.status_code != requests.codes.ok:
-            raise Exception(r.text)
+        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
+                                     params={"access_token": self.access_token}) as client:
+            response = await client.post(
+                'me/custom_user_settings',
+                data=data
+            )
 
-    def _set_user_menu(self, payload: UserPersistentMenu):
-        f_url = self.base_api_furl / 'me' / 'custom_user_settings'
-        r = requests.post(f_url.url,
-                          params={"access_token": self.access_token},
-                          data=payload.json(),
-                          headers={'Content-type': 'application/json'})
+        if response.status_code != 200:
+            raise Exception(response.text)
 
-        if r.status_code != requests.codes.ok:
-            raise Exception(r.text)
-
-    def delete_user_menu(self, user_id: str):
-        f_url = self.base_api_furl / 'me' / 'custom_user_settings'
-
+    async def delete_user_menu(self, user_id: str):
         params = {
             "access_token": self.access_token,
             "psid": user_id,
             "params": "[%22persistent_menu%22]"
         }
-        r = requests.delete(f_url.url,
-                            params=params)
 
-        if r.status_code != requests.codes.ok:
-            raise Exception(r.text)
+        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
+                                     params=params) as client:
+            response = await client.delete(
+                'me/custom_user_settings',
+            )
+
+        if response.status_code != 200:
+            raise Exception(response.text)
+
+        return response.json()
 
     async def create_persona(self, persona: Persona) -> PersonaResponse:
         data = persona.json()

@@ -1,8 +1,9 @@
 from typing import Optional, Literal
 
-from pydantic import BaseModel
+from pydantic import BaseModel, conlist
 
-from songmam.models.entries.base import WithTimestamp
+from songmam.models.webhook.events.base import WithTimestamp, BaseEvent, BaseMessaging, WithMessaging
+
 
 class Referral(BaseModel):
     ref: str
@@ -12,12 +13,18 @@ class Referral(BaseModel):
     referer_uri: Optional[str]
 
 
-class ReferralEntry(WithTimestamp):
+class ReferralMessaging(BaseMessaging, WithTimestamp):
     referral: Referral
 
     def __getattr__(self, item):
         return getattr(self.referral, item)
 
+class MessagingReferralEvent(BaseEvent, WithMessaging):
+    messaging: conlist(ReferralMessaging, min_items=1, max_items=1)
+
+    @property
+    def ref(self):
+        return self.theMessaging.ref
 
 # {
 #     "recipient": {

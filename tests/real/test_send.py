@@ -1,7 +1,7 @@
 import pytest
 
 from songmam.api.content import ContentButton, ContentGeneric, ContentMedia, ContentReceipt
-from songmam.models.entries.messages import Sender
+from songmam.models.webhook.events.messages import Sender
 from songmam.models.messaging.templates import Address, Summary, Adjustments, ReceiptElements
 from songmam.models.messaging.templates.button import URLButton, PostbackButton, CallButton, LogInButton, LogOutButton
 from songmam.models.messaging.templates.generic import DefaultAction, GenericElement

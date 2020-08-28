@@ -1,10 +1,10 @@
-from typing import Literal, Optional, List
+from typing import Literal, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, conlist
 
-from songmam.models.entries.base import WithTimestamp
-from songmam.models.entries.echo import Message
-from songmam.models.entries.messages import MessageEntry, Messaging
+from songmam.models.webhook.events.base import BaseEvent, WithMessaging
+from songmam.models.webhook.events.echo import Message
+from songmam.models.webhook.events.messages import MessagesEvent, MessageMessaging
 
 
 class PostbackReferral(BaseModel):
@@ -17,14 +17,18 @@ class Postback(BaseModel):
     payload: str
     referral: Optional[PostbackReferral]
 
-class PostbackMessaging(Messaging):
+class PostbackMessageMessaging(MessageMessaging):
     message: Optional[Message]
     postback: Postback
 
-class PostbackEntry(MessageEntry):
-    # message: Optional[Message]
-    messaging: List[PostbackMessaging]
-    # postback: Optional[Postback]
+class PostbackEntry(BaseEvent, WithMessaging):
+    messaging: conlist(PostbackMessageMessaging, min_items=1, max_items=1)
+
+
+    @property
+    def payload(self):
+        postback: Postback = self.theMessaging.postback
+        return postback.payload
 
 # {
 #   "recipient":{

@@ -2,12 +2,12 @@
 Payload is final data  form ready to use with request api
 """
 from enum import auto
-from typing import List, Union, Optional, Any
+from typing import Union, Optional, Any
 
-from pydantic import BaseModel, validator, conlist
+from pydantic import BaseModel, conlist
 
 from songmam.models import ThingWithId
-from songmam.models.entries.messages import Sender
+from songmam.models.webhook.events.messages import Sender
 from songmam.models.messaging.message_tags import MessageTag
 from songmam.models.messaging.messaging_type import MessagingType
 from songmam.models.messaging.notification_type import NotificationType
@@ -40,10 +40,10 @@ class SendingQuickRepliesEntry(CompletePayload):
 
 
 
-from autoname import AutoNameLower
+from autoname import AutoNameLowercase
 
 
-class SenderAction(AutoNameLower):
+class SenderAction(AutoNameLowercase):
     """https://developers.facebook.com/docs/messenger-platform/send-messages/sender-actions"""
     TYPING_ON = auto()
     TYPING_OFF = auto()

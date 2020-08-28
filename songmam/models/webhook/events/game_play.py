@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 
-from songmam.models.entries.base import WithTimestamp
+from songmam.models.webhook.events.base import WithTimestamp
 
 
 class GamePlay(BaseModel):
@@ -11,7 +11,7 @@ class GamePlay(BaseModel):
     score: int
     payload: str
 
-class GamePlayEntries(WithTimestamp):
+class GamePlayEntries(BaseMessaging, WithTimestamp):
     game_play: GamePlay
 
 # {

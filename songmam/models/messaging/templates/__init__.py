@@ -1,8 +1,8 @@
-from typing import Literal, Union, List, Optional, Type, Any
+from typing import Literal, Union, List, Optional
 
-from pydantic import BaseModel, root_validator, conlist
+from pydantic import BaseModel
 
-from songmam.models.entries.message.attachment import Attachment as Attachment_
+from songmam.models.webhook.events.message.attachment import Attachment as Attachment_
 from songmam.models.messaging.quick_replies import QuickReply
 from songmam.models.messaging.templates.button import AllButtonTypes, PayloadButtonTemplate
 from songmam.models.messaging.templates.generic import PayloadGeneric

@@ -11,7 +11,7 @@ class TestEvents(unittest.TestCase):
                 "id":"PAGE_ID"
               },
               "timestamp":1458692752478,
-              "message":{
+              "text":{
                 "mid":"mid.1457764197618:41d102a3e1ae206a38",
                 "text":"hello, world!",
                 "quick_reply": {
@@ -36,7 +36,7 @@ class TestEvents(unittest.TestCase):
                 "id":"PAGE_ID"
               },
               "timestamp":1458692752478,
-              "message":{
+              "text":{
                 "mid":"mid.1458696618141:b4ef9d19ec21086067",
                 "attachments":[
                   {
@@ -138,7 +138,7 @@ class TestEvents(unittest.TestCase):
                 "id": "PAGE_ID"
             },
             "timestamp": 1457764197627,
-            "message": {
+            "text": {
                 "is_echo": True,
                 "app_id": 1517776481860111,
                 "metadata": "<DEVELOPER_DEFINED_METADATA_STRING>",

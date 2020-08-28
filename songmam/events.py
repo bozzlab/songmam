@@ -1,14 +1,14 @@
 # import json
 #
-# from songmam.models.entries.base import BaseMessaging
-# from songmam.models.entries.deliveries import DeliveriesEntry
-# from songmam.models.entries.messages import MessageEntry
-# from songmam.models.entries.postback import PostbackEntry
-# from songmam.models.entries.referral import ReferralEntry
+# from songmam.models.events.base import BaseMessaging
+# from songmam.models.events.deliveries import MessageDeliveriesEvent
+# from songmam.models.events.messages import MessagesEvent
+# from songmam.models.events.postback import PostbackEntry
+# from songmam.models.events.referral import ReferralMessaging
 #
 #
 # class Event:
-#     entry: MessageEntry
+#     entry: MessagesEvent
 #
 #     def __init__(self, entry):
 #         self.entry = entry
@@ -21,11 +21,11 @@
 #
 #
 # class MessageEvent(Event):
-#     entry: MessageEntry
+#     entry: MessagesEvent
 #
 #     @property
 #     def is_quick_reply(self):
-#         if self.entry.theMessaging.message.quick_reply:
+#         if self.entry.theMessaging.text.quick_reply:
 #             return True
 #         else:
 #             return False
@@ -33,13 +33,13 @@
 #     def __init__(self, entry):
 #         super(MessageEvent, self).__init__(entry)
 #
-#         self.name = 'message'
-#         # self.message = self.entry.theMessaging.message
-#         self.text = self.entry.theMessaging.message.text
-#         self.message_id = self.entry.theMessaging.message.mid
-#         self.quick_reply = self.entry.theMessaging.message.quick_reply
-#         self.reply_to = self.entry.theMessaging.message.reply_to
-#         self.attachments = self.entry.theMessaging.message.attachments
+#         self.name = 'text'
+#         # self.text = self.entry.theMessaging.text
+#         self.text = self.entry.theMessaging.text.text
+#         self.message_id = self.entry.theMessaging.text.mid
+#         self.quick_reply = self.entry.theMessaging.text.quick_reply
+#         self.reply_to = self.entry.theMessaging.text.reply_to
+#         self.attachments = self.entry.theMessaging.text.attachments
 #
 #         if self.quick_reply:
 #             self.payload = self.quick_reply.payload
@@ -57,42 +57,42 @@
 #
 #
 #
-# class DeliveriesEvent(Event):
-#     entry: DeliveriesEntry
+# class MessageDeliveriesEvent(Event):
+#     entry: MessageDeliveriesEvent
 #
-#     def __init__(self, entry: DeliveriesEntry):
-#         super(DeliveriesEvent, self).__init__(entry)
+#     def __init__(self, entry: MessageDeliveriesEvent):
+#         super(MessageDeliveriesEvent, self).__init__(entry)
 #
 #         self.mids = self.entry.theMessaging.delivery.mids
 #         self.watermark = self.entry.theMessaging.delivery.watermark
 #
 #
 # class EchoEvent(Event):
-#     def __init__(self, message, **kwargs):
+#     def __init__(self, text, **kwargs):
 #         super(EchoEvent, self).__init__(**kwargs)
 #
 #         self.name = 'echo'
-#         self.message = message
+#         self.text = text
 #
 #     @property
 #     def mid(self):
-#         return self.message.get('mid')
+#         return self.text.get('mid')
 #
 #     @property
 #     def app_id(self):
-#         return self.message.get('app_id')
+#         return self.text.get('app_id')
 #
 #     @property
 #     def metadata(self):
-#         return self.message.get('metadata')
+#         return self.text.get('metadata')
 #
 #     @property
 #     def text(self):
-#         return self.message.get('text')
+#         return self.text.get('text')
 #
 #     @property
 #     def attachments(self):
-#         return self.message.get('attachments')
+#         return self.text.get('attachments')
 #
 #
 # class ReadEvent(Event):
@@ -251,11 +251,11 @@
 #         return self.policy_enforcement.get('reason')
 #
 #
-# class ReferralEvent(Event):
-#     entry: ReferralEntry
+# class MessagingReferralEvent(Event):
+#     entry: ReferralMessaging
 #
 #     def __init__(self, entry):
-#         super(ReferralEvent, self).__init__(entry)
+#         super(MessagingReferralEvent, self).__init__(entry)
 #         self.referral = self.entry.referral
 #
 #     # @property

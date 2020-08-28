@@ -1,29 +1,55 @@
-from typing import Optional
+import importlib
+import re
 
-from fastapi import FastAPI
+from path import Path
+from typing import Optional, Union, List
+
+from fastapi import FastAPI, Request
 from loguru import logger
+from parse import parse
+from pydantic import ValidationError
 
 from songmam.middleware import VerifyTokenMiddleware, AppSecretMiddleware
+from songmam.models.webhook.events.messages import MessagesEvent
+from songmam.models.webhook.events.postback import PostbackEntry
+from songmam.models.webhook import Webhook
 
 
 class WebhookHandler:
     verify_token: Optional[str] = None
     app_secret: Optional[str] = None
 
-    def __init__(self,app: FastAPI, app_secret: Optional[str] = None, verify_token: Optional[str] = None, *, auto_mark_as_seen: bool = True):
+    def __init__(self, app: FastAPI, path="/", *, postback_dir: Optional[Path] = None, app_secret: Optional[str] = None,
+                 verify_token: Optional[str] = None, auto_mark_as_seen: bool = True):
+        self._post_webhook_handlers = {}
+        self._pre_webhook_handlers = {}
         self.app = app
         self.verify_token = verify_token
         self.app_secret = app_secret
+        self.path = path
+        self.postback_dir = postback_dir
 
-        if self.verify_token:
-            app.add_middleware(VerifyTokenMiddleware, verify_token=verify_token)
-        else:
-            logger.warning("Without verify token, It is possible for your bot server to be substituded by hackers' server.")
+        app.add_middleware(VerifyTokenMiddleware, verify_token=verify_token, path=path)
+        if not self.verify_token:
+            logger.warning(
+                "Without verify token, It is possible for your bot server to be substituded by hackers' server.")
+
         if self.app_secret:
-            app.add_middleware(AppSecretMiddleware, app_secret=app_secret)
+            app.add_middleware(AppSecretMiddleware, app_secret=app_secret, path=path)
         else:
             logger.warning("Without app secret, The server will not be able to identity the integrety of callback.")
 
+        @app.post(path)
+        async def handle_entry(request: Request):
+            body = await request.body()
+            try:
+                webhook = Webhook.parse_raw(body)
+            except ValidationError as e:
+                logger.error("Cannot validate webhook")
+                raise e
+                return "ok"
+            await self.handle_webhook(webhook)
+            return "ok"
 
     # these are set by decorators or the 'set_webhook_handler' method
     _webhook_handlers = {}
@@ -36,138 +62,106 @@ class WebhookHandler:
     _button_callbacks_key_regex = {}
     _delivered_callbacks_key_regex = {}
 
-    _after_send = None
-
-
-    async def handle_webhook(self, webhook: Webhook, request: Request):
-
+    async def handle_webhook(self, webhook: Webhook, *args, **kwargs):
         for entry in webhook.entry:
             entry_type = type(entry)
             handler = self._webhook_handlers.get(entry_type)
-            eventConstructor = self._entryCaster.get(entry_type)
             if handler:
-                event = eventConstructor(entry)
-
-                if entry_type is MessageEntry:
-                    if self.auto_mark_as_seen:
-                        await self.mark_seen(event.sender)
-
-                    if event.is_quick_reply:
-                        matched_callbacks = self.get_quick_reply_callbacks(event)
-                        for callback in matched_callbacks:
-                            await callback(event, request)
-
-                elif entry_type is PostbackEntry:
-                    matched_callbacks = self.get_postback_callbacks(event)
-                    for callback in matched_callbacks:
-                        await callback(event, request)
-                elif entry_type is ReferralEntry:
-                    pass
-
-                elif entry_type is DeliveriesEntry:
-                    pass
-
-                await handler(event, request)
+                await handler(entry, *args, **kwargs)
             else:
                 logger.warning("there's no handler for entry type", entry_type)
 
-    """
-    handlers and decorations
-    """
+            if entry_type is MessagesEvent:
+                if entry.is_quick_reply:
+                    if self.postback_dir:
+                        await self.handle_postback(entry, *args, **kwargs)
+                        continue
+                    else:
+                        matched_callbacks = self.get_quick_reply_callbacks(entry)
+                        for callback in matched_callbacks:
+                            await callback(entry, *args, **kwargs)
+            elif entry_type is PostbackEntry:
+                await self.handle_postback(entry, *args, **kwargs)
+                continue
+                # matched_callbacks = self.get_postback_callbacks(entry)
+                # for callback in matched_callbacks:
+                #     await callback(entry, *args, **kwargs)
 
-    def set_webhook_handler(self, entry_type, callback):
+    async def handle_postback(self, entry: Union[MessagesEvent, PostbackEntry], *args, **kwargs):
+        payload = entry.payload
+        parsed = parse("{import_path}:{function_name}", payload)
+        import_path = parsed['import_path']
+        function_name = parsed['function_name']
+
+        try:
+            with self.path:
+                module = importlib.import_module(import_path)
+                function = getattr(module, function_name)
+                function(entry, *args, **kwargs)
+        except Exception as e:
+            if self.uncaught_postback_handler:
+                self.uncaught_postback_handler(entry, *args, **kwargs)
+            else:
+                raise e
+
+    def add_pre(self, entry_type):
         """
-        Allows adding a webhook_handler as an alternative to the decorators
-        """
-        # scope = scope.lower()
-        #
-        # if scope == 'after_send':
-        #     self._after_send = callback
-        #     return
-
-        self._webhook_handlers[entry_type] = callback
-
-    def add(self, callback, *, entry_type):
-        """
-        Allows adding a webhook_handler as an alternative to the decorators
+        Add an unconditional event handler
         """
 
-        self._webhook_handlers[entry_type] = callback
+        def decorator(func):
+            self._pre_webhook_handlers[entry_type] = func
+            # if isinstance(text, (list, tuple)):
+            #     for it in text:
+            #         self.__add_handler(func, entry, text=it)
+            # else:
+            #     self.__add_handler(func, entry, text=text)
 
-    def handle_optin(self, func):
-        self._webhook_handlers['optin'] = func
+            return func
 
-    def handle_message_sync(self, func: callable):
-        self._webhook_handlers_sync[MessageEntry] = func
+        return decorator
 
-    def handle_message(self, func: callable):
-        self._webhook_handlers[MessageEntry] = func
+    def add(self, entry_type):
+        """
+        Add an unconditional event handler
+        """
 
-    def handle_echo_sync(self, func: callable):
-        self._webhook_handlers_sync[EchoEntry] = func
+        def decorator(func):
+            self._webhook_handlers[entry_type] = func
+            # if isinstance(text, (list, tuple)):
+            #     for it in text:
+            #         self.__add_handler(func, entry, text=it)
+            # else:
+            #     self.__add_handler(func, entry, text=text)
 
-    def handle_echo(self, func: callable):
-        self._webhook_handlers[EchoEntry] = func
+            return func
 
-    def handle_delivery(self, func):
-        self._webhook_handlers[DeliveriesEntry] = func
+        return decorator
 
-    def handle_postback_sync(self, func):
-        self._webhook_handlers_sync[PostbackEntry] = func
+    def add_post(self, entry_type):
+        """
+        Add an unconditional post event handler
+        """
 
-    def handle_postback(self, func):
-        self._webhook_handlers[PostbackEntry] = func
+        def decorator(func):
+            self._post_webhook_handlers[entry_type] = func
+            # if isinstance(text, (list, tuple)):
+            #     for it in text:
+            #         self.__add_handler(func, entry, text=it)
+            # else:
+            #     self.__add_handler(func, entry, text=text)
 
-    # def handle_read(self, func):
-    #     self._webhook_handlers['read'] = func
-    #
-    # def handle_account_linking(self, func):
-    #     self._webhook_handlers['account_linking'] = func
+            return func
 
-    # def handle_referral_sync(self, func):
-    #     self._webhook_handlers_sync['referral'] = func
+        return decorator
 
-    def handle_referral(self, func):
-        self._webhook_handlers[ReferralEntry] = func
-
-    #
-    # def handle_game_play(self, func):
-    #     self._webhook_handlers['game_play'] = func
-    #
-    # def handle_pass_thread_control(self, func):
-    #     self._webhook_handlers['pass_thread_control'] = func
-    #
-    # def handle_take_thread_control(self, func):
-    #     self._webhook_handlers['take_thread_control'] = func
-    #
-    # def handle_request_thread_control(self, func):
-    #     self._webhook_handlers['request_thread_control'] = func
-    #
-    # def handle_app_roles(self, func):
-    #     self._webhook_handlers['app_roles'] = func
-    #
-    # def handle_policy_enforcement(self, func):
-    #     self._webhook_handlers['policy_enforcement'] = func
-    #
-    # def handle_checkout_update(self, func):
-    #     self._webhook_handlers['checkout_update'] = func
-    #
-    # def handle_payment(self, func):
-    #     self._webhook_handlers['payment'] = func
-    #
-    # def handle_standby(self, func):
-    #     self._webhook_handlers['standby'] = func
-
-    def after_send(self, func):
-        self._after_send = func
-
-    def callback(self, payloads=None, quick_reply=True, button=True):
+    def add_postback_handler(self, regexes: List[str] = None, quick_reply=True, button=True):
 
         def wrapper(func):
-            if payloads is None:
+            if regexes is None:
                 return func
 
-            for payload in payloads:
+            for payload in regexes:
                 if quick_reply:
                     self._quick_reply_callbacks[payload] = func
                 if button:
@@ -177,24 +171,28 @@ class WebhookHandler:
 
         return wrapper
 
-    def get_quick_reply_callbacks(self, event: MessageEvent):
+    def set_uncaught_postback_handler(self, func):
+        self.uncaught_postback_handler = func
+        return func
+
+    def get_quick_reply_callbacks(self, entry: MessagesEvent):
         callbacks = []
         for key in self._quick_reply_callbacks.keys():
             if key not in self._quick_reply_callbacks_key_regex:
                 self._quick_reply_callbacks_key_regex[key] = re.compile(key + '$')
 
-            if self._quick_reply_callbacks_key_regex[key].match(event.quick_reply.payload):
+            if self._quick_reply_callbacks_key_regex[key].match(entry.payload):
                 callbacks.append(self._quick_reply_callbacks[key])
 
         return callbacks
 
-    def get_postback_callbacks(self, event: PostBackEvent):
+    def get_postback_callbacks(self, entry: PostbackEntry):
         callbacks = []
         for key in self._button_callbacks.keys():
             if key not in self._button_callbacks_key_regex:
                 self._button_callbacks_key_regex[key] = re.compile(key + '$')
 
-            if self._button_callbacks_key_regex[key].match(event.payload):
+            if self._button_callbacks_key_regex[key].match(entry.payload):
                 callbacks.append(self._button_callbacks[key])
 
         return callbacks

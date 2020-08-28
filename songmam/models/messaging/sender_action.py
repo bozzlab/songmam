@@ -1,9 +1,9 @@
 from enum import auto
 
-from autoname import AutoNameLower
+from autoname import AutoNameLowercase
 
 
-class SenderAction(AutoNameLower):
+class SenderAction(AutoNameLowercase):
     """https://developers.facebook.com/docs/messenger-platform/send-messages/sender-actions"""
     TYPING_ON = auto()
     TYPING_OFF = auto()

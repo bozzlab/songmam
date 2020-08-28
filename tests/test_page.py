@@ -4,7 +4,7 @@ import mock
 import responses
 from songmam.page import Page, LocalizedObj, SUPPORTED_API_VERS
 from songmam import template as Template
-from songmam.models import entries as Event
+from songmam.models.webhook import events as Event
 
 
 class MessengerAPIMock():
@@ -86,7 +86,7 @@ class PageTest(unittest.TestCase):
 
     def test_send(self):
         self.page.send_sync(12345, "hello world", quick_replies=[{'title': 'Yes', 'payload': 'YES'}], callback=1)
-        self.page.send_native_sync.assert_called_once_with('{"message": {"attachment": null, "metadata": null, '
+        self.page.send_native_sync.assert_called_once_with('{"text": {"attachment": null, "metadata": null, '
                                                 '"quick_replies": '
                                                 '[{"content_type": "text", "payload": "YES", "title": "Yes"}], '
                                                 '"text": "hello world"},'
@@ -97,28 +97,28 @@ class PageTest(unittest.TestCase):
 
     def test_typingon(self):
         self.page.typing_on_sync(1004)
-        self.page.send_native_sync.assert_called_once_with('{"message": null, "notification_type": null, '
+        self.page.send_native_sync.assert_called_once_with('{"text": null, "notification_type": null, '
                                                 '"recipient": {"id": 1004}, '
                                                 '"sender_action": "typing_on", '
                                                 '"tag": null}')
 
     def test_typingoff(self):
         self.page.typing_off_sync(1004)
-        self.page.send_native_sync.assert_called_once_with('{"message": null, "notification_type": null, '
+        self.page.send_native_sync.assert_called_once_with('{"text": null, "notification_type": null, '
                                                 '"recipient": {"id": 1004}, '
                                                 '"sender_action": "typing_off", '
                                                 '"tag": null}')
 
     def test_markseen(self):
         self.page.mark_seen_sync(1004)
-        self.page.send_native_sync.assert_called_once_with('{"message": null, "notification_type": null, '
+        self.page.send_native_sync.assert_called_once_with('{"text": null, "notification_type": null, '
                                                 '"recipient": {"id": 1004}, '
                                                 '"sender_action": "mark_seen", '
                                                 '"tag": null}')
 
     def test_tag(self):
         self.page.send_sync(12345, "hello world", quick_replies=[{'title': 'Yes', 'payload': 'YES'}], tag="PAIRING_UPDATE", callback=1)
-        self.page.send_native_sync.assert_called_once_with('{"message": {"attachment": null, "metadata": null, '
+        self.page.send_native_sync.assert_called_once_with('{"text": {"attachment": null, "metadata": null, '
                                                 '"quick_replies": '
                                                 '[{"content_type": "text", "payload": "YES", "title": "Yes"}], '
                                                 '"text": "hello world"},'
@@ -135,7 +135,7 @@ class PageTest(unittest.TestCase):
                 {"id":"1691462197845448","time":1472026867114,
                 "messaging":[
                     {"recipient":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472026867080,
-                     "message":{"mid":"mid.1472026867074:cfb5e1d4bde07a2a55","seq":812,"text":"hello world"}}
+                     "text":{"mid":"mid.1472026867074:cfb5e1d4bde07a2a55","seq":812,"text":"hello world"}}
                 ]}
             ]
         }
@@ -157,7 +157,7 @@ class PageTest(unittest.TestCase):
 
         self.page.handle_webhook(payload)
 
-        @self.page.callback
+        @self.page.add_postback_handler
         def unknown():
             pass
 
@@ -182,11 +182,11 @@ class PageTest(unittest.TestCase):
         with self.assertRaises(ValueError):
             self.page.set_webhook_handler("shouldfail", dummy_func)
 
-        self.page.set_webhook_handler("message", dummy_func)
-        self.assertEqual(self.page._webhook_handlers["message"], dummy_func)
+        self.page.set_webhook_handler("text", dummy_func)
+        self.assertEqual(self.page._webhook_handlers["text"], dummy_func)
 
         # clean up
-        self.page._webhook_handlers["message"] = None
+        self.page._webhook_handlers["text"] = None
 
     def test_handle_webhook_message(self):
         payload = """
@@ -196,7 +196,7 @@ class PageTest(unittest.TestCase):
                 {"id":"1691462197845448","time":1472026867114,
                 "messaging":[
                     {"recipient":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472026867080,
-                     "message":{"mid":"mid.1472026867074:cfb5e1d4bde07a2a55","seq":812,"text":"hello world"}}
+                     "text":{"mid":"mid.1472026867074:cfb5e1d4bde07a2a55","seq":812,"text":"hello world"}}
                 ]}
             ]
         }
@@ -207,7 +207,7 @@ class PageTest(unittest.TestCase):
         @self.page.handle_message
         def handler1(event):
             self.assertTrue(event, Event.MessageEvent)
-            self.assertEqual(event.name, 'message')
+            self.assertEqual(event.name, 'text')
             self.assertEqual(event.attachments, [])
             self.assertFalse(event.is_quick_reply)
             self.assertEquals(event.timestamp, 1472026867080)
@@ -264,7 +264,7 @@ class PageTest(unittest.TestCase):
         {"object":"page","entry":[{"id":"1691462197845448","time":1472026869143,
         "messaging":[{
             "recipient":{"id":"1691462197845448"},"recipient":{"id":"1134343043305865"},"timestamp":1472026868763,
-            "message":{"is_echo":true,"app_id":950864918368986,"mid":"mid.1472026868734:832ecbdfc1ffc30139","seq":813,
+            "text":{"is_echo":true,"app_id":950864918368986,"mid":"mid.1472026868734:832ecbdfc1ffc30139","seq":813,
             "text":"hello"}}]
         }]}
         """
@@ -304,7 +304,7 @@ class PageTest(unittest.TestCase):
 
         @self.page.handle_delivery
         def handler1(event):
-            self.assertTrue(isinstance(event, Event.DeliveriesEvent))
+            self.assertTrue(isinstance(event, Event.MessageDeliveriesEvent))
             self.assertEqual(event.name, 'delivery')
             self.assertEqual(event.mids, ["mid.1472028395154:917e24ea99bc7d8f11"])
             self.assertEqual(event.watermark, 1472028395190)
@@ -368,7 +368,7 @@ class PageTest(unittest.TestCase):
 
         @self.page.handle_referral
         def handler1(event):
-            self.assertTrue(isinstance(event, Event.ReferralEvent))
+            self.assertTrue(isinstance(event, Event.MessagingReferralEvent))
             self.assertEqual(event.name, 'referral')
             self.assertEqual(event.source, 'SHORTLINK')
             self.assertEqual(event.type, 'OPEN_THREAD')
@@ -875,7 +875,7 @@ class PageTest(unittest.TestCase):
             self.assertEquals(event.recipient_id, '1691462197845448')
             counter1()
 
-        @self.page.callback(['DEVELOPED_DEFINED_PAYLOAD'], types=['POSTBACK'])
+        @self.page.add_postback_handler(['DEVELOPED_DEFINED_PAYLOAD'], types=['POSTBACK'])
         def button_callback(payload, event):
             counter2()
 
@@ -900,7 +900,7 @@ class PageTest(unittest.TestCase):
         {"object":"page","entry":[{"id":"1691462197845448","time":1472028637866,
         "messaging":[{
             "recipient":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028637825,
-            "message":{"quick_reply":{"payload":"PICK_ACTION"},"mid":"mid.1472028637817:ae2763cc036a664b43","seq":834,"text":"Action"}}]}]}
+            "text":{"quick_reply":{"payload":"PICK_ACTION"},"mid":"mid.1472028637817:ae2763cc036a664b43","seq":834,"text":"Action"}}]}]}
         """
         counter1 = mock.MagicMock()
         counter2 = mock.MagicMock()
@@ -908,7 +908,7 @@ class PageTest(unittest.TestCase):
         @self.page.handle_message
         def handler1(event):
             self.assertTrue(isinstance(event, Event.MessageEvent))
-            self.assertEqual(event.name, 'message')
+            self.assertEqual(event.name, 'text')
             self.assertTrue(event.is_quick_reply)
             self.assertEquals(event.text, 'Action')
             self.assertEquals(event.timestamp, 1472028637825)
@@ -916,7 +916,7 @@ class PageTest(unittest.TestCase):
             self.assertEquals(event.recipient_id, '1691462197845448')
             counter1()
 
-        @self.page.callback(['PICK_ACTION'], types=['QUICK_REPLY'])
+        @self.page.add_postback_handler(['PICK_ACTION'], types=['QUICK_REPLY'])
         def button_callback(payload, event):
             counter2()
 
@@ -929,7 +929,7 @@ class PageTest(unittest.TestCase):
         {"object":"page","entry":[{"id":"1691462197845448","time":1472028637866,
         "messaging":[{
             "recipient":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028637825,
-            "message":{"quick_reply":{"payload":"PICK_COMEDY"},"mid":"mid.1472028637817:ae2763cc036a664b43","seq":834,"text":"Action"}}]}]}
+            "text":{"quick_reply":{"payload":"PICK_COMEDY"},"mid":"mid.1472028637817:ae2763cc036a664b43","seq":834,"text":"Action"}}]}]}
         """
         self.page.handle_webhook(payload, postback=handler1)
         self.assertEquals(2, counter1.call_count)
@@ -940,12 +940,12 @@ class PageTest(unittest.TestCase):
         {"object":"page","entry":[{"id":"1691462197845448","time":1472028637866,
         "messaging":[{
             "recipient":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028637825,
-            "message":{"quick_reply":{"payload":"ACTION/1"},"mid":"mid.1472028637817:ae2763cc036a664b43","seq":834,"text":"Action"}}]}]}
+            "text":{"quick_reply":{"payload":"ACTION/1"},"mid":"mid.1472028637817:ae2763cc036a664b43","seq":834,"text":"Action"}}]}]}
         """
 
         counter1 = mock.MagicMock()
 
-        @self.page.callback(['ACTION'], types=['QUICK_REPLY'])
+        @self.page.add_postback_handler(['ACTION'], types=['QUICK_REPLY'])
         def callback(payload, event):
             counter1()
 
@@ -953,7 +953,7 @@ class PageTest(unittest.TestCase):
 
         self.assertEquals(0, counter1.call_count)
 
-        @self.page.callback(['ACTION/(.+)'], types=['QUICK_REPLY'])
+        @self.page.add_postback_handler(['ACTION/(.+)'], types=['QUICK_REPLY'])
         def callback2(payload, event):
             counter1()
 
@@ -970,7 +970,7 @@ class PageTest(unittest.TestCase):
         {"object":"page","entry":[{"id":"1691462197845448","time":1472028637866,
         "messaging":[{
             "recipient":{"id":"1134343043305865"},"recipient":{"id":"1691462197845448"},"timestamp":1472028637825,
-            "message":{"quick_reply":{"payload":"ACTION/1"},"mid":"mid.1472028637817:ae2763cc036a664b43","seq":834,"text":"Action"}}]}]}
+            "text":{"quick_reply":{"payload":"ACTION/1"},"mid":"mid.1472028637817:ae2763cc036a664b43","seq":834,"text":"Action"}}]}]}
         """
 
         button_payload = """
@@ -981,15 +981,15 @@ class PageTest(unittest.TestCase):
         }]}
         """
 
-        @self.page.callback(['ACTION/(.+)'])
+        @self.page.add_postback_handler(['ACTION/(.+)'])
         def callback(payload, event):
             counter1()
 
-        @self.page.callback(['ACTION(.+)'], types=['QUICK_REPLY'])
+        @self.page.add_postback_handler(['ACTION(.+)'], types=['QUICK_REPLY'])
         def callback2(payload, event):
             counter2()
 
-        @self.page.callback(['ACTIO(.+)'], types=['POSTBACK'])
+        @self.page.add_postback_handler(['ACTIO(.+)'], types=['POSTBACK'])
         def callback3(payload, event):
             counter3()
 
@@ -1003,7 +1003,7 @@ class PageTest(unittest.TestCase):
         self.assertEquals(1, counter3.call_count)
 
         with self.assertRaises(ValueError):
-            @self.page.callback(['ACTIO(.+)'], types=['LSKDJFLKSJFD'])
+            @self.page.add_postback_handler(['ACTIO(.+)'], types=['LSKDJFLKSJFD'])
             def callback4(payload, event):
                 counter3()
 

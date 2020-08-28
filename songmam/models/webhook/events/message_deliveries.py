@@ -2,8 +2,7 @@ from typing import List
 
 from pydantic import BaseModel, conlist
 
-from songmam.models.entries.base import WithTimestamp
-from songmam.models.entries.messages import MessageEntry
+from songmam.models.webhook.events.base import WithTimestamp, BaseMessaging, WithMessaging, BaseEvent
 
 
 class Delivery(BaseModel):
@@ -11,11 +10,12 @@ class Delivery(BaseModel):
     watermark: int
 
 
-class Deliveries(WithTimestamp):
+class DeliveriesMessaging(BaseMessaging, WithTimestamp):
     delivery: Delivery
 
-class DeliveriesEntry(MessageEntry):
-    messaging: conlist(Deliveries, min_items=1, max_items=1)
+
+class MessageDeliveriesEvent(BaseEvent, WithMessaging):
+    messaging: conlist(DeliveriesMessaging, min_items=1, max_items=1)
 
     @property
     def mids(self):
@@ -24,6 +24,8 @@ class DeliveriesEntry(MessageEntry):
     @property
     def watermark(self):
         return self.theMessaging.delivery.watermark
+
+DeliveryEvent = MessageDeliveriesEvent
 """
 https://developers.facebook.com/docs/messenger-platform/reference/webhook-events/message-deliveries
 """

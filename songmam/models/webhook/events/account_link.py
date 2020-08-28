@@ -2,14 +2,14 @@ from typing import Literal
 
 from pydantic import BaseModel
 
-from songmam.models.entries.base import WithTimestamp
+from songmam.models.webhook.events.base import WithTimestamp, BaseEvent
 
 
 class AccountLink(BaseModel):
     status: Literal["linked", "unlinked"]
     authorization_code: str
 
-class AccountLinkEntry(WithTimestamp):
+class AccountLinkEvent(BaseEvent, WithTimestamp):
     account_linking: AccountLink
 
 # {

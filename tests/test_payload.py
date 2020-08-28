@@ -73,7 +73,7 @@ class PayloadTest(unittest.TestCase):
                             notification_type='REGULAR')
 
         self.assertEquals(
-            '{"message": {"attachment": null, "metadata": "METADATA", "quick_replies": '
+            '{"text": {"attachment": null, "metadata": "METADATA", "quick_replies": '
             '[{"content_type": "text", "payload": "PICK_YES", "title": "Yes"}], "text": "hello"},'
             ' "notification_type": "REGULAR", "recipient": {"id": 123456, "phone_number": "+8210"},'
             ' "sender_action": "typing_off", "tag": null}', utils.to_json(p))
@@ -85,7 +85,7 @@ class PayloadTest(unittest.TestCase):
                             tag="PAIRING_UPDATE")
 
         self.assertEquals(
-            '{"message": {"attachment": null, "metadata": "METADATA", "quick_replies": '
+            '{"text": {"attachment": null, "metadata": "METADATA", "quick_replies": '
             '[{"content_type": "text", "payload": "PICK_YES", "title": "Yes"}], "text": "hello"},'
             ' "notification_type": "REGULAR", "recipient": {"id": 123456, "phone_number": "+8210"},'
             ' "sender_action": "typing_off", "tag": "PAIRING_UPDATE"}', utils.to_json(p))

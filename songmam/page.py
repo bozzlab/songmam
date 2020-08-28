@@ -17,13 +17,13 @@
 # from songmam.models.messaging.templates import Message, AllButtonTypes, TemplateAttachment, PayloadButtonTemplate
 # from avajana.bubbling import Bubbling
 #
-# from .api.events import MessageEvent, PostBackEvent, ReferralEvent, DeliveriesEvent
+# from .api.events import MessageEvent, PostBackEvent, MessagingReferralEvent, MessageDeliveriesEvent
 # from .models import ThingWithId
-# from .models.entries.deliveries import DeliveriesEntry
-# from .models.entries.echo import EchoEntry
-# from .models.entries.messages import MessageEntry, Sender
-# from .models.entries.postback import PostbackEntry
-# from .models.entries.referral import ReferralEntry
+# from .models.events.deliveries import MessageDeliveriesEvent
+# from .models.events.echo import EchoEntry
+# from .models.events.messages import MessagesEvent, Sender
+# from .models.events.postback import PostbackEntry
+# from .models.events.referral import ReferralMessaging
 # from .models.messaging.message_tags import MessageTag
 # from .models.messaging.messaging_type import MessagingType
 # from .models.messaging.notification_type import NotificationType
@@ -33,7 +33,7 @@
 # from .models.messaging.templates.generic import GenericElement, PayloadGeneric
 # from .models.messaging.templates.media import MediaElement, PayloadMedia
 # from .models.messenger_profile import MessengerProfileProperty, MessengerProfile, GreetingPerLocale, GetStarted
-# from .models.page import Me
+# from .models.page import Page
 # from .models.persona import Persona, PersonaWithId, PersonaResponse, AllPerosnasResponse, PersonaDeleteResponse
 # from .models.send import SendResponse, SendRecipient
 # from .models.user_profile import UserProfile
@@ -51,7 +51,7 @@
 #     app_secret: Optional[str] = None
 #     api_version: SUPPORTED_API_VERS = 'v7.0'
 #
-#     page: Optional[Me] = None
+#     page: Optional[Page] = None
 #
 #     def __init__(self, *,
 #                  auto_mark_as_seen: bool = True,

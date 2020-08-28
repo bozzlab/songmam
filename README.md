@@ -46,7 +46,7 @@ async def handle_entry(webhook: Webhook):
 
 @page.handle_message
 def echo(message: MessageEvent):
-    page.send_sync(message.sender.id, "thank you! your message is '%s'" % message.text)
+    page.send_sync(message.sender.id, "thank you! your text is '%s'" % message.text)
 
 if __name__ == "__main__":
     import uvicorn
@@ -108,17 +108,17 @@ page.send_sync(recipient_id,
 ##### quick reply callback
 you can define easily a quick reply callback method.
 ```python
-@page.callback(['PICK_ACTION', 'PICK_COMEDY'])
+@page.add_postback_handler(['PICK_ACTION', 'PICK_COMEDY'])
 def callback_picked_genre(payload, event):
   print(payload, event)
   
 # Also supported regex, it works corretly
-# @page.callback(['PICK_(.+)'])
+# @page.add_postback_handler(['PICK_(.+)'])
 ```
 
 if you want to handle only quick_reply callback without button postback
 ```python
-@page.callback(['PICK_ACTION', 'PICK_COMEDY'], types=['QUICK_REPLY'])
+@page.add_postback_handler(['PICK_ACTION', 'PICK_COMEDY'], types=['QUICK_REPLY'])
 ```
 
 ##### typing on/off
@@ -151,17 +151,17 @@ page.send_sync(recipient_id, Template.Button("hello", buttons))
 ##### button callback
 you can define easily a button postback method (it works only postback type buttons).
 ```python
-@page.callback(['DEVELOPED_DEFINED_PAYLOAD'])
+@page.add_postback_handler(['DEVELOPED_DEFINED_PAYLOAD'])
 def callback_clicked_button(payload, event):
   print(payload, event)
   
 # Also supported regex, it works corretly
-# @page.callback(['DEVELOPED_DEFINE(.+)'])
+# @page.add_postback_handler(['DEVELOPED_DEFINE(.+)'])
 ```
 
 if you want to handle only button's postback without quick_reply callback
 ```python
-@page.callback(['DEVELOPED_DEFINED_PAYLOAD'], types=['POSTBACK'])
+@page.add_postback_handler(['DEVELOPED_DEFINED_PAYLOAD'], types=['POSTBACK'])
 ```
 
 
@@ -253,7 +253,7 @@ page.greeting("Welcome!")
 ```python
 page.show_starting_button("START_PAYLOAD")
 
-@page.callback(['START_PAYLOAD'])
+@page.add_postback_handler(['START_PAYLOAD'])
 def start_callback(payload, event):
   print("Let's start!")
 ```
@@ -263,7 +263,7 @@ def start_callback(payload, event):
 page.show_persistent_menu([Template.ButtonPostBack('MENU1', 'MENU_PAYLOAD/1'),
                            Template.ButtonPostBack('MENU2', 'MENU_PAYLOAD/2')])
 
-@page.callback(['MENU_PAYLOAD/(.+)'])
+@page.add_postback_handler(['MENU_PAYLOAD/(.+)'])
 def click_persistent_menu(payload, event):
   click_menu = payload.split('/')[1]
   print("you clicked %s menu" % click_menu)

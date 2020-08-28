@@ -1,12 +1,13 @@
 from pydantic import BaseModel
 
-from songmam.models.entries.base import WithTimestamp
+from songmam.models.webhook.events.base import WithTimestamp, BaseMessaging
+
 
 class Optin(BaseModel):
     ref: str
     user_ref: str
 
-class OptinEntry(WithTimestamp):
+class OptinEntry(BaseMessaging, WithTimestamp):
     optin: Optin
 
 # {

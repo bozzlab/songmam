@@ -1,9 +1,6 @@
 from typing import Optional
 
-from pydantic import BaseModel
-
-from songmam.models.entries.base import WithTimestamp
-from songmam.models.entries.messages import MessageEntry, Message as Message_
+from songmam.models.webhook.events.messages import MessagesEvent, Message as Message_
 
 
 class Message(Message_):
@@ -11,7 +8,7 @@ class Message(Message_):
     app_id: str
     metadata: Optional[str]
 
-class EchoEntry(MessageEntry):
+class EchoEntry(MessagesEvent):
     message: Message
 
 # {
@@ -22,7 +19,7 @@ class EchoEntry(MessageEntry):
 #     "id":"<USER_ID>"
 #   },
 #   "timestamp":1457764197627,
-#   "message":{
+#   "text":{
 #     "is_echo":true,
 #     "app_id":1517776481860111,
 #     "metadata": "<DEVELOPER_DEFINED_METADATA_STRING>",

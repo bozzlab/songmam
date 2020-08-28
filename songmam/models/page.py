@@ -1,7 +1,7 @@
 from pydantic import BaseModel
 
 
-class Me(BaseModel):
+class Page(BaseModel):
     id: str
     name: str
 
