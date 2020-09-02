@@ -22,7 +22,7 @@
 # from .models.events.deliveries import MessageDeliveriesEvent
 # from .models.events.echo import EchoEntry
 # from .models.events.messages import MessagesEvent, Sender
-# from .models.events.postback import PostbackEntry
+# from .models.events.postback import PostbackEvent
 # from .models.events.referral import ReferralMessaging
 # from .models.messaging.message_tags import MessageTag
 # from .models.messaging.messaging_type import MessagingType

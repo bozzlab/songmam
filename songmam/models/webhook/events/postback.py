@@ -21,7 +21,7 @@ class PostbackMessageMessaging(MessageMessaging):
     message: Optional[Message]
     postback: Postback
 
-class PostbackEntry(BaseEvent, WithMessaging):
+class PostbackEvent(BaseEvent, WithMessaging):
     messaging: conlist(PostbackMessageMessaging, min_items=1, max_items=1)
 
 

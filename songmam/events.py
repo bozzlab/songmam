@@ -3,7 +3,7 @@
 # from songmam.models.events.base import BaseMessaging
 # from songmam.models.events.deliveries import MessageDeliveriesEvent
 # from songmam.models.events.messages import MessagesEvent
-# from songmam.models.events.postback import PostbackEntry
+# from songmam.models.events.postback import PostbackEvent
 # from songmam.models.events.referral import ReferralMessaging
 #
 #
@@ -46,9 +46,9 @@
 #
 #
 # class PostBackEvent(Event):
-#     entry: PostbackEntry
+#     entry: PostbackEvent
 #
-#     def __init__(self, entry: PostbackEntry):
+#     def __init__(self, entry: PostbackEvent):
 #         super(PostBackEvent, self).__init__(entry)
 #
 #         self.title = self.entry.theMessaging.postback.title

@@ -1,8 +1,10 @@
 import importlib
 import re
+from asyncio import coroutine
+from inspect import iscoroutine
 
 from path import Path
-from typing import Optional, Union, List
+from typing import Optional, Union, List, Awaitable
 
 from fastapi import FastAPI, Request
 from loguru import logger
@@ -11,7 +13,7 @@ from pydantic import ValidationError
 
 from songmam.middleware import VerifyTokenMiddleware, AppSecretMiddleware
 from songmam.models.webhook.events.messages import MessagesEvent
-from songmam.models.webhook.events.postback import PostbackEntry
+from songmam.models.webhook.events.postback import PostbackEvent
 from songmam.models.webhook import Webhook
 
 
@@ -19,7 +21,7 @@ class WebhookHandler:
     verify_token: Optional[str] = None
     app_secret: Optional[str] = None
 
-    def __init__(self, app: FastAPI, path="/", *, postback_dir: Optional[Path] = None, app_secret: Optional[str] = None,
+    def __init__(self, app: FastAPI, path="/", *, postback_dir: Union[Path, str] = Path.getcwd(), app_secret: Optional[str] = None,
                  verify_token: Optional[str] = None, auto_mark_as_seen: bool = True):
         self._post_webhook_handlers = {}
         self._pre_webhook_handlers = {}
@@ -27,7 +29,9 @@ class WebhookHandler:
         self.verify_token = verify_token
         self.app_secret = app_secret
         self.path = path
-        self.postback_dir = postback_dir
+        if not isinstance(postback_dir, Path):
+            postback_dir = Path(postback_dir)
+        self._postback_dir = postback_dir
 
         app.add_middleware(VerifyTokenMiddleware, verify_token=verify_token, path=path)
         if not self.verify_token:
@@ -50,6 +54,16 @@ class WebhookHandler:
                 return "ok"
             await self.handle_webhook(webhook)
             return "ok"
+
+    @property
+    def postback_dir(self):
+        return self._postback_dir
+
+    @postback_dir.setter
+    def postback_dir(self, value):
+        if not isinstance(value, Path):
+            value = Path(value)
+        self._postback_dir = value
 
     # these are set by decorators or the 'set_webhook_handler' method
     _webhook_handlers = {}
@@ -80,27 +94,31 @@ class WebhookHandler:
                         matched_callbacks = self.get_quick_reply_callbacks(entry)
                         for callback in matched_callbacks:
                             await callback(entry, *args, **kwargs)
-            elif entry_type is PostbackEntry:
+            elif entry_type is PostbackEvent:
                 await self.handle_postback(entry, *args, **kwargs)
                 continue
                 # matched_callbacks = self.get_postback_callbacks(entry)
                 # for callback in matched_callbacks:
                 #     await callback(entry, *args, **kwargs)
 
-    async def handle_postback(self, entry: Union[MessagesEvent, PostbackEntry], *args, **kwargs):
+    async def handle_postback(self, entry: Union[MessagesEvent, PostbackEvent], *args, **kwargs):
         payload = entry.payload
         parsed = parse("{import_path}:{function_name}", payload)
         import_path = parsed['import_path']
         function_name = parsed['function_name']
 
         try:
-            with self.path:
-                module = importlib.import_module(import_path)
-                function = getattr(module, function_name)
-                function(entry, *args, **kwargs)
+            # with self.postback_dir:
+            module = importlib.import_module(f"{import_path}")
+            function = getattr(module, function_name)
+            ret = function(entry, *args, **kwargs)
+            if iscoroutine(ret):
+                await ret
         except Exception as e:
             if self.uncaught_postback_handler:
-                self.uncaught_postback_handler(entry, *args, **kwargs)
+                ret = self.uncaught_postback_handler(entry, *args, **kwargs)
+                if iscoroutine(ret):
+                    await ret
             else:
                 raise e
 
@@ -186,7 +204,7 @@ class WebhookHandler:
 
         return callbacks
 
-    def get_postback_callbacks(self, entry: PostbackEntry):
+    def get_postback_callbacks(self, entry: PostbackEvent):
         callbacks = []
         for key in self._button_callbacks.keys():
             if key not in self._button_callbacks_key_regex:

@@ -1,5 +1,5 @@
 from .messages import MessagesEvent
-from .postback import PostbackEntry
+from .postback import PostbackEvent
 from .referral import MessagingReferralEvent
 from .message_reads import MessageReadsEvent
 from .message_deliveries import MessageDeliveriesEvent
