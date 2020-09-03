@@ -12,8 +12,7 @@ class Webhook(BaseModel):
     https://developers.facebook.com/docs/messenger-platform/reference/webhook-events/#payload
     """
     object: str
-    entry: List[Union[MessagingReferralEvent, MessageReadsEvent, MessagesEvent, MessageDeliveriesEvent, PostbackEvent
-                      # EchoEntry
+    entry: List[Union[MessagingReferralEvent, MessageReadsEvent,MessagesEventWithQuickReply, MessagesEvent, MessageDeliveriesEvent, PostbackEvent,
     ]]
 
     @validator('object')

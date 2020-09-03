@@ -15,7 +15,7 @@
 # from pydantic import HttpUrl
 # from songmam.models.messaging.quick_replies import QuickReply
 # from songmam.models.messaging.templates import Message, AllButtonTypes, TemplateAttachment, PayloadButtonTemplate
-# from avajana.bubbling import Bubbling
+# from auto_avajana.bubbling import Bubbling
 #
 # from .api.events import MessageEvent, PostBackEvent, MessagingReferralEvent, MessageDeliveriesEvent
 # from .models import ThingWithId

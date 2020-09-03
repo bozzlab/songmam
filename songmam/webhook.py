@@ -2,6 +2,8 @@ import importlib
 import re
 from asyncio import coroutine
 from inspect import iscoroutine
+from itertools import product
+from typing import get_args
 
 from path import Path
 from typing import Optional, Union, List, Awaitable, Callable
@@ -52,7 +54,6 @@ class WebhookHandler:
                 logger.error("Cannot validate webhook")
                 logger.error("Body is {}", body)
                 raise e
-                return "ok"
             await self.handle_webhook(webhook)
             return "ok"
 
@@ -137,13 +138,28 @@ class WebhookHandler:
 
         return decorator
 
-    def add(self, entry_type):
+    def add(self, event_type,
+            # skipQuickReply:Optional[bool]=None
+            ):
         """
-        Add an unconditional event handler
+        Add an event handler
         """
+        # conditions = tuple(skipQuickReply)
+        # didPassSomeCondition = any((x is None for x in conditions))
+        # spaces = [(event_type), ]
+        # for con in conditions:
+        #     if get_args(con) is bool:
+        #         if con is None:
+        #             spaces.append((True, False))
+        #         else:
+        #             spaces.append(tuple(con))
+
+
 
         def decorator(func):
-            self._webhook_handlers[entry_type] = func
+            # for condition in product(*spaces):
+            self._webhook_handlers[event_type] = func
+
             # if isinstance(text, (list, tuple)):
             #     for it in text:
             #         self.__add_handler(func, entry, text=it)

@@ -1,8 +1,11 @@
 import asyncio
 import json
+from functools import partial
+from inspect import iscoroutine
 from typing import Type, Union, Awaitable, Optional, List, Literal, Set
 
 import httpx
+from avajana.bubbling import Bubbling
 from furl import furl
 
 from songmam.models import ThingWithId
@@ -28,9 +31,13 @@ from songmam.models.user_profile import UserProfile
 class MessengerApi:
     access_token: str
     api_version: str = 'v7.0'
+    avajana: Optional[Bubbling] = None
 
-    def __init__(self, access_token: str):
+    def __init__(self, access_token: str, *, auto_avajana: bool=False):
         self.access_token = access_token
+        self.auto_avajana = auto_avajana
+        if auto_avajana:
+            self.avajana = Bubbling()
 
     @property
     def base_api_furl(self) -> furl:
@@ -100,12 +107,12 @@ class MessengerApi:
 
         if callback is not None:
             callback_output = callback(payload, response)
-            if callback_output is Awaitable:
+            if iscoroutine(callback_output):
                 await callback
 
         # if self._after_send is not None:
         #     return_ = self._after_send(payload, response)
-        #     if return_ is Awaitable:
+        #     if  iscoroutine(return_):
         #         await return_
 
         return SendResponse.parse_raw(response.text)
@@ -250,7 +257,7 @@ class MessengerApi:
                    text: Optional[str] = None,
                    *,
                    buttons: Optional[Union[AllButtonTypes, List[AllButtonTypes]]] = None,
-                   quick_replies: Optional[List[QuickReply]] = None,
+                   quick_replies: Optional[Union[QuickReply,List[QuickReply]]] = None,
                    generic_elements: Optional[Union[GenericElement, List[GenericElement]]] = None,
                    image_aspect_ratio: Optional[Literal["horizontal", "square"]] = None,
                    media_element: Optional[MediaElement] = None,
@@ -260,17 +267,24 @@ class MessengerApi:
                    tag: Optional[MessageTag] = None,
                    notification_type: Optional[NotificationType] = NotificationType.REGULAR,
                    callback: Optional[callable] = None,
+                   auto_avajana: Optional[bool] = None,
                    emu_type: bool = False
                    ):
+        if auto_avajana is None:
+            auto_avajana = self.auto_avajana
 
-        # if text:
-        #     typing_fn = partial(self.typing_on, recipient)
-        #     stop_fn = partial(self.typing_off, recipient)
-        #     if emu_type:
-        #         await self.bubbling.act_typing(text, typing_fn, stop_fn)
-        #     else:
-        #         if self.emu_type:
-        #             await self.bubbling.act_typing(text, typing_fn, stop_fn)
+        if text and auto_avajana:
+            # TODO: do the lazy imprementation instead
+            if self.avajana:
+                self.avajana = Bubbling()
+
+            typing_fn = partial(self.typing_on, recipient)
+            stop_fn = partial(self.typing_off, recipient)
+            await self.avajana.act_typing(text, typing_fn, stop_fn)
+
+
+        if isinstance(quick_replies, QuickReply):
+            quick_replies = [quick_replies]
 
         if generic_elements:
             payload = self.compose_generic(generic_elements=generic_elements, image_aspect_ratio=image_aspect_ratio,

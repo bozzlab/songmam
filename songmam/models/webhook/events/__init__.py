@@ -1,4 +1,4 @@
-from .messages import MessagesEvent
+from .messages import MessagesEvent, MessagesEventWithQuickReply
 from .postback import PostbackEvent
 from .referral import MessagingReferralEvent
 from .message_reads import MessageReadsEvent

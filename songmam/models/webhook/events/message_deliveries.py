@@ -1,4 +1,5 @@
 from typing import List
+from typing import Optional
 
 from pydantic import BaseModel, conlist
 
@@ -6,7 +7,7 @@ from songmam.models.webhook.events.base import WithTimestamp, BaseMessaging, Wit
 
 
 class Delivery(BaseModel):
-    mids: List[str]
+    mids: Optional[List[str]]
     watermark: int
 
 
@@ -25,7 +26,7 @@ class MessageDeliveriesEvent(BaseEvent, WithMessaging):
     def watermark(self):
         return self.theMessaging.delivery.watermark
 
-DeliveryEvent = MessageDeliveriesEvent
+# DeliveryEvent = MessageDeliveriesEvent
 """
 https://developers.facebook.com/docs/messenger-platform/reference/webhook-events/message-deliveries
 """
