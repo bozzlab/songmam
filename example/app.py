@@ -20,7 +20,7 @@ async def echo(entry: MessagesEvent):
     print(entry.theMessaging.recipient, entry.theMessaging.sender,entry.theMessaging.message.text)
     await api.send(entry.sender, text="hi", buttons=PostbackButton(
         title="send postback",
-        payload="do:tell_user"
+        payload="handlers.do:tell_user"
     ))
 
 @handler.add(MessagingReferralEvent)
@@ -36,9 +36,9 @@ async def handle_read(entry: MessageReadsEvent):
 async def handle_delivery(entry: MessageDeliveriesEvent):
     logger.info(entry)
 
-@handler.set_uncaught_postback_handler
-async def handle_uncaught_postback(entry):
-    logger.info(entry)
+# @handler.set_uncaught_postback_handler
+# async def handle_uncaught_postback(entry):
+#     logger.info(entry)
 
 
 if __name__ == "__main__":

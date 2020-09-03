@@ -4,7 +4,7 @@ from asyncio import coroutine
 from inspect import iscoroutine
 
 from path import Path
-from typing import Optional, Union, List, Awaitable
+from typing import Optional, Union, List, Awaitable, Callable
 
 from fastapi import FastAPI, Request
 from loguru import logger
@@ -20,8 +20,9 @@ from songmam.models.webhook import Webhook
 class WebhookHandler:
     verify_token: Optional[str] = None
     app_secret: Optional[str] = None
+    uncaught_postback_handler: Optional[Callable]= None
 
-    def __init__(self, app: FastAPI, path="/", *, postback_dir: Union[Path, str] = Path.getcwd(), app_secret: Optional[str] = None,
+    def __init__(self, app: FastAPI, path="/", *, app_secret: Optional[str] = None, dynamic_import=True,
                  verify_token: Optional[str] = None, auto_mark_as_seen: bool = True):
         self._post_webhook_handlers = {}
         self._pre_webhook_handlers = {}
@@ -29,9 +30,8 @@ class WebhookHandler:
         self.verify_token = verify_token
         self.app_secret = app_secret
         self.path = path
-        if not isinstance(postback_dir, Path):
-            postback_dir = Path(postback_dir)
-        self._postback_dir = postback_dir
+        self.dynamic_import = dynamic_import
+
 
         app.add_middleware(VerifyTokenMiddleware, verify_token=verify_token, path=path)
         if not self.verify_token:
@@ -50,20 +50,13 @@ class WebhookHandler:
                 webhook = Webhook.parse_raw(body)
             except ValidationError as e:
                 logger.error("Cannot validate webhook")
+                logger.error("Body is {}", body)
                 raise e
                 return "ok"
             await self.handle_webhook(webhook)
             return "ok"
 
-    @property
-    def postback_dir(self):
-        return self._postback_dir
 
-    @postback_dir.setter
-    def postback_dir(self, value):
-        if not isinstance(value, Path):
-            value = Path(value)
-        self._postback_dir = value
 
     # these are set by decorators or the 'set_webhook_handler' method
     _webhook_handlers = {}
@@ -79,48 +72,53 @@ class WebhookHandler:
     async def handle_webhook(self, webhook: Webhook, *args, **kwargs):
         for entry in webhook.entry:
             entry_type = type(entry)
+
+            # Unconditional handlers
             handler = self._webhook_handlers.get(entry_type)
             if handler:
                 await handler(entry, *args, **kwargs)
             else:
-                logger.warning("there's no handler for entry type", entry_type)
+                if not self.dynamic_import and entry_type is PostbackEvent:
+                    logger.warning("there's no handler for this entry type, {}", str(entry_type))
 
+            # Dynamic handlers
             if entry_type is MessagesEvent:
                 if entry.is_quick_reply:
-                    if self.postback_dir:
-                        await self.handle_postback(entry, *args, **kwargs)
+                    if self.dynamic_import:
+                        await self.call_dynamic_function(entry, *args, **kwargs)
                         continue
                     else:
                         matched_callbacks = self.get_quick_reply_callbacks(entry)
                         for callback in matched_callbacks:
                             await callback(entry, *args, **kwargs)
             elif entry_type is PostbackEvent:
-                await self.handle_postback(entry, *args, **kwargs)
-                continue
-                # matched_callbacks = self.get_postback_callbacks(entry)
-                # for callback in matched_callbacks:
-                #     await callback(entry, *args, **kwargs)
+                if self.dynamic_import:
+                    await self.call_dynamic_function(entry, *args, **kwargs)
+                    continue
+                matched_callbacks = self.get_postback_callbacks(entry)
+                for callback in matched_callbacks:
+                    await callback(entry, *args, **kwargs)
 
-    async def handle_postback(self, entry: Union[MessagesEvent, PostbackEvent], *args, **kwargs):
+
+    async def call_dynamic_function(self, entry: Union[MessagesEvent, PostbackEvent], *args, **kwargs):
         payload = entry.payload
         parsed = parse("{import_path}:{function_name}", payload)
         import_path = parsed['import_path']
         function_name = parsed['function_name']
 
         try:
-            # with self.postback_dir:
             module = importlib.import_module(f"{import_path}")
             function = getattr(module, function_name)
             ret = function(entry, *args, **kwargs)
             if iscoroutine(ret):
                 await ret
-        except Exception as e:
+        except ModuleNotFoundError as e:
             if self.uncaught_postback_handler:
                 ret = self.uncaught_postback_handler(entry, *args, **kwargs)
                 if iscoroutine(ret):
                     await ret
             else:
-                raise e
+                logger.warning("Please add `uncaught_postback_handler` to caught this '{}' payload", entry.payload)
 
     def add_pre(self, entry_type):
         """

@@ -400,7 +400,7 @@ class PageTest(unittest.TestCase):
         """
         counter1 = mock.MagicMock()
 
-        @self.page.handle_postback
+        @self.page.call_dynamic_function
         def handler1(event):
             self.assertTrue(isinstance(event, Event.PostBackEvent))
             self.assertEqual(event.name, 'postback')
@@ -433,7 +433,7 @@ class PageTest(unittest.TestCase):
         """
         counter1 = mock.MagicMock()
 
-        @self.page.handle_postback
+        @self.page.call_dynamic_function
         def handler1(event):
             self.assertTrue(isinstance(event, Event.PostBackEvent))
             self.assertEqual(event.name, 'postback')
