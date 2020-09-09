@@ -278,7 +278,8 @@ class MessengerApi:
                    ):
         if auto_avajana is None:
             auto_avajana = self.auto_avajana
-
+        if isinstance(recipient, str):
+            recipient = Sender(id=recipient)
         if text and auto_avajana:
             # TODO: do the lazy imprementation instead
             if self.avajana:
