@@ -54,7 +54,7 @@ class WebhookHandler:
                 logger.error("Cannot validate webhook")
                 logger.error("Body is {}", body)
                 raise e
-            await self.handle_webhook(webhook)
+            await self.handle_webhook(webhook, request=request)
             return "ok"
 
 
@@ -71,34 +71,34 @@ class WebhookHandler:
     _delivered_callbacks_key_regex = {}
 
     async def handle_webhook(self, webhook: Webhook, *args, **kwargs):
-        for entry in webhook.entry:
-            entry_type = type(entry)
+        for event in webhook.entry:
+            event_type = type(event)
 
             # Unconditional handlers
-            handler = self._webhook_handlers.get(entry_type)
+            handler = self._webhook_handlers.get(event_type)
             if handler:
-                await handler(entry, *args, **kwargs)
+                await handler(event, *args, **kwargs)
             else:
-                if not self.dynamic_import and entry_type is PostbackEvent:
-                    logger.warning("there's no handler for this entry type, {}", str(entry_type))
+                if not self.dynamic_import and event_type is PostbackEvent:
+                    logger.warning("there's no handler for this event type, {}", str(event_type))
 
             # Dynamic handlers
-            if entry_type is MessagesEvent:
-                if entry.is_quick_reply:
+            if event_type is MessagesEvent:
+                if event.is_quick_reply:
                     if self.dynamic_import:
-                        await self.call_dynamic_function(entry, *args, **kwargs)
+                        await self.call_dynamic_function(event, *args, **kwargs)
                         continue
                     else:
-                        matched_callbacks = self.get_quick_reply_callbacks(entry)
+                        matched_callbacks = self.get_quick_reply_callbacks(event)
                         for callback in matched_callbacks:
-                            await callback(entry, *args, **kwargs)
-            elif entry_type is PostbackEvent:
+                            await callback(event, *args, **kwargs)
+            elif event_type is PostbackEvent:
                 if self.dynamic_import:
-                    await self.call_dynamic_function(entry, *args, **kwargs)
+                    await self.call_dynamic_function(event, *args, **kwargs)
                     continue
-                matched_callbacks = self.get_postback_callbacks(entry)
+                matched_callbacks = self.get_postback_callbacks(event)
                 for callback in matched_callbacks:
-                    await callback(entry, *args, **kwargs)
+                    await callback(event, *args, **kwargs)
 
 
     async def call_dynamic_function(self, entry: Union[MessagesEvent, PostbackEvent], *args, **kwargs):

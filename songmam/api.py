@@ -30,7 +30,7 @@ from songmam.models.user_profile import UserProfile
 
 class MessengerApi:
     access_token: str
-    api_version: str = 'v7.0'
+    api_version: str = 'v8.0'
     avajana: Optional[Bubbling] = None
 
     def __init__(self, access_token: str, *, auto_avajana: bool=False):
@@ -57,9 +57,15 @@ class MessengerApi:
 
         self.page = Page.parse_raw(response.text)
 
-    async def get_user_profile(self, user: Type[ThingWithId]) -> UserProfile:
+    async def get_user_profile(self, user: Type[ThingWithId], fields: Set[str] = {'id','name',"first_name","last_name","profile_pic"}) -> UserProfile:
+        """
+        Get user profile using id
+        References:
+            https://developers.facebook.com/docs/messenger-platform/identity/user-profile
+        """
+        fields = ','.join(fields)
         async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
-                                     params={"access_token": self.access_token}) as client:
+                                     params={"access_token": self.access_token, "fields": fields}) as client:
             response = await client.get(
                 f"/{user.id}"
             )
@@ -343,7 +349,8 @@ class MessengerApi:
 
         return await self.send_native(payload)
 
-    async def typing_for(self, seconds: float, recipient: Type[ThingWithId]):
+    async def typing_for(self, seconds: float, recipient: Type[ThingWithId], prepause_seconds: float = 0.0):
+        await asyncio.sleep(prepause_seconds)
         await self.typing_on(recipient)
         await asyncio.sleep(seconds)
         await self.typing_off(recipient)

@@ -9,7 +9,7 @@ from songmam.models.messaging.locale import ThingWithLocale
 
 class MenuPerLocale(ThingWithLocale):
     composer_input_disabled: bool = False
-    call_to_actions: conlist(Union[URLButton, PostbackButton], min_items=1, max_items=3)
+    call_to_actions: conlist(Union[URLButton, PostbackButton], min_items=1)
 
 
 class PersistentMenu(BaseModel):
