@@ -282,7 +282,7 @@ class MessengerApi:
             recipient = Sender(id=recipient)
         if text and auto_avajana:
             # TODO: do the lazy imprementation instead
-            if self.avajana:
+            if not self.avajana:
                 self.avajana = Bubbling()
 
             typing_fn = partial(self.typing_on, recipient)
