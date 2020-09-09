@@ -431,7 +431,7 @@ class MessengerApi:
         params = {
             "access_token": self.access_token,
             "psid": user_id,
-            "params": "[%22persistent_menu%22]"
+            "params": "[\"persistent_menu\"]"
         }
 
         async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},

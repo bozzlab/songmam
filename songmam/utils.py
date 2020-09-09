@@ -10,7 +10,7 @@ from parse import parse
 def to_json(obj):
     return json.dumps(obj, default=lambda o: o.__dict__, sort_keys=True)
 
-def dynamic_call(function_path: str, *args, fallback: Optional[Callable] = None, **kwargs):
+async def dynamic_call(function_path: str, *args, fallback: Optional[Callable] = None, **kwargs):
     parsed = parse("{import_path}:{function_name}", function_path)
     import_path = parsed['import_path']
     function_name = parsed['function_name']
