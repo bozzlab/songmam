@@ -13,13 +13,13 @@ app = FastAPI()
 handler = WebhookHandler(
     app
 )
-api = MessengerApi(config('PAGE_ACCESS_TOKEN'), auto_avajana=True)
+api = MessengerApi(config('PAGE_ACCESS_TOKEN'), auto_avajana=False)
 
 
 @handler.add(MessagesEvent)
-async def echo(entry: MessagesEvent):
-    print(entry.theMessaging.recipient, entry.theMessaging.sender, entry.theMessaging.message.text)
-    await api.send(entry.sender, text="hi", buttons=PostbackButton(
+async def echo(event: MessagesEvent, *args, **kwargs):
+    print(event.theMessaging.recipient, event.theMessaging.sender, event.theMessaging.message.text)
+    await api.send(event.sender, text=event.theMessaging.message.text, buttons=PostbackButton(
         title="send postback",
         payload="handlers.do:tell_user"
     ), quick_replies=QuickReply(
@@ -29,31 +29,31 @@ async def echo(entry: MessagesEvent):
                    )
 
 @handler.add(MessagesEventWithQuickReply)
-async def echo2(entry: MessagesEventWithQuickReply):
+async def echo2(entry: MessagesEventWithQuickReply, *args, **kwargs):
     logger.info('echo2')
 
 @handler.add(MessagingReferralEvent)
-async def handle_ref(entry: MessagingReferralEvent):
+async def handle_ref(entry: MessagingReferralEvent, *args, **kwargs):
     logger.info(entry.sender)
     logger.info(entry.ref)
 
 
 @handler.add(MessageReadsEvent)
-async def handle_read(entry: MessageReadsEvent):
+async def handle_read(entry: MessageReadsEvent, *args, **kwargs):
     logger.info(entry)
 
 
 @handler.add(MessageDeliveriesEvent)
-async def handle_delivery(entry: MessageDeliveriesEvent):
+async def handle_delivery(entry: MessageDeliveriesEvent, *args, **kwargs):
     logger.info(entry)
 
 
 # @handler.set_uncaught_postback_handler
-# async def handle_uncaught_postback(entry):
-#     logger.info(entry)
+# async def handle_uncaught_postback(event):
+#     logger.info(event)
 
 
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True, log_level='debug')
+    uvicorn.run("app:app", host="0.0.0.0", port=8002, reload=True, log_level='debug')
