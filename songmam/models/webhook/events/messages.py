@@ -4,7 +4,12 @@ from typing import Union
 from pydantic import BaseModel, conlist
 
 from songmam.models.webhook.events.message.attachment import Attachment
-from songmam.models.webhook.events.base import BaseEvent, BaseMessaging, WithTimestamp, WithMessaging
+from songmam.models.webhook.events.base import (
+    BaseEvent,
+    BaseMessaging,
+    WithTimestamp,
+    WithMessaging,
+)
 from songmam.models import ThingWithId
 
 
@@ -14,11 +19,13 @@ class Sender(ThingWithId):
 
 class QuickReply(BaseModel):
     """A quick_reply payload is only provided with a text text when the user tap on a Quick Replies button."""
+
     payload: str
 
 
 class ReplyTo(BaseModel):
     """"""
+
     mid: str  # Reference to the text ID that this text is replying to
 
 
@@ -32,7 +39,8 @@ class Message(BaseModel):
     def is_quick_reply(self):
         return False
 
-class WithQuickReply(BaseModel):
+
+class MessageWithQuickReply(Message):
     quick_reply: QuickReply
 
     @property
@@ -43,21 +51,24 @@ class WithQuickReply(BaseModel):
     def payload(self):
         return self.quick_reply.payload
 
-class MessageWithQuickReply(Message, WithQuickReply):
-    pass
 
 class Postback(BaseModel):
     title: str
     payload: str
 
+
 class MessageMessaging(BaseMessaging, WithTimestamp):
     message: Message
+
 
 class MessageMessagingWithQuickReply(BaseMessaging, WithTimestamp):
     message: MessageWithQuickReply
 
+
 class UnifiedMessagesEvent(BaseEvent, WithMessaging):
-    messaging: conlist(Union[MessageMessaging, MessageWithQuickReply], max_items=1, min_items=1)
+    messaging: conlist(
+        Union[MessageMessaging, MessageWithQuickReply], max_items=1, min_items=1
+    )
 
     @property
     def is_quick_reply(self):
@@ -70,16 +81,18 @@ class UnifiedMessagesEvent(BaseEvent, WithMessaging):
         else:
             return None
 
+
 class MessagesEvent(UnifiedMessagesEvent):
     """
     Without QuickReply
     """
-    messaging: conlist(MessageMessaging, max_items=1, min_items=1)
 
+    messaging: conlist(MessageMessaging, max_items=1, min_items=1)
 
 
 class MessagesEventWithQuickReply(UnifiedMessagesEvent):
     """
-        With QuickReply
+    With QuickReply
     """
+
     messaging: conlist(MessageMessagingWithQuickReply, max_items=1, min_items=1)

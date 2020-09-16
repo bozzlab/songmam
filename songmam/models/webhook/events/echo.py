@@ -8,8 +8,10 @@ class Message(Message_):
     app_id: str
     metadata: Optional[str]
 
+
 class EchoEntry(MessagesEvent):
     message: Message
+
 
 # {
 #   "recipient":{

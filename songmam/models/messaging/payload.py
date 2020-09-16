@@ -31,13 +31,16 @@ class CompletePayload(BaseModel):
 class SenderActionPayload(CompletePayload):
     sender_action: SenderAction
 
+
 class SendingQuickRepliesEntry(CompletePayload):
     """
     https://developers.facebook.com/docs/messenger-platform/reference/buttons/quick-replies
     """
-    message: Any
-    buttons: conlist(AllButtonTypes, max_items=3, min_items=1)  # Set of 1-3 buttons that appear as call-to-actions.
 
+    message: Any
+    buttons: conlist(
+        AllButtonTypes, max_items=3, min_items=1
+    )  # Set of 1-3 buttons that appear as call-to-actions.
 
 
 from autoname import AutoNameLowercase
@@ -45,8 +48,7 @@ from autoname import AutoNameLowercase
 
 class SenderAction(AutoNameLowercase):
     """https://developers.facebook.com/docs/messenger-platform/send-messages/sender-actions"""
+
     TYPING_ON = auto()
     TYPING_OFF = auto()
     MARK_SEEN = auto()
-
-

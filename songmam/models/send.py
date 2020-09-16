@@ -38,6 +38,7 @@ class MessageAttachment(BaseModel):
     """
     https://developers.facebook.com/docs/messenger-platform/reference/send-api/#attachment
     """
+
     type: Optional[str]
     payload: Optional[MessageAttachmentPayload]
 
@@ -45,7 +46,7 @@ class MessageAttachment(BaseModel):
 class SendMessage(BaseModel):
     text: Optional[str]
     attachment: Optional[MessageAttachment]
-    quick_replies: Optional[List[str]] # Array<quick_reply>
+    quick_replies: Optional[List[str]]  # Array<quick_reply>
     metadata: Optional[str]
 
 
@@ -53,6 +54,8 @@ class RequestUriEntry(BaseModel):
     messaging_type: Optional[MessagingType]
     recipient: Optional[SendRecipient]
     message: Optional[SendMessage]
-    sender_action: Optional[Literal["typing_on", "typing_off", "mark_seen"]] # confused by description
+    sender_action: Optional[
+        Literal["typing_on", "typing_off", "mark_seen"]
+    ]  # confused by description
     notification_type: Optional[str]
     tag: Optional[str]

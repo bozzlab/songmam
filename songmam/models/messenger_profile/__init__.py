@@ -18,6 +18,7 @@ class MessengerProfileProperty(AutoName):
     whitelisted_domains = auto()
     account_linking_url = auto()
 
+
 class MessengerProfile(BaseModel):
     get_started: Optional[GetStarted]
     greeting: Optional[List[GreetingPerLocale]]
@@ -25,4 +26,3 @@ class MessengerProfile(BaseModel):
     persistent_menu: Optional[List[MenuPerLocale]]
     whitelisted_domains: Optional[List[HttpUrl]]
     account_linking_url: Optional[HttpUrl]
-

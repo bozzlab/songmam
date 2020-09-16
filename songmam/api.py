@@ -16,24 +16,39 @@ from songmam.models.messaging.notification_type import NotificationType
 from songmam.models.messaging.payload import CompletePayload, SenderActionPayload
 from songmam.models.messaging.quick_replies import QuickReply
 from songmam.models.messaging.sender_action import SenderAction
-from songmam.models.messaging.templates import AllButtonTypes, TemplateAttachment, Message, PayloadButtonTemplate, \
-    PayloadMedia
+from songmam.models.messaging.templates import (
+    AllButtonTypes,
+    TemplateAttachment,
+    Message,
+    PayloadButtonTemplate,
+    PayloadMedia,
+)
 from songmam.models.messaging.templates.generic import GenericElement, PayloadGeneric
 from songmam.models.messaging.templates.media import MediaElement
-from songmam.models.messenger_profile import MessengerProfile, MessengerProfileProperty, MenuPerLocale
+from songmam.models.messenger_profile import (
+    MessengerProfile,
+    MessengerProfileProperty,
+    MenuPerLocale,
+)
 from songmam.models.messenger_profile.persistent_menu import UserPersistentMenu
 from songmam.models.page import Page
-from songmam.models.persona import Persona, PersonaResponse, PersonaWithId, AllPerosnasResponse, PersonaDeleteResponse
+from songmam.models.persona import (
+    Persona,
+    PersonaResponse,
+    PersonaWithId,
+    AllPerosnasResponse,
+    PersonaDeleteResponse,
+)
 from songmam.models.send import SendResponse
 from songmam.models.user_profile import UserProfile
 
 
 class MessengerApi:
     access_token: str
-    api_version: str = 'v8.0'
+    api_version: str = "v8.0"
     avajana: Optional[Bubbling] = None
 
-    def __init__(self, access_token: str, *, auto_avajana: bool=False):
+    def __init__(self, access_token: str, *, auto_avajana: bool = False):
         self.access_token = access_token
         self.auto_avajana = auto_avajana
         if auto_avajana:
@@ -46,29 +61,35 @@ class MessengerApi:
         return furl_url
 
     async def _fetch_page_info(self):
-        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
-                                     params={"access_token": self.access_token}) as client:
-            response = await client.get(
-                f"/me"
-            )
+        async with httpx.AsyncClient(
+            base_url=self.base_api_furl.url,
+            headers={"Content-type": "application/json"},
+            params={"access_token": self.access_token},
+        ) as client:
+            response = await client.get(f"/me")
 
         if response.status_code != 200:
             raise Exception(response.text)
 
         self.page = Page.parse_raw(response.text)
 
-    async def get_user_profile(self, user: Type[ThingWithId], fields: Set[str] = {'id','name',"first_name","last_name","profile_pic"}) -> UserProfile:
+    async def get_user_profile(
+        self,
+        user: Type[ThingWithId],
+        fields: Set[str] = {"id", "name", "first_name", "last_name", "profile_pic"},
+    ) -> UserProfile:
         """
         Get user profile using id
         References:
             https://developers.facebook.com/docs/messenger-platform/identity/user-profile
         """
-        fields = ','.join(fields)
-        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
-                                     params={"access_token": self.access_token, "fields": fields}) as client:
-            response = await client.get(
-                f"/{user.id}"
-            )
+        fields = ",".join(fields)
+        async with httpx.AsyncClient(
+            base_url=self.base_api_furl.url,
+            headers={"Content-type": "application/json"},
+            params={"access_token": self.access_token, "fields": fields},
+        ) as client:
+            response = await client.get(f"/{user.id}")
 
         if response.status_code != 200:
             raise Exception(response.text)
@@ -97,12 +118,17 @@ class MessengerApi:
     #
     #     return data['uri']
 
-    async def send_native(self, payload: Union[CompletePayload], callback=None) -> SendResponse:
+    async def send_native(
+        self, payload: Union[CompletePayload], callback=None
+    ) -> SendResponse:
 
         data = payload.json(exclude_none=True)
 
-        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
-                                     params={"access_token": self.access_token}) as client:
+        async with httpx.AsyncClient(
+            base_url=self.base_api_furl.url,
+            headers={"Content-type": "application/json"},
+            params={"access_token": self.access_token},
+        ) as client:
             response = await client.post(
                 "/me/messages",
                 data=data,
@@ -123,8 +149,12 @@ class MessengerApi:
 
         return SendResponse.parse_raw(response.text)
 
-    def compose_text(self, text: str, buttons: Optional[Union[AllButtonTypes, List[AllButtonTypes]]] = None,
-                     quick_replies: Optional[List[QuickReply]] = None):
+    def compose_text(
+        self,
+        text: str,
+        buttons: Optional[Union[AllButtonTypes, List[AllButtonTypes]]] = None,
+        quick_replies: Optional[List[QuickReply]] = None,
+    ):
         recipient = ThingWithId.create_none()
         if buttons:
             if not isinstance(buttons, list):
@@ -134,21 +164,16 @@ class MessengerApi:
                 message=Message(
                     attachment=TemplateAttachment(
                         payload=PayloadButtonTemplate(
-                            template_type='button',
-                            text=text,
-                            buttons=buttons
+                            template_type="button", text=text, buttons=buttons
                         )
                     ),
-                    quick_replies=quick_replies
-                )
+                    quick_replies=quick_replies,
+                ),
             )
         else:
             payload = CompletePayload(
                 recipient=recipient,
-                message=Message(
-                    text=text,
-                    quick_replies=quick_replies
-                )
+                message=Message(text=text, quick_replies=quick_replies),
             )
         return payload
 
@@ -158,8 +183,13 @@ class MessengerApi:
 
         from songmam.models.messaging.quick_replies import QuickReply
         from songmam.models.messaging.templates import TemplateAttachment, Message
-        from songmam.models.messaging.templates.receipt import ReceiptElements, Address, Summary, Adjustments, \
-            PayloadReceipt
+        from songmam.models.messaging.templates.receipt import (
+            ReceiptElements,
+            Address,
+            Summary,
+            Adjustments,
+            PayloadReceipt,
+        )
 
         @dataclass
         class ContentReceipt:
@@ -195,9 +225,7 @@ class MessengerApi:
                     payload.elements = self.elements
                     payload.address = self.address
                     payload.adjustments = self.adjustments
-                    message.attachment = TemplateAttachment(
-                        payload=payload
-                    )
+                    message.attachment = TemplateAttachment(payload=payload)
                 if self.quick_replies:
                     message.quick_replies = self.quick_replies
 
@@ -205,8 +233,12 @@ class MessengerApi:
 
         raise NotImplementedError
 
-    def compose_media(self, media_element: MediaElement, media_sharable: Optional[bool] = None,
-                      quick_replies: Optional[List[QuickReply]] = None):
+    def compose_media(
+        self,
+        media_element: MediaElement,
+        media_sharable: Optional[bool] = None,
+        quick_replies: Optional[List[QuickReply]] = None,
+    ):
         recipient = ThingWithId.create_none()
         payload = CompletePayload(
             recipient=recipient,
@@ -217,14 +249,17 @@ class MessengerApi:
                         sharable=media_sharable,
                     )
                 ),
-                quick_replies=quick_replies
-            )
+                quick_replies=quick_replies,
+            ),
         )
         return payload
 
-    def compose_generic(self, generic_elements: Union[GenericElement, List[GenericElement]],
-                        image_aspect_ratio: Literal["horizontal", "square"] = "square",
-                        quick_replies: Optional[List[QuickReply]] = None):
+    def compose_generic(
+        self,
+        generic_elements: Union[GenericElement, List[GenericElement]],
+        image_aspect_ratio: Literal["horizontal", "square"] = "square",
+        quick_replies: Optional[List[QuickReply]] = None,
+    ):
         recipient = ThingWithId.create_none()
         if not isinstance(generic_elements, list):
             generic_elements = [generic_elements]
@@ -234,20 +269,23 @@ class MessengerApi:
             message=Message(
                 attachment=TemplateAttachment(
                     payload=PayloadGeneric(
-                        elements=generic_elements,
-                        image_aspect_ratio=image_aspect_ratio
+                        elements=generic_elements, image_aspect_ratio=image_aspect_ratio
                     )
                 ),
-                quick_replies=quick_replies
+                quick_replies=quick_replies,
             ),
         )
         return payload
 
-    def rehydrate_payload(self, payload: CompletePayload, recipient: Union[Sender, str],
-                          persona_id: Optional[str] = None,
-                          messaging_type: Optional[MessagingType] = MessagingType.RESPONSE,
-                          tag: Optional[MessageTag] = None,
-                          notification_type: Optional[NotificationType] = NotificationType.REGULAR):
+    def rehydrate_payload(
+        self,
+        payload: CompletePayload,
+        recipient: Union[Sender, str],
+        persona_id: Optional[str] = None,
+        messaging_type: Optional[MessagingType] = MessagingType.RESPONSE,
+        tag: Optional[MessageTag] = None,
+        notification_type: Optional[NotificationType] = NotificationType.REGULAR,
+    ):
         if isinstance(recipient, str):
             recipient = Sender(id=recipient)
 
@@ -258,24 +296,25 @@ class MessengerApi:
         payload.notification_type = notification_type
         return payload
 
-    async def send(self,
-                   recipient: Union[Sender, str],
-                   text: Optional[str] = None,
-                   *,
-                   buttons: Optional[Union[AllButtonTypes, List[AllButtonTypes]]] = None,
-                   quick_replies: Optional[Union[QuickReply,List[QuickReply]]] = None,
-                   generic_elements: Optional[Union[GenericElement, List[GenericElement]]] = None,
-                   image_aspect_ratio: Optional[Literal["horizontal", "square"]] = None,
-                   media_element: Optional[MediaElement] = None,
-                   media_sharable: Optional[bool] = None,
-                   persona_id: Optional[str] = None,
-                   messaging_type: Optional[MessagingType] = MessagingType.RESPONSE,
-                   tag: Optional[MessageTag] = None,
-                   notification_type: Optional[NotificationType] = NotificationType.REGULAR,
-                   callback: Optional[callable] = None,
-                   auto_avajana: Optional[bool] = None,
-                   emu_type: bool = False
-                   ):
+    async def send(
+        self,
+        recipient: Union[Sender, str],
+        text: Optional[str] = None,
+        *,
+        buttons: Optional[Union[AllButtonTypes, List[AllButtonTypes]]] = None,
+        quick_replies: Optional[Union[QuickReply, List[QuickReply]]] = None,
+        generic_elements: Optional[Union[GenericElement, List[GenericElement]]] = None,
+        image_aspect_ratio: Optional[Literal["horizontal", "square"]] = None,
+        media_element: Optional[MediaElement] = None,
+        media_sharable: Optional[bool] = None,
+        persona_id: Optional[str] = None,
+        messaging_type: Optional[MessagingType] = MessagingType.RESPONSE,
+        tag: Optional[MessageTag] = None,
+        notification_type: Optional[NotificationType] = NotificationType.REGULAR,
+        callback: Optional[callable] = None,
+        auto_avajana: Optional[bool] = None,
+        emu_type: bool = False,
+    ):
         if auto_avajana is None:
             auto_avajana = self.auto_avajana
         if isinstance(recipient, str):
@@ -289,25 +328,34 @@ class MessengerApi:
             stop_fn = partial(self.typing_off, recipient)
             await self.avajana.act_typing(text, typing_fn, stop_fn)
 
-
         if isinstance(quick_replies, QuickReply):
             quick_replies = [quick_replies]
 
         if generic_elements:
-            payload = self.compose_generic(generic_elements=generic_elements, image_aspect_ratio=image_aspect_ratio,
-                                           quick_replies=quick_replies)
+            payload = self.compose_generic(
+                generic_elements=generic_elements,
+                image_aspect_ratio=image_aspect_ratio,
+                quick_replies=quick_replies,
+            )
         elif media_element:
-            payload = self.compose_media(media_element=media_element, media_sharable=media_sharable,
-                                         quick_replies=quick_replies)
+            payload = self.compose_media(
+                media_element=media_element,
+                media_sharable=media_sharable,
+                quick_replies=quick_replies,
+            )
         else:
-            payload = self.compose_text(text=text, buttons=buttons, quick_replies=quick_replies)
+            payload = self.compose_text(
+                text=text, buttons=buttons, quick_replies=quick_replies
+            )
 
-        payload = self.rehydrate_payload(payload=payload,
-                                         recipient=recipient,
-                                         persona_id=persona_id,
-                                         messaging_type=messaging_type,
-                                         tag=tag,
-                                         notification_type=notification_type)
+        payload = self.rehydrate_payload(
+            payload=payload,
+            recipient=recipient,
+            persona_id=persona_id,
+            messaging_type=messaging_type,
+            tag=tag,
+            notification_type=notification_type,
+        )
 
         return await self.send_native(payload, callback=callback)
 
@@ -333,24 +381,32 @@ class MessengerApi:
     #     )
 
     async def typing_on(self, recipient: Type[ThingWithId]):
-        payload = SenderActionPayload(recipient=recipient,
-                                      sender_action=SenderAction.TYPING_ON)
+        payload = SenderActionPayload(
+            recipient=recipient, sender_action=SenderAction.TYPING_ON
+        )
 
         return await self.send_native(payload)
 
     async def typing_off(self, recipient: Type[ThingWithId]):
-        payload = SenderActionPayload(recipient=recipient,
-                                      sender_action=SenderAction.TYPING_OFF)
+        payload = SenderActionPayload(
+            recipient=recipient, sender_action=SenderAction.TYPING_OFF
+        )
 
         return await self.send_native(payload)
 
     async def mark_seen(self, recipient: Type[ThingWithId]):
-        payload = SenderActionPayload(recipient=recipient,
-                                      sender_action=SenderAction.MARK_SEEN)
+        payload = SenderActionPayload(
+            recipient=recipient, sender_action=SenderAction.MARK_SEEN
+        )
 
         return await self.send_native(payload)
 
-    async def typing_for(self, seconds: float, recipient: Type[ThingWithId], prepause_seconds: float = 0.0):
+    async def typing_for(
+        self,
+        seconds: float,
+        recipient: Type[ThingWithId],
+        prepause_seconds: float = 0.0,
+    ):
         await asyncio.sleep(prepause_seconds)
         await self.typing_on(recipient)
         await asyncio.sleep(seconds)
@@ -363,8 +419,11 @@ class MessengerApi:
     async def set_messenger_profile(self, data: MessengerProfile):
 
         data = data.json(exclude_none=True)
-        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
-                                     params={"access_token": self.access_token}) as client:
+        async with httpx.AsyncClient(
+            base_url=self.base_api_furl.url,
+            headers={"Content-type": "application/json"},
+            params={"access_token": self.access_token},
+        ) as client:
             response = await client.post(
                 "/me/messenger_profile",
                 data=data,
@@ -378,9 +437,12 @@ class MessengerApi:
             raise Exception(response.text)
 
     async def delete_messenger_profile(self, properties: Set[MessengerProfileProperty]):
-        data = json.dumps({'fields': [p.value for p in properties]})
-        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
-                                     params={"access_token": self.access_token}) as client:
+        data = json.dumps({"fields": [p.value for p in properties]})
+        async with httpx.AsyncClient(
+            base_url=self.base_api_furl.url,
+            headers={"Content-type": "application/json"},
+            params={"access_token": self.access_token},
+        ) as client:
             response = await client.request(
                 "DELETE",
                 "/me/messenger_profile",
@@ -396,10 +458,13 @@ class MessengerApi:
 
     async def get_user_settings(self, user_id: str):
 
-        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
-                                     params={"access_token": self.access_token, "psid": user_id}) as client:
+        async with httpx.AsyncClient(
+            base_url=self.base_api_furl.url,
+            headers={"Content-type": "application/json"},
+            params={"access_token": self.access_token, "psid": user_id},
+        ) as client:
             response = await client.get(
-                'me/custom_user_settings',
+                "me/custom_user_settings",
             )
 
         if response.status_code != 200:
@@ -409,7 +474,9 @@ class MessengerApi:
         #  https://developers.facebook.com/docs/messenger-platform/send-messages/persistent-menu
         return response.json()
 
-    async def set_user_menu(self, user: Union[str, Type[ThingWithId]], menus: List[MenuPerLocale]):
+    async def set_user_menu(
+        self, user: Union[str, Type[ThingWithId]], menus: List[MenuPerLocale]
+    ):
         if isinstance(user, str):
             user = ThingWithId(id=user)
 
@@ -418,12 +485,12 @@ class MessengerApi:
 
         data = UserPersistentMenu(psid=user.id, persistent_menu=menus).json()
 
-        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
-                                     params={"access_token": self.access_token}) as client:
-            response = await client.post(
-                'me/custom_user_settings',
-                data=data
-            )
+        async with httpx.AsyncClient(
+            base_url=self.base_api_furl.url,
+            headers={"Content-type": "application/json"},
+            params={"access_token": self.access_token},
+        ) as client:
+            response = await client.post("me/custom_user_settings", data=data)
 
         if response.status_code != 200:
             raise Exception(response.text)
@@ -432,13 +499,16 @@ class MessengerApi:
         params = {
             "access_token": self.access_token,
             "psid": user_id,
-            "params": "[\"persistent_menu\"]"
+            "params": '["persistent_menu"]',
         }
 
-        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
-                                     params=params) as client:
+        async with httpx.AsyncClient(
+            base_url=self.base_api_furl.url,
+            headers={"Content-type": "application/json"},
+            params=params,
+        ) as client:
             response = await client.delete(
-                'me/custom_user_settings',
+                "me/custom_user_settings",
             )
 
         if response.status_code != 200:
@@ -449,8 +519,11 @@ class MessengerApi:
     async def create_persona(self, persona: Persona) -> PersonaResponse:
         data = persona.json()
 
-        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
-                                     params={"access_token": self.access_token}) as client:
+        async with httpx.AsyncClient(
+            base_url=self.base_api_furl.url,
+            headers={"Content-type": "application/json"},
+            params={"access_token": self.access_token},
+        ) as client:
             response = await client.post(
                 "/me/personas",
                 data=data,
@@ -463,8 +536,11 @@ class MessengerApi:
 
     async def get_persona(self, id):
 
-        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
-                                     params={"access_token": self.access_token}) as client:
+        async with httpx.AsyncClient(
+            base_url=self.base_api_furl.url,
+            headers={"Content-type": "application/json"},
+            params={"access_token": self.access_token},
+        ) as client:
             response = await client.get(
                 f"/{id}",
             )
@@ -476,8 +552,11 @@ class MessengerApi:
 
     async def get_all_personas(self) -> List[PersonaWithId]:
 
-        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
-                                     params={"access_token": self.access_token}) as client:
+        async with httpx.AsyncClient(
+            base_url=self.base_api_furl.url,
+            headers={"Content-type": "application/json"},
+            params={"access_token": self.access_token},
+        ) as client:
             response = await client.get(
                 f"/me/personas",
             )
@@ -494,8 +573,11 @@ class MessengerApi:
 
     async def delete_persona(self, id):
 
-        async with httpx.AsyncClient(base_url=self.base_api_furl.url, headers={'Content-type': 'application/json'},
-                                     params={"access_token": self.access_token}) as client:
+        async with httpx.AsyncClient(
+            base_url=self.base_api_furl.url,
+            headers={"Content-type": "application/json"},
+            params={"access_token": self.access_token},
+        ) as client:
             response = await client.delete(
                 f"/{id}",
             )

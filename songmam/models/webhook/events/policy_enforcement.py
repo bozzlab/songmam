@@ -7,10 +7,12 @@ class PolicyEnforcement(BaseModel):
     action: str
     reason: str
 
+
 class PolicyEnforcementEntry(BaseModel):
     recipitent: ThingWithId
     timestamp: int
     policy_enforcement: PolicyEnforcement = Field(None, alias="policy-enforcement")
+
 
 # {
 #   "recipient": {

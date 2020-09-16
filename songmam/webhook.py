@@ -5,6 +5,7 @@ from inspect import iscoroutine
 from itertools import product
 from typing import get_args
 
+from moshimoshi import moshi
 from path import Path
 from typing import Optional, Union, List, Awaitable, Callable
 
@@ -14,6 +15,7 @@ from parse import parse
 from pydantic import ValidationError
 
 from songmam.middleware import VerifyTokenMiddleware, AppSecretMiddleware
+from songmam.models.webhook import MessagesEventWithQuickReply
 from songmam.models.webhook.events.messages import MessagesEvent
 from songmam.models.webhook.events.postback import PostbackEvent
 from songmam.models.webhook import Webhook
@@ -22,10 +24,18 @@ from songmam.models.webhook import Webhook
 class WebhookHandler:
     verify_token: Optional[str] = None
     app_secret: Optional[str] = None
-    uncaught_postback_handler: Optional[Callable]= None
+    uncaught_postback_handler: Optional[Callable] = None
 
-    def __init__(self, app: FastAPI, path="/", *, app_secret: Optional[str] = None, dynamic_import=True,
-                 verify_token: Optional[str] = None, auto_mark_as_seen: bool = True):
+    def __init__(
+        self,
+        app: FastAPI,
+        path="/",
+        *,
+        app_secret: Optional[str] = None,
+        dynamic_import=True,
+        verify_token: Optional[str] = None,
+        auto_mark_as_seen: bool = True
+    ):
         self._post_webhook_handlers = {}
         self._pre_webhook_handlers = {}
         self.app = app
@@ -34,16 +44,18 @@ class WebhookHandler:
         self.path = path
         self.dynamic_import = dynamic_import
 
-
         app.add_middleware(VerifyTokenMiddleware, verify_token=verify_token, path=path)
         if not self.verify_token:
             logger.warning(
-                "Without verify token, It is possible for your bot server to be substituded by hackers' server.")
+                "Without verify token, It is possible for your bot server to be substituded by hackers' server."
+            )
 
         if self.app_secret:
             app.add_middleware(AppSecretMiddleware, app_secret=app_secret, path=path)
         else:
-            logger.warning("Without app secret, The server will not be able to identity the integrety of callback.")
+            logger.warning(
+                "Without app secret, The server will not be able to identity the integrety of callback."
+            )
 
         @app.post(path)
         async def handle_entry(request: Request):
@@ -56,8 +68,6 @@ class WebhookHandler:
                 raise e
             await self.handle_webhook(webhook, request=request)
             return "ok"
-
-
 
     # these are set by decorators or the 'set_webhook_handler' method
     _webhook_handlers = {}
@@ -80,46 +90,44 @@ class WebhookHandler:
                 await handler(event, *args, **kwargs)
             else:
                 if not self.dynamic_import and event_type is PostbackEvent:
-                    logger.warning("there's no handler for this event type, {}", str(event_type))
+                    logger.warning(
+                        "there's no handler for this event type, {}", str(event_type)
+                    )
 
             # Dynamic handlers
-            if event_type is MessagesEvent:
-                if event.is_quick_reply:
-                    if self.dynamic_import:
-                        await self.call_dynamic_function(event, *args, **kwargs)
-                        continue
-                    else:
-                        matched_callbacks = self.get_quick_reply_callbacks(event)
-                        for callback in matched_callbacks:
-                            await callback(event, *args, **kwargs)
+            if event_type is MessagesEventWithQuickReply:
+                if self.dynamic_import:
+                    await self.call_dynamic_function(*args, event=event, **kwargs)
+                    continue
+                else:
+                    matched_callbacks = self.get_quick_reply_callbacks(event)
+                    for callback in matched_callbacks:
+                        await callback(event, *args, **kwargs)
             elif event_type is PostbackEvent:
                 if self.dynamic_import:
-                    await self.call_dynamic_function(event, *args, **kwargs)
+                    await self.call_dynamic_function(*args, event=event, **kwargs)
                     continue
                 matched_callbacks = self.get_postback_callbacks(event)
                 for callback in matched_callbacks:
                     await callback(event, *args, **kwargs)
 
-
-    async def call_dynamic_function(self, entry: Union[MessagesEvent, PostbackEvent], *args, **kwargs):
-        payload = entry.payload
-        parsed = parse("{import_path}:{function_name}", payload)
-        import_path = parsed['import_path']
-        function_name = parsed['function_name']
-
-        try:
-            module = importlib.import_module(f"{import_path}")
-            function = getattr(module, function_name)
-            ret = function(entry, *args, **kwargs)
-            if iscoroutine(ret):
-                await ret
-        except ModuleNotFoundError as e:
-            if self.uncaught_postback_handler:
-                ret = self.uncaught_postback_handler(entry, *args, **kwargs)
-                if iscoroutine(ret):
-                    await ret
-            else:
-                logger.warning("Please add `uncaught_postback_handler` to caught this '{}' payload", entry.payload)
+    async def call_dynamic_function(
+        self, *args, event: Union[MessagesEventWithQuickReply, PostbackEvent], **kwargs
+    ):
+        payload = event.payload
+        kwargs["event"] = event
+        if self.uncaught_postback_handler:
+            await moshi.moshi(
+                payload, *args, fallback=self.uncaught_postback_handler, **kwargs
+            )
+        else:
+            try:
+                await moshi.moshi(payload, *args, **kwargs)
+            except ModuleNotFoundError as e:
+                logger.warning(
+                    "Please add `uncaught_postback_handler` to caught this '{}' payload",
+                    event.payload,
+                )
 
     def add_pre(self, entry_type):
         """
@@ -138,12 +146,15 @@ class WebhookHandler:
 
         return decorator
 
-    def add(self, event_type,
-            # skipQuickReply:Optional[bool]=None
-            ):
+    def add(
+        self,
+        event_type,
+        # skipQuickReply:Optional[bool]=None
+    ):
         """
         Add an event handler
         """
+
         # conditions = tuple(skipQuickReply)
         # didPassSomeCondition = any((x is None for x in conditions))
         # spaces = [(event_type), ]
@@ -153,8 +164,6 @@ class WebhookHandler:
         #             spaces.append((True, False))
         #         else:
         #             spaces.append(tuple(con))
-
-
 
         def decorator(func):
             # for condition in product(*spaces):
@@ -187,8 +196,9 @@ class WebhookHandler:
 
         return decorator
 
-    def add_postback_handler(self, regexes: List[str] = None, quick_reply=True, button=True):
-
+    def add_postback_handler(
+        self, regexes: List[str] = None, quick_reply=True, button=True
+    ):
         def wrapper(func):
             if regexes is None:
                 return func
@@ -211,7 +221,7 @@ class WebhookHandler:
         callbacks = []
         for key in self._quick_reply_callbacks.keys():
             if key not in self._quick_reply_callbacks_key_regex:
-                self._quick_reply_callbacks_key_regex[key] = re.compile(key + '$')
+                self._quick_reply_callbacks_key_regex[key] = re.compile(key + "$")
 
             if self._quick_reply_callbacks_key_regex[key].match(entry.payload):
                 callbacks.append(self._quick_reply_callbacks[key])
@@ -222,7 +232,7 @@ class WebhookHandler:
         callbacks = []
         for key in self._button_callbacks.keys():
             if key not in self._button_callbacks_key_regex:
-                self._button_callbacks_key_regex[key] = re.compile(key + '$')
+                self._button_callbacks_key_regex[key] = re.compile(key + "$")
 
             if self._button_callbacks_key_regex[key].match(entry.payload):
                 callbacks.append(self._button_callbacks[key])

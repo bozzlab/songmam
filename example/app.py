@@ -10,27 +10,29 @@ from songmam.models.messaging.templates.button import PostbackButton
 from songmam.models.webhook.events import *
 
 app = FastAPI()
-handler = WebhookHandler(
-    app
-)
-api = MessengerApi(config('PAGE_ACCESS_TOKEN'), auto_avajana=False)
+handler = WebhookHandler(app)
+api = MessengerApi(config("PAGE_ACCESS_TOKEN"), auto_avajana=False)
 
 
 @handler.add(MessagesEvent)
 async def echo(event: MessagesEvent, *args, **kwargs):
-    print(event.theMessaging.recipient, event.theMessaging.sender, event.theMessaging.message.text)
-    await api.send(event.sender, text=event.theMessaging.message.text, buttons=PostbackButton(
-        title="send postback",
-        payload="handlers.do:tell_user"
-    ), quick_replies=QuickReply(
-        title='quick reply',
-        payload="handlers.do:tell_user"
+    print(
+        event.theMessaging.recipient,
+        event.theMessaging.sender,
+        event.theMessaging.message.text,
     )
-                   )
+    await api.send(
+        event.sender,
+        text=event.theMessaging.message.text,
+        buttons=PostbackButton(title="send postback", payload="handlers.do:tell_user"),
+        quick_replies=QuickReply(title="quick reply", payload="handlers.do:tell_user"),
+    )
+
 
 @handler.add(MessagesEventWithQuickReply)
 async def echo2(entry: MessagesEventWithQuickReply, *args, **kwargs):
-    logger.info('echo2')
+    logger.info("echo2")
+
 
 @handler.add(MessagingReferralEvent)
 async def handle_ref(entry: MessagingReferralEvent, *args, **kwargs):
@@ -56,4 +58,4 @@ async def handle_delivery(entry: MessageDeliveriesEvent, *args, **kwargs):
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run("app:app", host="0.0.0.0", port=8002, reload=True, log_level='debug')
+    uvicorn.run("app:app", host="0.0.0.0", port=8002, reload=True, log_level="debug")

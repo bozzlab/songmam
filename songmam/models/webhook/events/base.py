@@ -11,6 +11,7 @@ class BaseMessaging(BaseModel):
 class WithTimestamp(BaseModel):
     timestamp: int
 
+
 class BaseEvent(BaseModel):
     id: str
     time: int
@@ -30,4 +31,3 @@ class WithMessaging(BaseModel):
     @property
     def recipient(self):
         return self.theMessaging.recipient
-

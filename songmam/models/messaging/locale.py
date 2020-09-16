@@ -7,6 +7,7 @@ from autoname import AutoName
 
 class Locale(AutoName):
     """https://developers.facebook.com/docs/messenger-platform/messenger-profile/supported-locales"""
+
     default = auto()
     en_US = auto()
     ca_ES = auto()
@@ -111,6 +112,7 @@ class Locale(AutoName):
     ff_NG = auto()
     sc_IT = auto()
     sz_PL = auto()
+
 
 class ThingWithLocale(BaseModel):
     locale: Locale = Locale.default

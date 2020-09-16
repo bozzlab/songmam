@@ -1,9 +1,15 @@
 build:
 	poetry build -f wheel
 
-letsgo:
+patch:
 	poetry version patch
-	poetry build -f wheel
+
+letsgo: patch publish
+
+format:
+	pre-commit run --all-files
+
+publish: format build
 	poetry publish
 
 turnel:

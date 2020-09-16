@@ -11,8 +11,10 @@ class GamePlay(BaseModel):
     score: int
     payload: str
 
+
 class GamePlayEntries(BaseMessaging, WithTimestamp):
     game_play: GamePlay
+
 
 # {
 #   "recipient": {

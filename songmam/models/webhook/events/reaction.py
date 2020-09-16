@@ -6,14 +6,16 @@ from songmam.models.webhook.events.base import WithTimestamp
 
 
 class Reaction(BaseModel):
-    reaction: Literal['smile', 'angry', 'sad', 'wow', 'love', 'like', 'dislike', 'other']
+    reaction: Literal[
+        "smile", "angry", "sad", "wow", "love", "like", "dislike", "other"
+    ]
     emoji: str
     action: str
     mid: str
 
+
 class ReactionEntry(BaseMessaging, WithTimestamp):
     reaction: Reaction
-
 
 
 # {

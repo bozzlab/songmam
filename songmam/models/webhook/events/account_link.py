@@ -9,8 +9,10 @@ class AccountLink(BaseModel):
     status: Literal["linked", "unlinked"]
     authorization_code: str
 
+
 class AccountLinkEvent(BaseEvent, WithTimestamp):
     account_linking: AccountLink
+
 
 # {
 #   "recipient":{

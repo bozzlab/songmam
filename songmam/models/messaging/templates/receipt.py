@@ -7,6 +7,7 @@ class ReceiptElements(BaseModel):
     """
     https://developers.facebook.com/docs/messenger-platform/reference/templates/receipt#elements
     """
+
     title: str
     subtitle: Optional[str]
     quantity: Optional[int]
@@ -19,6 +20,7 @@ class Address(BaseModel):
     """
     https://developers.facebook.com/docs/messenger-platform/reference/templates/receipt#address
     """
+
     street_1: str
     street_2: Optional[str]
     city: str
@@ -31,6 +33,7 @@ class Summary(BaseModel):
     """
     https://developers.facebook.com/docs/messenger-platform/reference/templates/receipt#summary
     """
+
     subtotal: Optional[float]
     shipping_cost: Optional[float]
     total_tax: Optional[float]
@@ -41,6 +44,7 @@ class Adjustments(BaseModel):
     """
     https://developers.facebook.com/docs/messenger-platform/reference/templates/receipt#adjustments
     """
+
     name: str
     amount: float
 
@@ -49,6 +53,7 @@ class PayloadReceipt(BaseModel):
     """
     https://developers.facebook.com/docs/messenger-platform/reference/templates/receipt
     """
+
     template_type: Literal["receipt"]
     sharable: Optional[bool]
     recipient_name: str

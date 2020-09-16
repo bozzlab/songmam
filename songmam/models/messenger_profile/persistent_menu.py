@@ -3,7 +3,11 @@ from typing import List, Union
 
 from pydantic import BaseModel, conlist
 
-from songmam.models.messaging.templates.button import BaseButton, PostbackButton, URLButton
+from songmam.models.messaging.templates.button import (
+    BaseButton,
+    PostbackButton,
+    URLButton,
+)
 from songmam.models.messaging.locale import ThingWithLocale
 
 
@@ -14,7 +18,7 @@ class MenuPerLocale(ThingWithLocale):
 
 class PersistentMenu(BaseModel):
     persistent_menu: List[MenuPerLocale]
-    
+
+
 class UserPersistentMenu(PersistentMenu):
     psid: str
-

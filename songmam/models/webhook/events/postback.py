@@ -12,23 +12,26 @@ class PostbackReferral(BaseModel):
     source: Literal["SHORTLINK", "ADS"]
     type: Literal["OPEN_THREAD"]
 
+
 class Postback(BaseModel):
     title: str
     payload: str
     referral: Optional[PostbackReferral]
 
+
 class PostbackMessageMessaging(MessageMessaging):
     message: Optional[Message]
     postback: Postback
 
+
 class PostbackEvent(BaseEvent, WithMessaging):
     messaging: conlist(PostbackMessageMessaging, min_items=1, max_items=1)
-
 
     @property
     def payload(self):
         postback: Postback = self.theMessaging.postback
         return postback.payload
+
 
 # {
 #   "recipient":{

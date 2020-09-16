@@ -3,7 +3,12 @@ from typing import Optional
 
 from pydantic import BaseModel, conlist
 
-from songmam.models.webhook.events.base import WithTimestamp, BaseMessaging, WithMessaging, BaseEvent
+from songmam.models.webhook.events.base import (
+    WithTimestamp,
+    BaseMessaging,
+    WithMessaging,
+    BaseEvent,
+)
 
 
 class Delivery(BaseModel):
@@ -25,6 +30,7 @@ class MessageDeliveriesEvent(BaseEvent, WithMessaging):
     @property
     def watermark(self):
         return self.theMessaging.delivery.watermark
+
 
 # DeliveryEvent = MessageDeliveriesEvent
 """

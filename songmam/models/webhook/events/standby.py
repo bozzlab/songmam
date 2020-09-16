@@ -4,13 +4,16 @@ from pydantic import BaseModel
 
 from songmam.models.webhook import Webhook
 
+
 class StandbyEntry(BaseModel):
     id: str
     time: int
     standby: List
 
+
 class StandbyObject(Webhook):
     entry: StandbyEntry
+
 
 # {
 #   "object":"page",

@@ -6,8 +6,8 @@ class ThingWithId(BaseModel):
 
     @property
     def isNone(self):
-        return self.id == 'none'
+        return self.id == "none"
 
     @classmethod
     def create_none(cls):
-        return cls(id='none')
+        return cls(id="none")

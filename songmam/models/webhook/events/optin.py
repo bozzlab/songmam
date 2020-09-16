@@ -7,8 +7,10 @@ class Optin(BaseModel):
     ref: str
     user_ref: str
 
+
 class OptinEntry(BaseMessaging, WithTimestamp):
     optin: Optin
+
 
 # {
 #   "recipient": {
