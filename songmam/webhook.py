@@ -1,3 +1,4 @@
+import asyncio
 import importlib
 import re
 from asyncio import coroutine
@@ -97,16 +98,18 @@ class WebhookHandler:
             # Dynamic handlers
             if event_type is MessagesEventWithQuickReply:
                 if self.dynamic_import:
-                    await self.call_dynamic_function(*args, event=event, **kwargs)
-                    continue
+                    asyncio.create_task(
+                        self.call_dynamic_function(*args, event=event, **kwargs)
+                    )
                 else:
                     matched_callbacks = self.get_quick_reply_callbacks(event)
                     for callback in matched_callbacks:
                         await callback(event, *args, **kwargs)
             elif event_type is PostbackEvent:
                 if self.dynamic_import:
-                    await self.call_dynamic_function(*args, event=event, **kwargs)
-                    continue
+                    asyncio.create_task(
+                        self.call_dynamic_function(*args, event=event, **kwargs)
+                    )
                 matched_callbacks = self.get_postback_callbacks(event)
                 for callback in matched_callbacks:
                     await callback(event, *args, **kwargs)
