@@ -59,7 +59,7 @@ class MessengerApi:
 
     @property
     def avajana(self) -> Bubbling:
-        if not hasattr(self,'_avajana'):
+        if not hasattr(self, "_avajana"):
             self._avajana = Bubbling()
         return self._avajana
 
