@@ -46,19 +46,29 @@ from songmam.models.user_profile import UserProfile
 class MessengerApi:
     access_token: str
     api_version: str = "v8.0"
-    avajana: Optional[Bubbling] = None
 
     def __init__(self, access_token: str, *, auto_avajana: bool = False):
         self.access_token = access_token
         self.auto_avajana = auto_avajana
-        if auto_avajana:
-            self.avajana = Bubbling()
 
     @property
     def base_api_furl(self) -> furl:
         furl_url = furl("https://graph.facebook.com/") / self.api_version
         # furl_url.args['access_token'] = self.access_token
         return furl_url
+
+    @property
+    def avajana(self) -> Bubbling:
+        if not hasattr(self,'_avajana'):
+            self._avajana = Bubbling()
+        return self._avajana
+
+    @avajana.setter
+    def avajana(self, value):
+        if isinstance(value, Bubbling):
+            self._avajana = value
+        else:
+            raise ValueError("This needs to be type of Bubbling")
 
     async def _fetch_page_info(self):
         async with httpx.AsyncClient(
@@ -320,10 +330,6 @@ class MessengerApi:
         if isinstance(recipient, str):
             recipient = Sender(id=recipient)
         if text and auto_avajana:
-            # TODO: do the lazy imprementation instead
-            if not self.avajana:
-                self.avajana = Bubbling()
-
             typing_fn = partial(self.typing_on, recipient)
             stop_fn = partial(self.typing_off, recipient)
             await self.avajana.act_typing(text, typing_fn, stop_fn)
