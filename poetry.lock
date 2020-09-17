@@ -51,7 +51,7 @@ description = "Avajana helps chatbot to express/emulate indirect expressions. Cu
 name = "avajana"
 optional = false
 python-versions = ">=3.8,<4.0"
-version = "0.2.2"
+version = "0.4.0"
 
 [[package]]
 category = "main"
@@ -729,7 +729,7 @@ version = "1.0.2"
 dev = ["pytest (>=4.6.2)", "black (>=19.3b0)"]
 
 [metadata]
-content-hash = "5f4d392860108a27e432cbbf4b306753842e0cf36b3cd68ca6988a2a77f68b11"
+content-hash = "b549ba623199cbddbad9227be45f86bdfa01341e74400b2dc666c944d2d7d61a"
 python-versions = "^3.8"
 
 [metadata.files]
@@ -754,7 +754,7 @@ autoname = [
     {file = "autoname-0.1.2.tar.gz", hash = "sha256:b874cfbbda2fc388b6de88fd335faba051deac639363739964138625a04913ca"},
 ]
 avajana = [
-    {file = "avajana-0.2.2-py3-none-any.whl", hash = "sha256:2df5d64a9a00bedd1b0666e4215bc5b0bec075ca22fec1b7c3a193f331546767"},
+    {file = "avajana-0.4.0-py3-none-any.whl", hash = "sha256:b4bbb4050945c51ef4aad98f079c72a2438aa4f627a2142065eb3bf8e002f487"},
 ]
 cacheout = [
     {file = "cacheout-0.11.2-py3-none-any.whl", hash = "sha256:402e2a8a4630ec1180ca744e31c0f0b483131f7b23949809fcde67a19a30b5a6"},
