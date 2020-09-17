@@ -88,7 +88,7 @@ class WebhookHandler:
             # Unconditional handlers
             handler = self._webhook_handlers.get(event_type)
             if handler:
-                await handler(event, *args, **kwargs)
+                asyncio.create_task(handler(event, *args, **kwargs))
             else:
                 if not self.dynamic_import and event_type is PostbackEvent:
                     logger.warning(
@@ -104,7 +104,7 @@ class WebhookHandler:
                 else:
                     matched_callbacks = self.get_quick_reply_callbacks(event)
                     for callback in matched_callbacks:
-                        await callback(event, *args, **kwargs)
+                        asyncio.create_task(callback(event, *args, **kwargs))
             elif event_type is PostbackEvent:
                 if self.dynamic_import:
                     asyncio.create_task(
@@ -112,7 +112,7 @@ class WebhookHandler:
                     )
                 matched_callbacks = self.get_postback_callbacks(event)
                 for callback in matched_callbacks:
-                    await callback(event, *args, **kwargs)
+                    asyncio.create_task(callback(event, *args, **kwargs))
 
     async def call_dynamic_function(
         self, *args, event: Union[MessagesEventWithQuickReply, PostbackEvent], **kwargs
