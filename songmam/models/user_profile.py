@@ -9,6 +9,7 @@ class UserProfile(BaseModel):
     """
 
     id: str
+    name: str
     first_name: str
     last_name: str
     profile_pic: HttpUrl
