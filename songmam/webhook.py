@@ -88,6 +88,13 @@ class WebhookHandler:
             # Unconditional handlers
             handler = self._webhook_handlers.get(event_type)
             if handler:
+
+                # quick_replies raw input escape
+                if event_type is MessagesEventWithQuickReply:
+                    if event.payload == '#raw_input':
+                        handler = self._webhook_handlers.get(MessagesEvent)
+                        # TODO: Convert from `MessagesEventWithQuickReply` to `MessagesEvent`
+
                 asyncio.create_task(handler(event, *args, **kwargs))
             else:
                 if not self.dynamic_import and event_type is PostbackEvent:
