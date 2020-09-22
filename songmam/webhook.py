@@ -91,7 +91,7 @@ class WebhookHandler:
 
                 # quick_replies raw input escape
                 if event_type is MessagesEventWithQuickReply:
-                    if event.payload == '#raw_input':
+                    if event.payload == "#raw_input":
                         handler = self._webhook_handlers.get(MessagesEvent)
                         # TODO: Convert from `MessagesEventWithQuickReply` to `MessagesEvent`
 
