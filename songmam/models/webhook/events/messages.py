@@ -107,7 +107,7 @@ class MessagesEventWithQuickReply(UnifiedMessagesEvent):
     messaging: conlist(MessageMessagingWithQuickReply, max_items=1, min_items=1)
 
     def convert_to_no_reply(self):
-        messaging_without_reply = self.theMessaging.convert_to_no_reply()
-        return MessageMessaging(
+        messaging_without_reply = [self.theMessaging.convert_to_no_reply()]
+        return MessagesEvent(
             **self.dict(exclude={"messaging"}), messaging=messaging_without_reply
         )
