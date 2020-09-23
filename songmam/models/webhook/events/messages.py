@@ -52,7 +52,7 @@ class MessageWithQuickReply(Message):
         return self.quick_reply.payload
 
     def convert_to_no_reply(self):
-        return Message(**self.dict(exclude={'quick_replies'}))
+        return Message(**self.dict(exclude={"quick_replies"}))
 
 
 class Postback(BaseModel):
@@ -69,7 +69,10 @@ class MessageMessagingWithQuickReply(BaseMessaging, WithTimestamp):
 
     def convert_to_no_reply(self):
         message_without_reply = self.message.convert_to_no_reply()
-        return MessageMessaging(**self.dict(exclude={'message'}), message=message_without_reply)
+        return MessageMessaging(
+            **self.dict(exclude={"message"}), message=message_without_reply
+        )
+
 
 class UnifiedMessagesEvent(BaseEvent, WithMessaging):
     messaging: conlist(
@@ -105,4 +108,6 @@ class MessagesEventWithQuickReply(UnifiedMessagesEvent):
 
     def convert_to_no_reply(self):
         messaging_without_reply = self.theMessaging.convert_to_no_reply()
-        return MessageMessaging(**self.dict(exclude={'messaging'}), messaging=messaging_without_reply)
+        return MessageMessaging(
+            **self.dict(exclude={"messaging"}), messaging=messaging_without_reply
+        )
