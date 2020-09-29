@@ -36,7 +36,6 @@ class VerifyTokenMiddleware:
                 if not self.verify_token:
                     response = PlainTextResponse(challenge)
                     await response(scope, receive, send)
-                    return
                 criteria = {"hub.mode", "hub.verify_token", "hub.challenge"}
                 if set(query_params.keys()).issuperset(criteria):
 
@@ -47,8 +46,7 @@ class VerifyTokenMiddleware:
                             response = Response("", status_code=403)
 
                         await response(scope, receive, send)
-                        return
-            await self.app(scope, receive, send)
+        await self.app(scope, receive, send)
 
 
 class AppSecretMiddleware:
@@ -82,4 +80,4 @@ class AppSecretMiddleware:
                 if expected_signature != header_signature:
                     raise AssertionError("SIGNATURE VERIFICATION FAIL")
 
-            await self.app(scope, receive, send)
+        await self.app(scope, receive, send)
