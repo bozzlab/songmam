@@ -45,18 +45,18 @@ class WebhookHandler:
         self.path = path
         self.dynamic_import = dynamic_import
 
-        app.add_middleware(VerifyTokenMiddleware, verify_token=verify_token, path=path)
-        if not self.verify_token:
-            logger.warning(
-                "Without verify token, It is possible for your bot server to be substituded by hackers' server."
-            )
-
-        if self.app_secret:
-            app.add_middleware(AppSecretMiddleware, app_secret=app_secret, path=path)
-        else:
-            logger.warning(
-                "Without app secret, The server will not be able to identity the integrety of callback."
-            )
+        # app.add_middleware(VerifyTokenMiddleware, verify_token=verify_token, path=path)
+        # if not self.verify_token:
+        #     logger.warning(
+        #         "Without verify token, It is possible for your bot server to be substituded by hackers' server."
+        #     )
+        #
+        # if self.app_secret:
+        #     app.add_middleware(AppSecretMiddleware, app_secret=app_secret, path=path)
+        # else:
+        #     logger.warning(
+        #         "Without app secret, The server will not be able to identity the integrety of callback."
+        #     )
 
         @app.post(path)
         async def handle_entry(request: Request):
