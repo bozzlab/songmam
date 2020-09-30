@@ -1,4 +1,6 @@
 import asyncio
+import hashlib
+import hmac
 import importlib
 import re
 from asyncio import coroutine
@@ -6,6 +8,8 @@ from inspect import iscoroutine
 from itertools import product
 from typing import get_args
 
+from fastapi import Header
+from fastapi import Query
 from moshimoshi import moshi
 from path import Path
 from typing import Optional, Union, List, Awaitable, Callable
@@ -15,7 +19,6 @@ from loguru import logger
 from parse import parse
 from pydantic import ValidationError
 
-from songmam.middleware import VerifyTokenMiddleware, AppSecretMiddleware
 from songmam.models.webhook import MessagesEventWithQuickReply
 from songmam.models.webhook.events.messages import MessagesEvent
 from songmam.models.webhook.events.postback import PostbackEvent
@@ -28,14 +31,14 @@ class WebhookHandler:
     uncaught_postback_handler: Optional[Callable] = None
 
     def __init__(
-        self,
-        app: FastAPI,
-        path="/",
-        *,
-        app_secret: Optional[str] = None,
-        dynamic_import=True,
-        verify_token: Optional[str] = None,
-        auto_mark_as_seen: bool = True
+            self,
+            app: FastAPI,
+            path="/webhook",
+            *,
+            app_secret: Optional[str] = None,
+            dynamic_import=True,
+            verify_token: Optional[str] = None,
+            auto_mark_as_seen: bool = True
     ):
         self._post_webhook_handlers = {}
         self._pre_webhook_handlers = {}
@@ -54,20 +57,42 @@ class WebhookHandler:
         # if self.app_secret:
         #     app.add_middleware(AppSecretMiddleware, app_secret=app_secret, path=path)
         # else:
-        #     logger.warning(
-        #         "Without app secret, The server will not be able to identity the integrety of callback."
-        #     )
+
+
+        if not self.verify_token:
+            @app.get(path)
+            async def check_token(
+                    request: Request,
+                    mode: str = Query(..., alias="hub.mode"),
+                    verify_token: str = Query(..., alias="hub.verify_token"),
+                    challenge: str = Query(..., alias="hub.challenge"),
+            ):
+                """
+                https://developers.facebook.com/docs/messenger-platform/getting-started/webhook-setup
+                """
+                if mode == "subscribe" and verify_token == self.verify_token:
+                    return challenge
 
         @app.post(path)
-        async def handle_entry(request: Request):
+        async def handle_entry(request: Request, the_signature: str = Header(..., alias="X-Hub-Signature")):
             body = await request.body()
+
+            if self.app_secret:
+                if self.verify_webhook(the_signature, self.app_secret, body):
+                    logger.debug("verify webhook success")
+                else:
+                    logger.error("fail to verify app secret")
+            else:
+                logger.warning(
+                    "Without app secret, The server will not be able to identity the integrety of callback."
+                )
+
             try:
                 webhook = Webhook.parse_raw(body)
+                await self.handle_webhook(webhook, request=request)
             except ValidationError as e:
-                logger.error("Cannot validate webhook")
+                logger.error("Cannot parse webhook")
                 logger.error("Body is {}", body)
-                raise e
-            await self.handle_webhook(webhook, request=request)
             return "ok"
 
     # these are set by decorators or the 'set_webhook_handler' method
@@ -80,6 +105,26 @@ class WebhookHandler:
     _quick_reply_callbacks_key_regex = {}
     _button_callbacks_key_regex = {}
     _delivered_callbacks_key_regex = {}
+
+    @staticmethod
+    def verify_webhook(the_signature, app_secret, body):
+        """
+        https://developers.facebook.com/docs/messenger-platform/webhook#security
+        """
+        # the_signature = request.headers["X-Hub-Signature"]
+        assert len(the_signature) == 45
+        assert the_signature.startswith("sha1=")
+        the_signature = the_signature[5:]
+
+        # body = await request.body()
+        expected_signature = hmac.new(
+            str.encode(app_secret), body, hashlib.sha1
+        ).hexdigest()
+
+        if expected_signature != the_signature:
+            return False
+
+        return True
 
     async def handle_webhook(self, webhook: Webhook, *args, **kwargs):
         for event in webhook.entry:
@@ -122,7 +167,7 @@ class WebhookHandler:
                     asyncio.create_task(callback(event, *args, **kwargs))
 
     async def call_dynamic_function(
-        self, *args, event: Union[MessagesEventWithQuickReply, PostbackEvent], **kwargs
+            self, *args, event: Union[MessagesEventWithQuickReply, PostbackEvent], **kwargs
     ):
         payload = event.payload
         kwargs["event"] = event
@@ -157,9 +202,9 @@ class WebhookHandler:
         return decorator
 
     def add(
-        self,
-        event_type,
-        # skipQuickReply:Optional[bool]=None
+            self,
+            event_type,
+            # skipQuickReply:Optional[bool]=None
     ):
         """
         Add an event handler
@@ -207,7 +252,7 @@ class WebhookHandler:
         return decorator
 
     def add_postback_handler(
-        self, regexes: List[str] = None, quick_reply=True, button=True
+            self, regexes: List[str] = None, quick_reply=True, button=True
     ):
         def wrapper(func):
             if regexes is None:
