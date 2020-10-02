@@ -31,14 +31,14 @@ class WebhookHandler:
     uncaught_postback_handler: Optional[Callable] = None
 
     def __init__(
-            self,
-            app: FastAPI,
-            path="/webhook",
-            *,
-            app_secret: Optional[str] = None,
-            dynamic_import=True,
-            verify_token: Optional[str] = None,
-            auto_mark_as_seen: bool = True
+        self,
+        app: FastAPI,
+        path="/webhook",
+        *,
+        app_secret: Optional[str] = None,
+        dynamic_import=True,
+        verify_token: Optional[str] = None,
+        auto_mark_as_seen: bool = True
     ):
         self._post_webhook_handlers = {}
         self._pre_webhook_handlers = {}
@@ -58,14 +58,14 @@ class WebhookHandler:
         #     app.add_middleware(AppSecretMiddleware, app_secret=app_secret, path=path)
         # else:
 
-
         if not self.verify_token:
+
             @app.get(path)
             async def check_token(
-                    request: Request,
-                    mode: str = Query(..., alias="hub.mode"),
-                    verify_token: str = Query(..., alias="hub.verify_token"),
-                    challenge: str = Query(..., alias="hub.challenge"),
+                request: Request,
+                mode: str = Query(..., alias="hub.mode"),
+                verify_token: str = Query(..., alias="hub.verify_token"),
+                challenge: str = Query(..., alias="hub.challenge"),
             ):
                 """
                 https://developers.facebook.com/docs/messenger-platform/getting-started/webhook-setup
@@ -74,7 +74,9 @@ class WebhookHandler:
                     return challenge
 
         @app.post(path)
-        async def handle_entry(request: Request, the_signature: str = Header(..., alias="X-Hub-Signature")):
+        async def handle_entry(
+            request: Request, the_signature: str = Header(..., alias="X-Hub-Signature")
+        ):
             body = await request.body()
 
             if self.app_secret:
@@ -167,7 +169,7 @@ class WebhookHandler:
                     asyncio.create_task(callback(event, *args, **kwargs))
 
     async def call_dynamic_function(
-            self, *args, event: Union[MessagesEventWithQuickReply, PostbackEvent], **kwargs
+        self, *args, event: Union[MessagesEventWithQuickReply, PostbackEvent], **kwargs
     ):
         payload = event.payload
         kwargs["event"] = event
@@ -179,8 +181,12 @@ class WebhookHandler:
             try:
                 await moshi.moshi(payload, *args, **kwargs)
             except ModuleNotFoundError as e:
+                import os
+
+                logger.debug("This is cwd, {}", os.getcwd())
+                logger.exception("Verbose about exception")
                 logger.warning(
-                    "Please add `uncaught_postback_handler` to caught this '{}' payload",
+                    "You could add `uncaught_postback_handler` to caught this '{}' payload",
                     event.payload,
                 )
 
@@ -202,9 +208,9 @@ class WebhookHandler:
         return decorator
 
     def add(
-            self,
-            event_type,
-            # skipQuickReply:Optional[bool]=None
+        self,
+        event_type,
+        # skipQuickReply:Optional[bool]=None
     ):
         """
         Add an event handler
@@ -252,7 +258,7 @@ class WebhookHandler:
         return decorator
 
     def add_postback_handler(
-            self, regexes: List[str] = None, quick_reply=True, button=True
+        self, regexes: List[str] = None, quick_reply=True, button=True
     ):
         def wrapper(func):
             if regexes is None:
