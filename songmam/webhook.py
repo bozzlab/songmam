@@ -48,18 +48,7 @@ class WebhookHandler:
         self.path = path
         self.dynamic_import = dynamic_import
 
-        # app.add_middleware(VerifyTokenMiddleware, verify_token=verify_token, path=path)
-        # if not self.verify_token:
-        #     logger.warning(
-        #         "Without verify token, It is possible for your bot server to be substituded by hackers' server."
-        #     )
-        #
-        # if self.app_secret:
-        #     app.add_middleware(AppSecretMiddleware, app_secret=app_secret, path=path)
-        # else:
-
-        if not self.verify_token:
-
+        if self.verify_token:
             @app.get(path)
             async def check_token(
                 request: Request,
@@ -72,6 +61,22 @@ class WebhookHandler:
                 """
                 if mode == "subscribe" and verify_token == self.verify_token:
                     return challenge
+
+        else:
+            @app.get(path)
+            async def check_token(
+                    request: Request,
+                    mode: str = Query(..., alias="hub.mode"),
+                    verify_token: str = Query(..., alias="hub.verify_token"),
+                    challenge: str = Query(..., alias="hub.challenge"),
+            ):
+                """
+                https://developers.facebook.com/docs/messenger-platform/getting-started/webhook-setup
+                """
+                logger.warning(
+                    "Without verify token supplied, you and your sever might confused about fb app."
+                )
+                return challenge
 
         @app.post(path)
         async def handle_entry(
@@ -86,7 +91,7 @@ class WebhookHandler:
                     logger.error("fail to verify app secret")
             else:
                 logger.warning(
-                    "Without app secret, The server will not be able to identity the integrety of callback."
+                    "Without app secret supplied, The server will not be able to identity the integrety of callback."
                 )
 
             try:
