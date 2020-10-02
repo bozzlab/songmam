@@ -49,6 +49,7 @@ class WebhookHandler:
         self.dynamic_import = dynamic_import
 
         if self.verify_token:
+
             @app.get(path)
             async def check_token(
                 request: Request,
@@ -63,12 +64,13 @@ class WebhookHandler:
                     return challenge
 
         else:
+
             @app.get(path)
             async def check_token(
-                    request: Request,
-                    mode: str = Query(..., alias="hub.mode"),
-                    verify_token: str = Query(..., alias="hub.verify_token"),
-                    challenge: str = Query(..., alias="hub.challenge"),
+                request: Request,
+                mode: str = Query(..., alias="hub.mode"),
+                verify_token: str = Query(..., alias="hub.verify_token"),
+                challenge: str = Query(..., alias="hub.challenge"),
             ):
                 """
                 https://developers.facebook.com/docs/messenger-platform/getting-started/webhook-setup
