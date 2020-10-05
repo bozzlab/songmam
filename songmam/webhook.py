@@ -15,6 +15,7 @@ from path import Path
 from typing import Optional, Union, List, Awaitable, Callable
 
 from fastapi import FastAPI, Request
+from fastapi.responses import PlainTextResponse
 from loguru import logger
 from parse import parse
 from pydantic import ValidationError
@@ -50,7 +51,7 @@ class WebhookHandler:
 
         if self.verify_token:
 
-            @app.get(path)
+            @app.get(path, response_class=PlainTextResponse)
             async def check_token(
                 request: Request,
                 mode: str = Query(..., alias="hub.mode"),
@@ -62,10 +63,12 @@ class WebhookHandler:
                 """
                 if mode == "subscribe" and verify_token == self.verify_token:
                     return challenge
+                else:
+                    return PlainTextResponse("Bad Verification Token", status_code=403)
 
         else:
 
-            @app.get(path)
+            @app.get(path, response_class=PlainTextResponse)
             async def check_token(
                 request: Request,
                 mode: str = Query(..., alias="hub.mode"),
