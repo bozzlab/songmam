@@ -412,11 +412,13 @@ class MessengerApi:
         seconds: float,
         recipient: Type[ThingWithId],
         prepause_seconds: float = 0.0,
+        postpause_seconds: float = 0.0,
     ):
         await asyncio.sleep(prepause_seconds)
         await self.typing_on(recipient)
         await asyncio.sleep(seconds)
         await self.typing_off(recipient)
+        await asyncio.sleep(postpause_seconds)
 
     """
     messenger profile (see https://developers.facebook.com/docs/messenger-platform/reference/messenger-profile-api)
