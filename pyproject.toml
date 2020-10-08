@@ -17,6 +17,7 @@ autoname = "^0.1.2"
 parse = "^1.16.0"
 path = "^15.0.0"
 moshimoshi = "^0.2"
+arrow = "^0.17.0"
 
 [tool.poetry.dev-dependencies]
 mock = "^4.0.2"

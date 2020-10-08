@@ -1,17 +1,22 @@
 import base64
 import hashlib
 import hmac
-import json
 from enum import auto
+from typing import NewType
+from typing import Optional
 
+import arrow
 from autoname import AutoNameUppercase
 from pydantic import BaseModel
+
+Second = NewType('Second', int)
 
 
 class ThreadType(AutoNameUppercase):
     user_to_page = auto()
     user_to_user = auto()
     group = auto()
+
 
 class UnsignedRequest(BaseModel):
     """
@@ -32,6 +37,7 @@ class UnsignedRequest(BaseModel):
     # expires
     # app_data
 
+
 class Context(BaseModel):
     """
     https://developers.facebook.com/docs/messenger-platform/reference/messenger-extensions-sdk/getContext
@@ -47,7 +53,7 @@ class Context(BaseModel):
         inp += "=" * padding_factor
         return base64.b64decode(inp.translate(dict(zip(map(ord, u'-_'), u'+/'))))
 
-    def verify(self, app_secret) -> UnsignedRequest:
+    def verify(self, app_secret, acceptable_freshness: Optional[Second] = None) -> UnsignedRequest:
         """
         https://developers.facebook.com/docs/messenger-platform/webview/context
 
@@ -58,16 +64,19 @@ class Context(BaseModel):
         signature = self.base64_url_decode(encoded_signature)
         unsigned_request = UnsignedRequest.parse_raw(self.base64_url_decode(payload))
 
+        if acceptable_freshness:
+            issued_at = arrow.get(unsigned_request.issued_at)
+            if issued_at.shift(seconds=acceptable_freshness) < arrow.utcnow():
+                raise Exception(f"This context is too old. It was issue at {issued_at.format()}")
+
         if unsigned_request.algorithm.upper() != 'HMAC-SHA256':
             raise NotImplementedError('Unknown algorithm')
         else:
             expected_signature = hmac.new(
                 str.encode(app_secret), str.encode(payload), hashlib.sha256
-            ).hexdigest()
+            ).digest()
 
         if signature != expected_signature:
             return None
         else:
             return unsigned_request
-
-
