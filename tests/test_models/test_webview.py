@@ -15,4 +15,4 @@ def test_main():
 
     context = Context.parse_raw(sample)
     assert not context.verify("123")
-    assert context.verify('7edb841332147f98c53e42813c0d52d8')
+    assert context.verify("7edb841332147f98c53e42813c0d52d8")
