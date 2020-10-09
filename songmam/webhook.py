@@ -1,12 +1,5 @@
 import asyncio
-import hashlib
-import hmac
-import importlib
 import re
-from asyncio import coroutine
-from inspect import iscoroutine
-from itertools import product
-from typing import get_args
 
 from fastapi import Header
 from fastapi import Query
@@ -24,6 +17,7 @@ from songmam.models.webhook import MessagesEventWithQuickReply
 from songmam.models.webhook.events.messages import MessagesEvent
 from songmam.models.webhook.events.postback import PostbackEvent
 from songmam.models.webhook import Webhook
+from songmam.security import verify_webhook_body
 
 
 class WebhookHandler:
@@ -85,12 +79,12 @@ class WebhookHandler:
 
         @app.post(path)
         async def handle_entry(
-            request: Request, the_signature: str = Header(..., alias="X-Hub-Signature")
+            request: Request, signature: str = Header(..., alias="X-Hub-Signature")
         ):
             body = await request.body()
 
             if self.app_secret:
-                if self.verify_webhook(the_signature, self.app_secret, body):
+                if verify_webhook_body(signature, self.app_secret, body):
                     logger.debug("verify webhook success")
                 else:
                     logger.error("fail to verify app secret")
@@ -117,26 +111,6 @@ class WebhookHandler:
     _quick_reply_callbacks_key_regex = {}
     _button_callbacks_key_regex = {}
     _delivered_callbacks_key_regex = {}
-
-    @staticmethod
-    def verify_webhook(the_signature, app_secret, body):
-        """
-        https://developers.facebook.com/docs/messenger-platform/webhook#security
-        """
-        # the_signature = request.headers["X-Hub-Signature"]
-        assert len(the_signature) == 45
-        assert the_signature.startswith("sha1=")
-        the_signature = the_signature[5:]
-
-        # body = await request.body()
-        expected_signature = hmac.new(
-            str.encode(app_secret), body, hashlib.sha1
-        ).hexdigest()
-
-        if expected_signature != the_signature:
-            return False
-
-        return True
 
     async def handle_webhook(self, webhook: Webhook, *args, **kwargs):
         for event in webhook.entry:

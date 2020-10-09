@@ -8,8 +8,12 @@ from typing import Optional
 import arrow
 from autoname import AutoNameUppercase
 from pydantic import BaseModel
+from pydantic.types import conint
 
-Second = NewType("Second", int)
+from songmam.security import verify_signed_request
+
+# type
+Second = conint(ge=0)
 
 
 class ThreadType(AutoNameUppercase):
@@ -18,7 +22,7 @@ class ThreadType(AutoNameUppercase):
     group = auto()
 
 
-class UnsignedRequest(BaseModel):
+class SignedRequestContent(BaseModel):
     """
     This class property was created based on a real object. See test for ref.
 
@@ -49,40 +53,29 @@ class Context(BaseModel):
     psid: str
     signed_request: str
 
-    @staticmethod
-    def base64_url_decode(inp):
-        padding_factor = (4 - len(inp) % 4) % 4
-        inp += "=" * padding_factor
-        return base64.b64decode(inp.translate(dict(zip(map(ord, "-_"), "+/"))))
-
     def verify(
         self, app_secret, acceptable_freshness: Optional[Second] = None
-    ) -> Optional[UnsignedRequest]:
+    ) -> Optional[SignedRequestContent]:
         """
+        verify signed_request alongwith fressness
         https://developers.facebook.com/docs/messenger-platform/webview/context
 
         fork from https://gist.github.com/adrienjoly/1373945/0434b4207a268bdd9cbd7d45ac22ec33dfaad199
         """
-        encoded_signature, payload = self.signed_request.split(".")
 
-        signature = self.base64_url_decode(encoded_signature)
-        unsigned_request = UnsignedRequest.parse_raw(self.base64_url_decode(payload))
+        request_content = verify_signed_request(
+            app_secret=app_secret, signed_request=self.signed_request
+        )
+        if request_content:
+            request_content = SignedRequestContent(**request_content)
+        else:
+            return None
 
         if acceptable_freshness:
-            issued_at = arrow.get(unsigned_request.issued_at)
+            issued_at = arrow.get(request_content.issued_at)
             if issued_at.shift(seconds=acceptable_freshness) < arrow.utcnow():
                 raise Exception(
                     f"This context is too old. It was issue at {issued_at.format()}"
                 )
 
-        if unsigned_request.algorithm.upper() != "HMAC-SHA256":
-            raise NotImplementedError("Unknown algorithm")
-        else:
-            expected_signature = hmac.new(
-                str.encode(app_secret), str.encode(payload), hashlib.sha256
-            ).digest()
-
-        if signature != expected_signature:
-            return None
-        else:
-            return unsigned_request
+        return request_content
