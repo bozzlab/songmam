@@ -54,7 +54,7 @@ class Context(BaseModel):
     signed_request: str
 
     def verify(
-            self, app_secret, acceptable_freshness: Optional[Second] = None
+        self, app_secret, acceptable_freshness: Optional[Second] = None
     ) -> Optional[SignedRequestContent]:
         """
         verify signed_request alongwith fressness
@@ -63,7 +63,9 @@ class Context(BaseModel):
         fork from https://gist.github.com/adrienjoly/1373945/0434b4207a268bdd9cbd7d45ac22ec33dfaad199
         """
 
-        request_content = verify_signed_request(app_secret=app_secret, signed_request=self.signed_request)
+        request_content = verify_signed_request(
+            app_secret=app_secret, signed_request=self.signed_request
+        )
         if request_content:
             request_content = SignedRequestContent(**request_content)
         else:

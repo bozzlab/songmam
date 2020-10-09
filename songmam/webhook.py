@@ -112,8 +112,6 @@ class WebhookHandler:
     _button_callbacks_key_regex = {}
     _delivered_callbacks_key_regex = {}
 
-
-
     async def handle_webhook(self, webhook: Webhook, *args, **kwargs):
         for event in webhook.entry:
             event_type = type(event)
