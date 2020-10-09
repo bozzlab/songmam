@@ -57,7 +57,7 @@ class Context(BaseModel):
 
     def verify(
         self, app_secret, acceptable_freshness: Optional[Second] = None
-    ) -> UnsignedRequest:
+    ) -> Optional[UnsignedRequest]:
         """
         https://developers.facebook.com/docs/messenger-platform/webview/context
 
