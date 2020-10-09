@@ -1,173 +1,61 @@
-import os
-from functools import partial
-from pathlib import Path
-from typing import Any, Dict
-
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
-from fastapi.staticfiles import StaticFiles
-
-# from songmam import Page, Webhook, MessageEvent, BasePayload
-from pydantic import ValidationError
-
-from songmam.api import content
-from songmam.facebook.entries.messages import Sender
-from songmam.facebook.messaging.templates import ReceiptElements, Address, Summary, Adjustments
-from songmam.facebook.messaging.templates.generic import GenericElements, DefaultAction
-from songmam.facebook.messaging.templates.media import MediaElements
+from decouple import config
+from fastapi import FastAPI
+from loguru import logger
 
 # os.environ['PAGE_ACCESS_TOKEN'] = "MY Access token"
 # os.environ['PAGE_VERIFY_TOKEN'] = "MY Verify token"
-from furl import furl
-from jinja2 import Environment, PackageLoader, select_autoescape, FileSystemLoader
-from loguru import logger
+from songmam import WebhookHandler, MessengerApi
+from songmam.models.messaging.quick_replies import QuickReply
+from songmam.models.messaging.templates.button import PostbackButton
+from songmam.models.webhook.events import *
 
-from songmam import Webhook
-from songmam.api.events import MessageEvent, PostBackEvent, EchoEvent, DeliveriesEvent
-from songmam.api.content import ContentButton, ContentGeneric, ContentMedia, ContentReceipt
-from songmam.facebook.messaging.locale import Locale
-from songmam.facebook.messaging.quick_replies import QuickReply
-from songmam.facebook.messaging.templates.button import URLButton, PostbackButton, CallButton, LogInButton, \
-    LogOutButton, GamePlayButton
-from songmam.facebook.messenger_profile import MenuPerLocale, GreetingPerLocale
-from songmam.humanTyping import HumanTyping
-from songmam.page import Page
-
-endpoint_url = furl("https://170f43db701d.ngrok.io/")
-
-# default_menu = MenuPerLocale(
-#     call_to_actions=[
-#         PostbackButton(title='change who i talk to', payload='menu/1'),
-#         PostbackButton(title='change my menu', payload='menu/2'),
-#         URLButton(title='send example replies', url=(endpoint_url / "sampleMessagerSDK").url)
-#     ]
-# )
-# th_menu = MenuPerLocale(
-#     locale=Locale.th_TH,
-#     call_to_actions=[
-#         PostbackButton(title='เมนู 1', payload='menu/1'),
-#         PostbackButton(title='เมนู 2', payload='menu/1')
-#     ]
-# )
-#
-# default_greeting = GreetingPerLocale(text="Hi {{user_first_name}}, This is Songmum Bot." )
-# th_greeting = GreetingPerLocale(locale=Locale.th_TH, text="สวัสดีครัช {{user_first_name}}, เรียกผมว่า ส่งแหม่!" )
+app = FastAPI()
+handler = WebhookHandler(app)
+api = MessengerApi(config("PAGE_ACCESS_TOKEN"), auto_avajana=False)
 
 
-page = Page(
-    # persistent_menu=[default_menu, th_menu],
-    # greeting=[default_greeting, th_greeting],
-    persistent_menu=None,
-    greeting=None,
-    whitelisted_domains=[endpoint_url.url],
-    auto_mark_as_seen=True,
-)
-app = FastAPI(
-    title="Showcase Project",
-    description="This is a very fancy project.",
-    version="3.0.0",
-)
-humanTyping = HumanTyping()
-
-
-env = Environment(
-    loader=FileSystemLoader(Path()/ 'templates'),
-    autoescape=select_autoescape(['html', 'xml'])
-)
-
-page.add_verification_middleware(app)
-
-app.mount("/static", StaticFiles(directory="static"), name="static")
-
-@app.get("/healthz")
-async def show_server_is_alive(request: Request):
-    body = await request.body()
-    return "server is online."
-
-# @app.post("/webhook")
-# async def handle_entry(webhook: Webhook):
-#     await page.handle_webhook(webhook)
-#     return "ok"
-
-@app.get("/sampleMessagerSDK", response_class=HTMLResponse)
-async def sample():
-    template = env.get_template('allResponse.html')
-    return template.render()
-
-@app.get("/sampleMessagerSDK2", response_class=HTMLResponse)
-async def sample2():
-    template = env.get_template('webview.html')
-    return template.render()
-
-@app.post("/sendResponse")
-async def sendResponse():
-    sender = 'id'
-    reponse = "url"
-
-
-@app.post("/webhook")
-async def handle_entry(webhook: Dict[str, Any], request: Request):
-    body = await request.body()
-    try:
-        webhook = Webhook.parse_raw(body)
-    except ValidationError:
-        return
-        pass
-    # print(body)
-    print(webhook)
-    await page.handle_webhook(webhook)
-    return "ok"
-
-
-@page.handle_message
-async def echo(message: MessageEvent):
-
-    # page.get_user_profile_sync(message.sender.id)
-    # page.send(message.sender.id, "thank you! your message is '%s'" % message.text)
-    # buttons = [
-    #     URLButton(title="Open Webview", url=(endpoint_url / "sampleMessagerSDK").url, messenger_extensions=True),
-    #     PostbackButton(title="trigger Postback", payload="DEVELOPED_DEFINED_PAYLOAD"),
-    #     CallButton(title="Call Phone Number", payload="+66992866936")
-    # ]
-    print(message.sender.id)
-    # test_user = Sender(id="3144004072361851")
-    content = ContentButton(
-        text=f"replied to {message.text}",
-        buttons=None,
-        quick_replies=None
+@handler.add(MessagesEvent)
+async def echo(event: MessagesEvent, *args, **kwargs):
+    print(
+        event.theMessaging.recipient,
+        event.theMessaging.sender,
+        event.theMessaging.message.text,
     )
-    # # page.send(message.sender, content)
-    # # typing_fn = partial(page.typing_on, message.sender)
-    # # stop_typing_fn = partial(page.typing_off, message.sender)
-    # # await humanTyping.act_typing_simple(message.text, typing_fn, stop_typing_fn)
-    # await page.reply(message, content)
-    await page.send(message.sender, content)
-    # page._send(
-    #
-
-    #     )
+    await api.send(
+        event.sender,
+        text=event.theMessaging.message.text,
+        buttons=PostbackButton(title="send postback", payload="handlers.do:tell_user"),
+        quick_replies=QuickReply(title="quick reply", payload="handlers.do:tell_user"),
+    )
 
 
-@page.handle_postback
-async def log(event: PostBackEvent):
-    logger.info(f"{event.entry} ")
+@handler.add(MessagesEventWithQuickReply)
+async def echo2(entry: MessagesEventWithQuickReply, *args, **kwargs):
+    logger.info("echo2")
 
 
-@page.handle_delivery
-async def delivery(event: DeliveriesEvent):
-    logger.info(f"{event.entry} ")
+@handler.add(MessagingReferralEvent)
+async def handle_ref(entry: MessagingReferralEvent, *args, **kwargs):
+    logger.info(entry.sender)
+    logger.info(entry.ref)
 
 
-@page.callback(payloads=["test"], quick_reply=True, button=False)
-async def log3(event):
-    logger.info("log3")
+@handler.add(MessageReadsEvent)
+async def handle_read(entry: MessageReadsEvent, *args, **kwargs):
+    logger.info(entry)
+
+
+@handler.add(MessageDeliveriesEvent)
+async def handle_delivery(entry: MessageDeliveriesEvent, *args, **kwargs):
+    logger.info(entry)
+
+
+# @handler.set_uncaught_postback_handler
+# async def handle_uncaught_postback(event):
+#     logger.info(event)
+
 
 if __name__ == "__main__":
-
-    # typing_fn = partial(page.typing_on, message.sender)
-    # stop_typing_fn = partial(page.typing_off, message.sender)
-    # await humanTyping.act_typing_simple(message.text, typing_fn, stop_typing_fn)
-    # page.reply(message, content)
     import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True, log_level='debug')
 
+    uvicorn.run("app:app", host="0.0.0.0", port=8002, reload=True, log_level="debug")
