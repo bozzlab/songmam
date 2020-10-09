@@ -14,11 +14,11 @@ def base64_url_decode(inp) -> bytes:
     inp += "=" * padding_factor
     return base64.b64decode(inp.translate(dict(zip(map(ord, "-_"), "+/"))))
 
+
 RequestContent = Dict
 
-def verify_signed_request(
-        signed_request, app_secret
-) -> Optional[RequestContent]:
+
+def verify_signed_request(signed_request, app_secret) -> Optional[RequestContent]:
     """
     Verify Signed Request from Context object retrieves from webview, frontend
     https://developers.facebook.com/docs/messenger-platform/webview/context
@@ -30,7 +30,7 @@ def verify_signed_request(
     signature = base64_url_decode(encoded_signature)
     request_content = json.loads(base64_url_decode(payload))
 
-    if request_content.get('algorithm').upper() != "HMAC-SHA256":
+    if request_content.get("algorithm").upper() != "HMAC-SHA256":
         raise NotImplementedError("Unknown algorithm")
     else:
         calculated_signature = hmac.new(
