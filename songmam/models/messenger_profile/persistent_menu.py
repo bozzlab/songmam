@@ -4,11 +4,10 @@ from typing import List, Union
 from pydantic import BaseModel, conlist
 
 from songmam.models.messaging.templates.button import (
-    BaseButton,
     PostbackButton,
     URLButton,
 )
-from songmam.models.messaging.locale import ThingWithLocale
+from songmam.models.locale import ThingWithLocale
 
 
 class MenuPerLocale(ThingWithLocale):

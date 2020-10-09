@@ -2,8 +2,6 @@ import unittest
 import json
 import mock
 import responses
-from songmam.page import Page, LocalizedObj, SUPPORTED_API_VERS
-from songmam import template as Template
 from songmam.models.webhook import events as Event
 
 

@@ -20,9 +20,8 @@ from songmam.models.messaging.templates.button import (
     LogInButton,
     LogOutButton,
 )
-from songmam.models.messaging.templates.generic import DefaultAction, GenericElement
+from songmam.models.messaging.templates.generic import GenericElement
 from songmam.models.messaging.templates.media import MediaElement
-from songmam.page import Page
 
 
 @pytest.fixture

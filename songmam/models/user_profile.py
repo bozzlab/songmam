@@ -2,6 +2,8 @@ from typing import Optional, Any
 
 from pydantic import BaseModel, HttpUrl
 
+from songmam.models.locale import Locale
+
 
 class UserProfile(BaseModel):
     """
@@ -13,6 +15,6 @@ class UserProfile(BaseModel):
     first_name: str
     last_name: str
     profile_pic: HttpUrl
-    locale: Optional[str]  # TODO: to be changed to `literal`
+    locale: Optional[Locale]
     timezone: Optional[int]
     gender: Optional[str]  # TODO: to be changed to `literal`

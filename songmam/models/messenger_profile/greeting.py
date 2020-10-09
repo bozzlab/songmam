@@ -1,9 +1,8 @@
 # https://developers.facebook.com/docs/messenger-platform/reference/messenger-profile-api/greeting
-from typing import List
 
 from pydantic import validator
 
-from songmam.models.messaging.locale import ThingWithLocale
+from songmam.models.locale import ThingWithLocale
 
 
 class GreetingPerLocale(ThingWithLocale):
