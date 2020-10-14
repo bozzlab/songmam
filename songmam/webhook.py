@@ -10,7 +10,6 @@ from typing import Optional, Union, List, Awaitable, Callable
 from fastapi import FastAPI, Request
 from fastapi.responses import PlainTextResponse
 from loguru import logger
-from parse import parse
 from pydantic import ValidationError
 
 from songmam.models.webhook import MessagesEventWithQuickReply

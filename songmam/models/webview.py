@@ -10,6 +10,7 @@ from autoname import AutoNameUppercase
 from pydantic import BaseModel
 from pydantic.types import conint
 
+from songmam.security import SignedRequest
 from songmam.security import verify_signed_request
 
 # type
@@ -51,31 +52,5 @@ class Context(BaseModel):
     thread_type: ThreadType
     tid: str
     psid: str
-    signed_request: str
+    signed_request: SignedRequest
 
-    def verify(
-        self, app_secret, acceptable_freshness: Optional[Second] = None
-    ) -> Optional[SignedRequestContent]:
-        """
-        verify signed_request alongwith fressness
-        https://developers.facebook.com/docs/messenger-platform/webview/context
-
-        fork from https://gist.github.com/adrienjoly/1373945/0434b4207a268bdd9cbd7d45ac22ec33dfaad199
-        """
-
-        request_content = verify_signed_request(
-            app_secret=app_secret, signed_request=self.signed_request
-        )
-        if request_content:
-            request_content = SignedRequestContent(**request_content)
-        else:
-            return None
-
-        if acceptable_freshness:
-            issued_at = arrow.get(request_content.issued_at)
-            if issued_at.shift(seconds=acceptable_freshness) < arrow.utcnow():
-                raise Exception(
-                    f"This context is too old. It was issue at {issued_at.format()}"
-                )
-
-        return request_content
