@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "songmam"
-version = "1.6.3"
+version = "1.6.4"
 description = "A production interface to facebook messenger api."
 authors = ["Nutchanon Ninyawee <me@nutchanon.org>"]
 
