@@ -18,9 +18,12 @@ def test_main():
     assert not context.signed_request.verify("123")
     assert context.signed_request.verify("7edb841332147f98c53e42813c0d52d8")
     with pytest.raises(Exception) as e:
-        context.signed_request.verify("7edb841332147f98c53e42813c0d52d8", acceptable_freshness_sec=60*60)
+        context.signed_request.verify(
+            "7edb841332147f98c53e42813c0d52d8", acceptable_freshness_sec=60 * 60
+        )
         assert "This signed request was too old. It was issue at" in str(e.value)
 
     with freeze_time("2020-10-08T06:01:54+00:00"):
-        assert context.signed_request.verify("7edb841332147f98c53e42813c0d52d8", acceptable_freshness_sec=60*60)
-
+        assert context.signed_request.verify(
+            "7edb841332147f98c53e42813c0d52d8", acceptable_freshness_sec=60 * 60
+        )
