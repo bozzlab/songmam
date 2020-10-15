@@ -54,6 +54,7 @@ def verify_signed_request(
     else:
         return request_content
 
+
 pattern = r"(\w+)\.(\w+)"
 signed_request_regex = re.compile(pattern)
 
