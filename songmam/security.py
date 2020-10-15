@@ -55,7 +55,8 @@ def verify_signed_request(
         return request_content
 
 
-signed_request_regex = re.compile(r"(\w+)\.(\w+)")
+pattern = r"(\w+)\.(\w+)"
+signed_request_regex = re.compile(pattern)
 
 
 class SignedRequest(str):
@@ -72,7 +73,7 @@ class SignedRequest(str):
         # the returned value will be ignored
         field_schema.update(
             # simplified regex here for brevity, see the wikipedia link above
-            pattern=signed_request_regex,
+            pattern=pattern,
             # some example postcodes
             examples=[
                 "kyYc0BUmhpqnlzGgf8_FgVMISpiAqo9TRs1Z3xSIX7w.eyJhbGdvcml0aG0iOiJITUFDLVNIQTI1NiIsImNvbW11bml0eV9pZCI6bnVsbCwiaXNzdWVkX2F0IjoxNjAyMTM2OTE0LCJtZXRhZGF0YSI6bnVsbCwicGFnZV9pZCI6NTc0MTg1MzM2NTk1NjczLCJwc2lkIjoiMzE0OTE1OTI0ODUzNzIxMiIsInRocmVhZF9wYXJ0aWNpcGFudF9pZHMiOm51bGwsInRocmVhZF90eXBlIjoiVVNFUl9UT19QQUdFIiwidGlkIjoiMzE0OTE1OTI0ODUzNzIxMiJ9"
