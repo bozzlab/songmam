@@ -4,7 +4,10 @@ build:
 patch:
 	poetry version patch
 
-letsgo: format patch publish
+update:
+	poetry update
+
+letsgo: update format patch publish
 
 format:
 	pre-commit run --all-files
