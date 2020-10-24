@@ -7,7 +7,7 @@ from moshimoshi import moshi
 from path import Path
 from typing import Optional, Union, List, Awaitable, Callable
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, APIRouter
 from fastapi.responses import PlainTextResponse
 from loguru import logger
 from pydantic import ValidationError
@@ -26,7 +26,7 @@ class WebhookHandler:
 
     def __init__(
         self,
-        app: FastAPI,
+        app: Union[FastAPI,APIRouter],
         path="/webhook",
         *,
         app_secret: Optional[str] = None,
