@@ -27,7 +27,7 @@ class WebhookHandler:
 
     def __init__(
         self,
-        app: Union[FastAPI,APIRouter],
+        app: Union[FastAPI, APIRouter],
         path="/webhook",
         *,
         app_secret: Optional[str] = None,
