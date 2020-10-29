@@ -4,10 +4,11 @@ import re
 from fastapi import Header
 from fastapi import Query
 from moshimoshi import moshi
+from parse import parse
 from path import Path
 from typing import Optional, Union, List, Awaitable, Callable
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, Request, APIRouter
 from fastapi.responses import PlainTextResponse
 from loguru import logger
 from pydantic import ValidationError
@@ -26,7 +27,7 @@ class WebhookHandler:
 
     def __init__(
         self,
-        app: FastAPI,
+        app: Union[FastAPI, APIRouter],
         path="/webhook",
         *,
         app_secret: Optional[str] = None,
@@ -118,8 +119,12 @@ class WebhookHandler:
             # quick_replies raw input escape
             if event_type is MessagesEventWithQuickReply:
                 if event.payload == "#raw_input":
-                    handler = self._webhook_handlers.get(MessagesEvent)
                     event = event.convert_to_no_reply()
+                    event_type = MessagesEvent
+                elif event.payload.startswith("#input_as"):
+                    the_parsed = parse("#input_as#{text}", event.payload)
+                    event = event.convert_to_no_reply()
+                    event.theMessaging.message.text = the_parsed.text
                     event_type = MessagesEvent
 
             # Unconditional handlers
