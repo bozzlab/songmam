@@ -386,14 +386,26 @@ class MessengerApi:
     #         callback=callback
     #     )
 
-    async def typing_on(self, recipient: Type[ThingWithId]):
+    async def typing_on(
+        self,
+        recipient: Union[Sender, str],
+    ):
+        if isinstance(recipient, str):
+            recipient = Sender(id=recipient)
+
         payload = SenderActionPayload(
             recipient=recipient, sender_action=SenderAction.TYPING_ON
         )
 
         return await self.send_native(payload)
 
-    async def typing_off(self, recipient: Type[ThingWithId]):
+    async def typing_off(
+        self,
+        recipient: Union[Sender, str],
+    ):
+        if isinstance(recipient, str):
+            recipient = Sender(id=recipient)
+
         payload = SenderActionPayload(
             recipient=recipient, sender_action=SenderAction.TYPING_OFF
         )
@@ -410,7 +422,7 @@ class MessengerApi:
     async def typing_for(
         self,
         seconds: float,
-        recipient: Type[ThingWithId],
+        recipient: Union[Sender, str],
         prepause_seconds: float = 0.0,
         postpause_seconds: float = 0.0,
     ):
