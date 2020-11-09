@@ -1,3 +1,5 @@
+# Since This repo is almost entirely change from the fork, contains a lot of remnants(releases,tags) that irrelevant to this library, and currently maintain by Codustry. new repo of songmam will be created on the codustry repo link post here soon.
+
 # songmam
 
 
